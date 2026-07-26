@@ -162,30 +162,10 @@ export default function GlossaryPanel() {
     );
   };
 
-  return (
-    <>
-      {/* Toggle button (top bar, after Codex + Journal) */}
-      <button
-        onClick={() => togglePanel('glossary')}
-        className={`absolute top-4 left-[172px] z-20 rounded-lg border p-2 shadow-lg transition-all hover:scale-105 ${
-          isOpen
-            ? 'bg-amber-900/80 border-amber-400/60'
-            : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90'
-        }`}
-        title="Filipino Glossary (G)"
-        aria-label="Open Filipino Glossary"
-      >
-        <div className="text-amber-400 font-bold text-xs flex items-center gap-1">
-          <span className="text-sm">📖</span> Glossary
-        </div>
-        <div className="text-white/50 text-[10px] mt-0.5 text-center font-mono">
-          {ALL_ENTRIES.length} terms
-        </div>
-      </button>
+  if (!isOpen) return null;
 
-      {/* Panel */}
-      {isOpen && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in flex flex-col max-h-[85vh]">
+  return (
+    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in flex flex-col max-h-[85vh]">
           {/* Header */}
           <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-stone-950 to-stone-950 rounded-t-xl shrink-0 panel-ornamental-header">
             <div>
@@ -301,8 +281,6 @@ export default function GlossaryPanel() {
               )}
             </div>
           </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

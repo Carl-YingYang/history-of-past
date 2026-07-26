@@ -53,25 +53,10 @@ export default function SettingsPanel() {
     setTimeout(() => window.location.reload(), 500);
   };
 
-  return (
-    <>
-      {/* Settings gear button */}
-      <button
-        onClick={() => togglePanel('settings')}
-        className={`absolute top-4 right-4 z-20 w-10 h-10 rounded-lg border flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
-          isOpen
-            ? 'bg-amber-900/80 border-amber-400/60'
-            : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90'
-        }`}
-        title="Settings (S)"
-        aria-label="Open settings"
-      >
-        <span className="text-amber-400 text-base">⚙️</span>
-      </button>
+  if (!isOpen) return null;
 
-      {/* Settings Panel */}
-      {isOpen && (
-        <div className="absolute top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in">
+  return (
+    <div className="absolute top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in">
           <div className="p-3 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-l from-amber-950/40 to-transparent rounded-t-xl panel-ornamental-header">
             <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
               <span className="text-base">⚙️</span> Settings
@@ -175,8 +160,6 @@ export default function SettingsPanel() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

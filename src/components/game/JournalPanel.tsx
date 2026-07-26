@@ -13,34 +13,10 @@ export default function JournalPanel() {
 
   const sortedEntries = [...journalEntries].sort((a, b) => b.timestamp - a.timestamp);
 
-  return (
-    <>
-      {/* Toggle button */}
-      <button
-        onClick={() => togglePanel('journal')}
-        className={`absolute top-4 left-[88px] z-20 rounded-lg border p-2 shadow-lg transition-all hover:scale-105 ${
-          isOpen
-            ? 'bg-amber-900/80 border-amber-400/60'
-            : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90'
-        }`}
-        title="Journal (J)"
-        aria-label="Open Journal"
-      >
-        <div className="text-amber-400 font-bold text-xs flex items-center gap-1">
-          <span className="text-sm">📔</span> Journal
-        </div>
-        {journalEntries.length > 0 ? (
-          <div className="text-white/50 text-[10px] mt-0.5 text-center font-mono">
-            {journalEntries.length} {journalEntries.length === 1 ? 'entry' : 'entries'}
-          </div>
-        ) : (
-          <div className="text-white/30 text-[10px] mt-0.5 text-center">empty</div>
-        )}
-      </button>
+  if (!isOpen) return null;
 
-      {/* Panel */}
-      {isOpen && (
-        <div className="absolute top-16 left-[88px] z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in">
+  return (
+    <div className="absolute top-16 left-[88px] z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in">
           <div className="p-3 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 to-transparent rounded-t-xl panel-ornamental-header">
             <div>
               <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
@@ -96,8 +72,6 @@ export default function JournalPanel() {
               )}
             </div>
           </ScrollArea>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

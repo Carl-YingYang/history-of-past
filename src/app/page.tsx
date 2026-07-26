@@ -17,6 +17,7 @@ import IntroScreen from '@/components/game/IntroScreen';
 import GlossaryPanel from '@/components/game/GlossaryPanel';
 import AchievementsPanel from '@/components/game/AchievementsPanel';
 import StoryLogPanel from '@/components/game/StoryLogPanel';
+import Toolbar from '@/components/game/Toolbar';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -125,6 +126,9 @@ export default function Home() {
 
         {/* Dialogue box (hidden automatically when a panel is open) */}
         <DialogueBox />
+
+        {/* Toolbar — responsive flex layout for panel toggle buttons */}
+        <Toolbar />
 
         {/* Top-bar panels */}
         <CodexPanel />

@@ -103,9 +103,69 @@
     "summary": "The central gathering place of San Diego — where the church, market, and Ibarra mansion all face. A hub of social life and gossip.",
     "details": "In colonial Philippine towns, the plaza was the center of everything. It connected the church (representing Spanish spiritual authority), the government buildings (representing Spanish political authority), and the market (representing Filipino economic life). The layout itself was a physical map of colonial power dynamics. The San Diego plaza is where Ibarra is seen crossing after his return, and where gossip about the reception spreads fastest.",
     "category": "places",
-    "relatedEntries": ["place.san-diego", "char.ibarra"],
+    "relatedEntries": ["place.san-diego", "char.ibarra", "place.church", "place.market"],
     "icon": "⛲",
     "color": "#C4A76C"
+  },
+  {
+    "id": "place.church",
+    "name": "San Diego Church",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The parish church of San Diego — the center of Spanish spiritual authority and the seat of the friar's power over the community.",
+    "details": "Every colonial Philippine town was built around its church. The San Diego parish church stands at the north end of the plaza, overlooking the town. It was where Padre Dámaso held sway for decades — where baptisms, marriages, and funerals were all conducted under friar control. The church bell tower was the tallest structure in town, a physical reminder that God (and His Spanish representatives) watched over everything. The convent next to the church served as the friar's residence, a fortress of colonial authority.",
+    "category": "places",
+    "relatedEntries": ["place.plaza", "char.damaso", "place.convent"],
+    "icon": "⛪",
+    "color": "#E8E0D0"
+  },
+  {
+    "id": "place.convent",
+    "name": "Friar's Convent",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The residence of the parish friar — attached to the church, it was a center of political power as well as spiritual authority.",
+    "details": "The convent (or casa parroquial) was more than a priest's home. In colonial Philippines, the convent served as the friar's command center — where local disputes were settled, land records were kept, and political decisions were made. It was often the largest and most comfortable building in town. When a new friar arrived, the convent became his personal domain, and the community had no choice but to accept his authority over both spiritual and civic matters.",
+    "category": "places",
+    "relatedEntries": ["place.church", "char.damaso"],
+    "icon": "🏛️",
+    "color": "#C9B896"
+  },
+  {
+    "id": "place.market",
+    "name": "Town Market (Tiangge)",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The open-air market south of the plaza — where vendors trade goods and gossip spreads faster than news.",
+    "details": "The tiangge (market) is where the everyday economy of San Diego happens. Vendors sell rice, pansit, pan de sal, vegetables, and household goods. But the market is also the town's information exchange — where Aling Nena and Mang Andres gossip about Padre Dámaso's outburst at the reception, where rumors about Ibarra's return circulate, and where the social tensions between friars and townspeople simmer openly. In a town with no newspaper, the market is the media.",
+    "category": "places",
+    "relatedEntries": ["place.plaza", "char.aling-nena", "char.mang-andres"],
+    "icon": "🛒",
+    "color": "#FF6B35"
+  },
+  {
+    "id": "place.ibarra-house",
+    "name": "Ibarra Family Mansion",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The ancestral home of Don Rafael Ibarra, now inherited by Crisóstomo — the largest private residence in San Diego.",
+    "details": "The Ibarra mansion stands on the east side of the plaza, facing the church. It belonged to Don Rafael de Ibarra, Crisóstomo's late father, who was one of the wealthiest landowners in San Diego. After Don Rafael's death and the persecution that followed, the house became a symbol of the fallen Filipino elite — still grand, but shadowed by tragedy. When Ibarra returns from Europe, the house represents both his heritage and the injustices he must confront.",
+    "category": "places",
+    "relatedEntries": ["char.ibarra", "place.plaza", "char.damaso"],
+    "icon": "🏠",
+    "color": "#D4A574"
+  },
+  {
+    "id": "place.tiago-house",
+    "name": "Capitán Tiago's Mansion",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The grand house where Ibarra's homecoming reception took place — and where Padre Dámaso publicly insulted him.",
+    "details": "Capitán Tiago's mansion is one of the finest houses in Manila (and in the novel, serves as the setting for the famous reception scene). It was decorated for Ibarra's return with food, music, and distinguished guests — Spanish officials, Filipino elites, and religious leaders all gathered under one roof. The reception should have been a celebration, but Padre Dámaso's insult turned it into a scene of humiliation and social drama that reverberated through the entire town.",
+    "category": "places",
+    "relatedEntries": ["char.tiago", "char.damaso", "char.ibarra"],
+    "icon": "🏡",
+    "color": "#FFD700"
   },
   {
     "id": "historical.ilustrados",
@@ -166,5 +226,29 @@
     "relatedEntries": ["historical.ilustrados", "historical.rizal"],
     "icon": "🇵🇭",
     "color": "#CE1126"
+  },
+  {
+    "id": "historical.friar-power",
+    "name": "Friar Power (Frailes)",
+    "kind": "historical",
+    "firstAvailableChapter": "ch1",
+    "summary": "The extraordinary authority held by Catholic friar orders in colonial Philippines — controlling not just religion, but politics, education, and land.",
+    "details": "In colonial Philippines, the Spanish friar orders (Dominicans, Franciscans, Augustinians, Recollects) were the most powerful institution after the Governor-General himself. They controlled parish assignments, school curricula, land titles, and local elections. A friar could exile a Filipino without trial, confiscate property, or block a governor's decree. Padre Dámaso — who bullied Ibarra at the reception, persecuted his father, and manipulated the community — is Rizal's portrait of this unchecked friar power. When the ilustrados like Rizal criticized the friars, they risked exile, imprisonment, or execution.",
+    "category": "concepts",
+    "relatedEntries": ["historical.colonial", "char.damaso", "historical.rizal"],
+    "icon": "⚖️",
+    "color": "#5C4033"
+  },
+  {
+    "id": "historical.propaganda-movement",
+    "name": "Propaganda Movement",
+    "kind": "historical",
+    "firstAvailableChapter": "ch1",
+    "summary": "The reform campaign (1880s–1896) led by Filipino ilustrados in Spain, demanding representation, education, and civil rights — Rizal's novels were its most powerful weapon.",
+    "details": "The Propaganda Movement (Movimiento de Propaganda) was organized by Filipino expatriates in Spain from 1880 to 1896. Led by figures like Rizal, Marcelo H. del Pilar, and Graciano López Jaena, they published newspapers (La Solidaridad), wrote novels, and petitioned the Spanish government for reforms: representation in the Spanish parliament, secular education, freedom of speech, and an end to friar abuses. Though the movement failed to achieve its goals through peaceful means, its writings — especially Rizal's novels — became the intellectual foundation for the Philippine Revolution of 1896.",
+    "category": "concepts",
+    "relatedEntries": ["historical.ilustrados", "historical.rizal", "historical.noli"],
+    "icon": "📢",
+    "color": "#B8860B"
   }
 ]

@@ -358,5 +358,101 @@
     "exampleTranslation": "You're welcome. It is my duty.",
     "category": "greetings",
     "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.simbahan",
+    "term": "Simbahan",
+    "pronunciation": "sim-BAH-han",
+    "partOfSpeech": "noun",
+    "translation": "Church / Place of worship",
+    "definition": "The Tagalog word for church, from the root 'simba' (to worship/attend mass). In colonial Philippines, the simbahan was the most important building in any town — its bell tower towered over all other structures, symbolizing the spiritual and political dominance of the Spanish friar class. Every town's layout was centered on the church, with the plaza, market, and government buildings arranged around it.",
+    "example": "Pumunta siya sa simbahan nang maaga.",
+    "exampleTranslation": "He went to the church early.",
+    "category": "objects",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.tiangge",
+    "term": "Tiangge",
+    "pronunciation": "tee-AHN-geh",
+    "partOfSpeech": "noun",
+    "translation": "Market / Open-air bazaar",
+    "definition": "A Filipino open-air market or bazaar, where vendors sell food, goods, and household items. The tiangge is the economic and social heart of any Philippine town — where commerce, gossip, and community life all intersect. In San Diego, the tiangge south of the plaza is where Aling Nena and Mang Andres exchange rumors about the reception drama. The word comes from the Nahuatl 'tianguis' via Spanish, reflecting the global trade connections that shaped Filipino culture.",
+    "example": "Maraming tao sa tiangge ngayong araw.",
+    "exampleTranslation": "There are many people at the market today.",
+    "category": "objects",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.kumbento",
+    "term": "Kumbento",
+    "pronunciation": "koom-BEN-toh",
+    "partOfSpeech": "noun",
+    "translation": "Convent / Friar's residence",
+    "definition": "A Spanish loanword ('convento') referring to the friar's residence attached to the parish church. In colonial Philippines, the kumbento was more than a home — it was the friar's command center, where political decisions were made, land disputes were settled, and social control was exercised. The kumbento's comfort and size contrasted sharply with the simple nipa houses of ordinary Filipinos, visually reinforcing the social hierarchy.",
+    "example": "Nasa kumbento ang Padre, hindi siya pinapunta rito.",
+    "exampleTranslation": "The Father is in the convent, he was not allowed to come here.",
+    "category": "objects",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.bayan",
+    "term": "Bayan",
+    "pronunciation": "BAH-yan",
+    "partOfSpeech": "noun",
+    "translation": "Town / Community / Nation",
+    "definition": "A deeply Filipino concept meaning 'town', 'community', or 'nation' — depending on context. At the local level, bayan means one's hometown (like San Diego). At the national level, it means the Filipino people as a whole. The word carries emotional weight beyond its literal meaning — it implies belonging, shared identity, and collective responsibility. 'Bayanihan' (communal unity) comes from bayan + han, the spirit of working together for the community's good.",
+    "example": "Ang bayan ni Ibarra ay San Diego.",
+    "exampleTranslation": "Ibarra's town is San Diego.",
+    "category": "people",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.nipa",
+    "term": "Nipa",
+    "pronunciation": "NEE-pah",
+    "partOfSpeech": "noun",
+    "translation": "Nipa palm / Traditional hut material",
+    "definition": "The nipa palm (Nypa fruticans) provides the material for traditional Filipino thatch houses — nipa huts or 'bahay kubo'. These simple dwellings, made of bamboo and nipa leaves, were home to the common people of colonial Philippines, while the wealthy Spanish and Filipino elites lived in stone houses (bahay na bato). The contrast between nipa huts and stone mansions was a visible reminder of the social inequality that Rizal criticized.",
+    "example": "Ang bahay nila ay gawa sa nipa at kawayan.",
+    "exampleTranslation": "Their house is made of nipa and bamboo.",
+    "category": "objects",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.kumusta",
+    "term": "Kumusta",
+    "pronunciation": "koo-MOO-stah",
+    "partOfSpeech": "phrase",
+    "translation": "How are you? / What's up?",
+    "definition": "The Filipino greeting 'How are you?', borrowed from Spanish '¿Cómo está?' but fully nativized in pronunciation and usage. 'Kumusta ka?' is the casual form; 'Kumusta po?' adds respect for elders. The response is typically 'Mabuti' (Fine/Good). In colonial-era San Diego, 'kumusta' was more than a greeting — it was an invitation to share news, gossip, and social updates, which is why it appears naturally in the game's dialogue.",
+    "example": "Kumusta po, Mang Tenyo? Matagal na tayong hindi nagkita.",
+    "exampleTranslation": "How are you, Mang Tenyo? It's been a long time since we last met.",
+    "category": "greetings",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.po",
+    "term": "Po",
+    "pronunciation": "poh",
+    "partOfSpeech": "particle",
+    "translation": "Respect particle (politeness marker)",
+    "definition": "A uniquely Filipino politeness particle inserted after words or phrases to show respect to elders, superiors, or strangers. 'Oo po' (Yes, respectfully), 'Salamat po' (Thank you, respectfully), 'Hindi po' (No, respectfully). Using 'po' is mandatory when addressing anyone older or of higher social status — omitting it would be considered rude or disrespectful. In colonial society, the consistent use of 'po' when speaking to friars or Spanish officials reinforced the social hierarchy.",
+    "example": "Mabuti po. Salamat po sa inyong pagtanong.",
+    "exampleTranslation": "I am well, respectfully. Thank you for asking.",
+    "category": "phrases",
+    "firstAvailableChapter": "ch1"
+  },
+  {
+    "id": "term.bayanihan",
+    "term": "Bayanihan",
+    "pronunciation": "bah-yah-NEE-han",
+    "partOfSpeech": "noun",
+    "translation": "Communal unity / Working together",
+    "definition": "The Filipino spirit of communal unity and cooperation — literally derived from 'bayani' (hero) + 'han' (collective action). The classic image of bayanihan is a group of villagers carrying a neighbor's entire nipa hut to a new location, a feat impossible for one person alone. This spirit of mutual aid and shared labor defines Filipino community life, and contrasts with the individualistic power of the friars that Rizal criticized. Bayanihan is how the common people survive — together.",
+    "example": "Nagbayanihan ang mga tao sa pagtatayo ng paaralan.",
+    "exampleTranslation": "The people worked together to build the school.",
+    "category": "phrases",
+    "firstAvailableChapter": "ch1"
   }
 ]

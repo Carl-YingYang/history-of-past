@@ -166,32 +166,10 @@ export default function AchievementsPanel() {
     );
   };
 
-  return (
-    <>
-      {/* Toggle button — sits in the top bar after the Journal/Glossary buttons.
-          Position chosen to avoid overlapping with Codex (left-4), Journal
-          (left-[88px]), and Glossary/StoryLog (left-[172px]) toggle buttons. */}
-      <button
-        onClick={() => togglePanel('achievements')}
-        className={`absolute top-4 left-[264px] z-20 rounded-lg border p-2 shadow-lg transition-all hover:scale-105 ${
-          isOpen
-            ? 'bg-amber-900/80 border-amber-400/60'
-            : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90'
-        }`}
-        title="Trophies (A)"
-        aria-label="Open Achievements"
-      >
-        <div className="text-amber-400 font-bold text-xs flex items-center gap-1">
-          <span className="text-sm">🏆</span> Trophies
-        </div>
-        <div className="text-white/50 text-[10px] mt-0.5 text-center font-mono">
-          {unlockedCount}/{totalCount}
-        </div>
-      </button>
+  if (!isOpen) return null;
 
-      {/* Panel */}
-      {isOpen && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[640px] max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-panel-slide-in overflow-hidden flex flex-col">
+  return (
+    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[640px] max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-panel-slide-in overflow-hidden flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/50 via-stone-950 to-stone-950 panel-ornamental-header">
             <div className="flex-1 min-w-0">
@@ -262,8 +240,6 @@ export default function AchievementsPanel() {
               &ldquo;The journey of a thousand leagues begins with a single step.&rdquo;
             </div>
           </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

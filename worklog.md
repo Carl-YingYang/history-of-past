@@ -883,3 +883,43 @@ Recommended Next Steps:
 3. Add more NPC sprites for future chapters
 4. Add real audio files for ambient background music
 5. Implement fountain-visitor achievement trigger
+---
+Task ID: QA-Enhancement-Round
+Agent: main-agent
+Task: QA assessment and comprehensive enhancement round
+
+Work Log:
+- Reviewed worklog.md to understand prior development progress (Tasks 1-9 completed)
+- Performed QA testing via agent-browser: loaded app, tested dialogue, Codex panel, Achievements panel, Help panel, etc.
+- Identified key issues: absolute-positioned toolbar buttons overlapped on mobile; Help panel lacked historical context; Chapter Complete screen had no New Game option
+- Created responsive Toolbar component (/src/components/game/Toolbar.tsx) replacing all 8 absolute-positioned panel toggle buttons
+- Removed individual toggle buttons from CodexPanel, JournalPanel, SettingsPanel, Minimap, HelpPanel, GlossaryPanel, AchievementsPanel, StoryLogPanel
+- Enhanced HelpPanel with rich "About the Novel" section: synopsis, title meaning, historical significance, historical context, about José Rizal, key characters preview, Rizal quote
+- Enhanced ChapterCompleteScreen: added "Start New Journey" button with game reset functionality, "Review Codex & Journal" button, celebration sparkle particles
+- Enhanced Minimap: added building labels (Church, Convent, Tiago House, Fountain, Market, Ibarra House), direction indicator, detailed tile colors with borders, NPC glow effects, expanded legend
+- Expanded codex.json with 7 new entries: San Diego Church, Friar Convent, Town Market (Tiangge), Ibarra Family Mansion, Capitán Tiago Mansion, Friar Power (Frailes), Propaganda Movement
+- Expanded glossary.json with 8 new terms: Simbahan, Tiangge, Kumbento, Bayan, Nipa, Kumusta, Po, Bayanihan
+- All changes pass lint checks with no errors
+- Dev server running with no errors (all GET/POST returning 200)
+
+Stage Summary:
+- **Responsive layout fixed**: Toolbar flex layout replaces 8 absolute-positioned buttons that overlapped on mobile
+- **Major educational content added**: "About the Novel" section in Help panel with full historical context about José Rizal, Noli Me Tangere, and colonial Philippines
+- **7 new codex entries**: 5 new places (Church, Convent, Market, Ibarra House, Tiago Mansion) and 2 new concepts (Friar Power, Propaganda Movement)
+- **8 new glossary terms**: Key Filipino cultural terms (Bayan, Bayanihan, Kumbento, Kumusta, Nipa, Po, Simbahan, Tiangge)
+- **Chapter Complete screen enhanced**: New Game button + Review button
+- **Minimap enhanced**: Building labels, direction indicator, detailed tile rendering
+- All QA tests passed via agent-browser: Toolbar visible, Codex opens, Help opens with Guide + About tabs, Glossary shows 38 terms, Minimap renders
+
+Unresolved issues or risks:
+- Game engine atmospheric effects not yet enhanced (deferred due to engine complexity)
+- Touch controls could still have accessibility issues on some mobile viewports
+- No mobile-specific responsive breakpoints for the game canvas
+
+Priority recommendations for next phase:
+- Enhance game engine rendering with atmospheric fog, lighting, and shadow effects
+- Add responsive mobile layout breakpoints for game canvas scaling
+- Implement auto-triggering quiz at chapter completion
+- Add more NPC characters visible on the map with richer dialogue trees
+- Add background music/ambient sound effects for immersion
+

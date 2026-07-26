@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUIStore } from './UIManager';
 import { useGameStore } from '@/stores/gameStore';
 import mapData from '@/data/mapData.json';
@@ -9,6 +9,16 @@ import characterData from '@/data/characters.json';
 /**
  * Minimap - Enhanced overview of the San Diego map with building labels,
  * NPC markers, discovery markers, compass, zoom levels, and visual polish.
+ *
+ * Task 9-b additions:
+ *   - Undiscovered buildings render as a pulsing gray dashed circle with a
+ *     "?" glyph instead of their label, so the player can see there's
+ *     *something* there but hasn't found it yet.
+ *   - Hovering any building marker shows a tooltip ("Undiscovered location"
+ *     for ? markers, or the building name for discovered ones).
+ *   - Legend gets a "❓ Undiscovered" entry.
+ *   - Discovery counter at the bottom reflects the actual building count
+ *     from `mapData.buildingLabels` (currently 3).
  */
 
 // Zoom level cell sizes
@@ -17,6 +27,52 @@ const ZOOM_LEVELS: Record<string, { cellSize: number; label: string }> = {
   'medium': { cellSize: 12, label: 'M' },
   'large':  { cellSize: 16, label: 'L' },
 };
+
+// Shape of a discovery-log entry persisted by DiscoveryLogPanel under
+// 'noor-discovery-log'. Only the fields we actually read here.
+interface DiscoveryLogEntry {
+  id: string;
+  name: string;
+  type: string;
+  position: { x: number; y: number };
+  timestamp: number;
+  note?: string;
+}
+
+// Information about the building marker currently under the cursor. Used to
+// render a positioned tooltip overlay.
+interface HoveredMarker {
+  cssX: number;       // mouse X relative to canvas (CSS px)
+  cssY: number;       // mouse Y relative to canvas (CSS px)
+  label: string;
+  discovered: boolean;
+}
+
+/**
+ * Build the canonical discovery-log id for a building label, matching the
+ * format used by DiscoveryLogPanel/Minimap when dispatching 'noor:discovery'
+ * events: `bldg-<slugified-label>`.
+ */
+function getBuildingDiscoveryId(label: string): string {
+  return `bldg-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+/** Load the discovery log from localStorage (SSR-safe). */
+function loadDiscoveryLog(): DiscoveryLogEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('noor-discovery-log');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (d): d is DiscoveryLogEntry =>
+        d && typeof d === 'object' && typeof d.id === 'string'
+    );
+  } catch {
+    return [];
+  }
+}
 
 // NPC color mapping from characters.json
 const NPC_COLORS: Record<string, string> = {};
@@ -51,6 +107,11 @@ export default function Minimap() {
     }
     return [];
   });
+  // Discovery log (canonical source per Task 9-b). We also keep the legacy
+  // `noor-discovered-locations` list as a fallback for backward compatibility.
+  const [discoveryLog, setDiscoveryLog] = useState<DiscoveryLogEntry[]>(() => loadDiscoveryLog());
+  // Building marker currently under the cursor (for tooltip rendering).
+  const [hoveredMarker, setHoveredMarker] = useState<HoveredMarker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const discoveredRef = useRef(discoveredLocations);
@@ -58,6 +119,31 @@ export default function Minimap() {
   useEffect(() => {
     discoveredRef.current = discoveredLocations;
   }, [discoveredLocations]);
+
+  // Set of building discovery-log ids that have been recorded. Computed from
+  // `discoveryLog`; falls back to `discoveredLocations` (label-based) so a
+  // discovery recorded through either channel counts as discovered.
+  const discoveredBuildingIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const entry of discoveryLog) ids.add(entry.id);
+    // Also include any buildings recorded by label in the legacy list.
+    for (const label of discoveredLocations) {
+      ids.add(getBuildingDiscoveryId(label));
+    }
+    return ids;
+  }, [discoveryLog, discoveredLocations]);
+
+  // Listen for live discovery-log updates so the minimap re-renders as soon
+  // as a new building is discovered (without waiting for the next poll).
+  useEffect(() => {
+    const handler = () => setDiscoveryLog(loadDiscoveryLog());
+    window.addEventListener('noor:discovery-updated', handler as EventListener);
+    window.addEventListener('noor:discovery', handler as EventListener);
+    return () => {
+      window.removeEventListener('noor:discovery-updated', handler as EventListener);
+      window.removeEventListener('noor:discovery', handler as EventListener);
+    };
+  }, []);
 
   // Listen for player position updates and check for discoveries in callback
   useEffect(() => {
@@ -218,14 +304,53 @@ export default function Minimap() {
       ctx.font = `bold ${fontSize}px monospace`;
       ctx.textAlign = 'center';
 
+      // Pulsing alpha for the "?" undiscovered markers — oscillates between
+      // 0.4 and 0.7 with a ~1.4s period to gently draw the player's attention.
+      const pulseT = Date.now() / 1000;
+      const questionAlpha = 0.55 + Math.sin(pulseT * Math.PI / 0.7) * 0.15; // ~0.4..0.7
+
       for (const building of buildingLabelsData) {
         const centerRow = building.row + Math.floor(building.height / 2);
         const centerCol = building.col + Math.floor(building.width / 2);
         const centerX = centerCol * cellSize + cellSize / 2;
         const centerY = centerRow * cellSize + cellSize / 2;
 
-        // Background rectangle for label
         const label = building.label;
+        const isDiscovered = discoveredBuildingIds.has(getBuildingDiscoveryId(label));
+
+        if (!isDiscovered) {
+          // ── Undiscovered marker: gray dashed circle + "?" glyph ──
+          const qRadius = Math.max(cellSize * 0.9, 6);
+          // Soft dark fill so the ? reads against any background
+          ctx.globalAlpha = questionAlpha;
+          ctx.fillStyle = 'rgba(40, 40, 40, 0.85)';
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, qRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Dashed gray border
+          ctx.strokeStyle = 'rgba(180, 180, 180, 0.9)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, qRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // "?" glyph in white/50
+          const qFontSize = Math.max(8, cellSize + 2);
+          ctx.font = `bold ${qFontSize}px monospace`;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('?', centerX, centerY + 1);
+          ctx.textBaseline = 'alphabetic';
+          ctx.globalAlpha = 1;
+          ctx.font = `bold ${fontSize}px monospace`;
+          continue; // skip the discovered-label rendering below
+        }
+
+        // Background rectangle for label
         const textWidth = ctx.measureText(label).width;
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
         ctx.fillRect(
@@ -257,7 +382,8 @@ export default function Minimap() {
         }
 
         // Discovery marker ✦ if player has been near
-        if (discoveredLocations.includes(building.label)) {
+        const wasDiscoveredLegacy = discoveredLocations.includes(building.label);
+        if (wasDiscoveredLegacy) {
           const discoveryFontSize = fontSize + 2;
           ctx.font = `bold ${discoveryFontSize}px serif`;
           ctx.fillStyle = '#FFD700';
@@ -439,13 +565,84 @@ export default function Minimap() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isOpen, playerPos, playerDirection, zoomLevel, discoveredLocations, completedObjectives]);
+  }, [isOpen, playerPos, playerDirection, zoomLevel, discoveredLocations, discoveredBuildingIds, completedObjectives]);
+
+  // ── Hover tooltip tracking (Task 9-b) ──
+  // Detect when the cursor is over a building marker (discovered or ? ) and
+  // surface that to React state so we can render a positioned tooltip overlay.
+  // Uses CSS pixels relative to the canvas so the tooltip placement is correct
+  // even if the canvas is scaled by CSS.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const cssX = e.clientX - rect.left;
+      const cssY = e.clientY - rect.top;
+      // Map to canvas-internal coordinates for hit-testing
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = cssX * scaleX;
+      const cy = cssY * scaleY;
+      const { cellSize } = ZOOM_LEVELS[zoomLevel];
+
+      // Hit-test against each building's center within a generous radius.
+      // The radius scales with zoom so small/medium maps remain usable.
+      const hitRadius = Math.max(cellSize * 1.5, 10);
+      let best: HoveredMarker | null = null;
+      let bestDist = hitRadius;
+      for (const building of mapData.buildingLabels) {
+        const centerRow = building.row + Math.floor(building.height / 2);
+        const centerCol = building.col + Math.floor(building.width / 2);
+        const bx = centerCol * cellSize + cellSize / 2;
+        const by = centerRow * cellSize + cellSize / 2;
+        const d = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
+        if (d <= bestDist) {
+          bestDist = d;
+          const isDiscovered = discoveredBuildingIds.has(getBuildingDiscoveryId(building.label));
+          best = { cssX, cssY, label: building.label, discovered: isDiscovered };
+        }
+      }
+      setHoveredMarker(best);
+    };
+
+    const handleLeave = () => setHoveredMarker(null);
+
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('mouseleave', handleLeave);
+    return () => {
+      canvas.removeEventListener('mousemove', handleMove);
+      canvas.removeEventListener('mouseleave', handleLeave);
+    };
+  }, [zoomLevel, discoveredBuildingIds]);
+
+  // Mirror the hovered-marker label into the canvas `title` attribute so the
+  // native browser tooltip also fires (and screen readers can announce it).
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (hoveredMarker) {
+      canvas.title = hoveredMarker.discovered
+        ? hoveredMarker.label
+        : 'Undiscovered location';
+    } else {
+      canvas.title = 'San Diego Plaza minimap';
+    }
+  }, [hoveredMarker]);
 
   if (!isOpen) return null;
 
   const { cellSize } = ZOOM_LEVELS[zoomLevel];
   const canvasW = mapData.width * cellSize;
   const canvasH = mapData.height * cellSize;
+
+  // Count of discovered buildings for the footer counter (uses the same
+  // source-of-truth as the canvas ? / label rendering above).
+  const discoveredBuildingCount = mapData.buildingLabels.filter(
+    (b) => discoveredBuildingIds.has(getBuildingDiscoveryId(b.label))
+  ).length;
+  const totalBuildings = mapData.buildingLabels.length;
 
   return (
     <div className="absolute top-16 right-4 z-50 animate-panel-slide-in max-w-[calc(100vw-2rem)]">
@@ -496,12 +693,35 @@ export default function Minimap() {
           </div>
 
           {/* Canvas with decorative amber border */}
-          <div className="rounded-lg overflow-hidden border-2 border-amber-500/30 bg-black shadow-inner shadow-amber-900/20">
+          <div className="relative rounded-lg overflow-hidden border-2 border-amber-500/30 bg-black shadow-inner shadow-amber-900/20">
             <canvas
               ref={canvasRef}
               className="block"
               style={{ imageRendering: 'pixelated', width: canvasW, height: canvasH }}
             />
+            {/* Hover tooltip overlay (Task 9-b) — positioned relative to the
+                canvas wrapper. The `title` attribute on the canvas itself is
+                updated dynamically as a fallback for screen readers / native
+                tooltip behavior. */}
+            {hoveredMarker && (
+              <div
+                role="tooltip"
+                className={`pointer-events-none absolute z-10 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shadow-lg border ${
+                  hoveredMarker.discovered
+                    ? 'bg-stone-950/95 border-amber-400/40 text-amber-300'
+                    : 'bg-stone-950/95 border-gray-400/40 text-gray-300'
+                }`}
+                style={{
+                  left: Math.min(Math.max(hoveredMarker.cssX, 60), canvasW - 60),
+                  top: Math.max(hoveredMarker.cssY - 32, 4),
+                  transform: 'translateX(-50%)',
+                }}
+              >
+                {hoveredMarker.discovered
+                  ? hoveredMarker.label
+                  : '❓ Undiscovered location'}
+              </div>
+            )}
           </div>
 
           {/* Enhanced legend */}
@@ -543,6 +763,15 @@ export default function Minimap() {
               <span className="text-white/70">Discovered</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <span
+                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-dashed border-gray-400 text-gray-300 text-[8px] font-bold"
+                aria-hidden
+              >
+                ?
+              </span>
+              <span className="text-white/70">Undiscovered</span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-amber-200" />
               <span className="text-white/70">Town Path</span>
             </div>
@@ -558,11 +787,12 @@ export default function Minimap() {
             </div>
           </div>
 
-          {/* Discovery counter */}
+          {/* Discovery counter (Task 9-b: now reflects actual building count
+              and uses the same discovery-log source-of-truth as the markers). */}
           <div className="mt-1 flex items-center gap-2 text-[10px]">
             <span className="text-amber-400/60">✦ Discovered:</span>
             <span className="text-white/50 font-mono">
-              {discoveredLocations.length}/{mapData.buildingLabels.length} locations
+              {discoveredBuildingCount}/{totalBuildings} locations
             </span>
           </div>
         </div>

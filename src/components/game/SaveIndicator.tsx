@@ -42,14 +42,15 @@ export default function SaveIndicator() {
       setLastSave(d.timestamp);
       setFlash(d.success ? 'saved' : 'error');
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = window.setTimeout(() => setFlash('idle'), 2200);
+      // Show "✓ Saved" confirmation for ~2s, then return to idle.
+      flashTimerRef.current = window.setTimeout(() => setFlash('idle'), 2000);
     };
 
     // `on()` returns an unsubscribe function — use that for cleanup
     const unsubscribe = gameEvents.on('save:complete', onSaveComplete);
 
-    // Tick every 10s so the relative time stays fresh
-    const tickInterval = window.setInterval(() => setNow(Date.now()), 10_000);
+    // Tick every 5s so the relative time stays fresh ("just now" → "5s ago")
+    const tickInterval = window.setInterval(() => setNow(Date.now()), 5_000);
 
     return () => {
       unsubscribe();
@@ -78,19 +79,38 @@ export default function SaveIndicator() {
       onClick={handleManualSave}
       disabled={flash === 'saving'}
       title={`Last save: ${lastSave ? new Date(lastSave).toLocaleString() : 'never'}\nClick to save now`}
-      className={`absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${stateStyles.ring} ${stateStyles.bg} backdrop-blur-sm shadow-md transition-all hover:scale-105 disabled:cursor-wait disabled:hover:scale-100 ${flash === 'saved' ? 'animate-save-pulse' : ''}`}
+      className={`absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${stateStyles.ring} ${stateStyles.bg} backdrop-blur-sm shadow-md transition-all hover:scale-105 disabled:cursor-wait disabled:hover:scale-100 ${flash === 'saved' ? 'animate-save-saved-flash' : ''}`}
       aria-label={`Save status: ${stateStyles.label}. Last saved ${formatRelativeTime(lastSave)}. Click to save now.`}
     >
-      {/* Status dot */}
-      <span className={`relative inline-flex w-2 h-2 rounded-full ${stateStyles.dot}`}>
-        {flash === 'saving' && (
-          <span className={`absolute inset-0 rounded-full ${stateStyles.dot} animate-ping opacity-75`} />
-        )}
-      </span>
+      {/* Status icon — varies by state */}
+      {flash === 'saving' ? (
+        // Spinning saver icon while a save is in progress
+        <span
+          className="animate-save-spin text-amber-400 text-xs inline-flex items-center justify-center"
+          aria-hidden="true"
+          style={{ width: '12px', height: '12px' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d="M2 2h6.5L10 3.5V10H2V2zm1.5 0v2.5h4V2H6v1.5H5V2H3.5z"
+              fill="currentColor"
+              opacity="0.95"
+            />
+          </svg>
+        </span>
+      ) : flash === 'saved' ? (
+        // Green check mark — fades in/out via animate-save-saved-flash on the button
+        <span className="text-emerald-400 text-xs font-bold" aria-hidden="true">✓</span>
+      ) : flash === 'error' ? (
+        <span className="text-rose-400 text-xs" aria-hidden="true">⚠</span>
+      ) : (
+        // Idle: subtle status dot
+        <span className={`relative inline-flex w-2 h-2 rounded-full ${stateStyles.dot}`} />
+      )}
 
-      {/* Status label */}
+      {/* Status label / relative time */}
       <span className={`text-[10px] font-mono tracking-wide ${stateStyles.text}`}>
-        {/* `now` is referenced here so the relative time re-renders every 10s tick */}
+        {/* `now` is referenced here so the relative time re-renders every tick */}
         {flash === 'idle' ? formatRelativeTime(lastSave || now - 1000) : stateStyles.label}
       </span>
 

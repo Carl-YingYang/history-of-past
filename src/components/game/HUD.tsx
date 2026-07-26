@@ -33,6 +33,8 @@ function getLevel(xp: number): { level: number; xpInLevel: number; xpToNext: num
 export default function HUD() {
   const { xp, chapterMedals, timeOfDay, chapterPhase, chapterComplete, showMedal, medalInfo } = useGameStore();
   const [showXpSparkle, setShowXpSparkle] = useState(false);
+  const [showXpPulse, setShowXpPulse] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState<{ threshold: number; level: number } | null>(null);
   const prevXpRef = useRef(xp);
 
   // ── Location discovered state ──
@@ -48,20 +50,54 @@ export default function HUD() {
   const xpProgress = Math.min(100, (xpInLevel / xpPerLevel) * 100);
   const hasMedal = chapterMedals.length > 0;
 
-  // ── Animated sparkle effect when XP changes ──
+  // ── Animated sparkle + pulse effects when XP changes ──
+  // The XP bar pulses (xp-pulse keyframe) AND we show a small burst of
+  // sparkles. We also detect crossing 100/200/300 XP thresholds and show
+  // a level-up toast.
   const sparkleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (xp !== prevXpRef.current) {
+      const prevXp = prevXpRef.current;
       prevXpRef.current = xp;
       requestAnimationFrame(() => {
         setShowXpSparkle(true);
+        setShowXpPulse(true);
         sparkleTimerRef.current = setTimeout(() => setShowXpSparkle(false), 1200);
+        pulseTimerRef.current = setTimeout(() => setShowXpPulse(false), 900);
       });
+
+      // ── Check for level-up threshold crossing (100 / 200 / 300 XP) ──
+      // Wrapped in requestAnimationFrame to avoid a synchronous setState
+      // inside the effect body (which would trip the
+      // `react-hooks/set-state-in-effect` lint rule and cause cascading
+      // renders). Mirrors the same pattern used for setShowXpSparkle above.
+      const LEVEL_UP_THRESHOLDS = [100, 200, 300];
+      for (const threshold of LEVEL_UP_THRESHOLDS) {
+        if (prevXp < threshold && xp >= threshold) {
+          const newLevel = Math.floor(threshold / xpPerLevel) + 1;
+          requestAnimationFrame(() => {
+            setShowLevelUp({ threshold, level: newLevel });
+            if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+            levelUpTimerRef.current = setTimeout(() => setShowLevelUp(null), 2800);
+          });
+          break;
+        }
+      }
     }
     return () => {
       if (sparkleTimerRef.current) clearTimeout(sparkleTimerRef.current);
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
     };
-  }, [xp]);
+  }, [xp, xpPerLevel]);
+
+  // Cleanup level-up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+    };
+  }, []);
 
   // ── Listen for zone:enter events (location discovered) ──
   useEffect(() => {
@@ -105,8 +141,15 @@ export default function HUD() {
   }, [showMedal, medalInfo]);
 
   // ── Sun/moon icon based on time of day ──
-  const timeIcon = timeOfDay === 'morning' ? '☀️' : '🌙';
-  const timeIconColor = timeOfDay === 'morning' ? 'text-yellow-300' : 'text-blue-300';
+  // The sun shows for morning, the moon for afternoon (the chapter opens at
+  // dusk and transitions to morning after the gossip scene). We render a
+  // small SVG so the icon visually changes shape with the time of day —
+  // not just an emoji swap.
+  const isMorning = timeOfDay === 'morning';
+  const timeIconColor = isMorning ? 'text-yellow-300' : 'text-indigo-200';
+  const timeGlowFilter = isMorning
+    ? 'drop-shadow(0 0 4px rgba(255,200,0,0.55))'
+    : 'drop-shadow(0 0 5px rgba(150,170,255,0.55))';
 
   // ── Get current phase index ──
   const currentPhaseIndex = CHAPTER_PHASES.findIndex(p => p.id === chapterPhase);
@@ -258,10 +301,10 @@ export default function HUD() {
                 </>
               )}
             </div>
-            {/* XP Progress bar — gradient from bronze to gold */}
+            {/* XP Progress bar — gradient from bronze to gold, pulses on gain */}
             <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-700 via-amber-500 to-amber-300 rounded-full transition-all duration-500 relative"
+                className={`h-full bg-gradient-to-r from-amber-700 via-amber-500 to-amber-300 rounded-full transition-all duration-500 relative ${showXpPulse ? 'animate-xp-pulse' : ''}`}
                 style={{ width: `${xpProgress}%` }}
               >
                 {/* Shimmer highlight on XP bar */}
@@ -277,11 +320,46 @@ export default function HUD() {
           {/* Divider */}
           <div className="w-px h-8 bg-amber-400/20" />
 
-          {/* Time of day with sun/moon icon */}
+          {/* Time of day with sun/moon SVG icon that changes with timeOfDay */}
           <div className="flex flex-col items-center min-w-[68px]">
             <div className="flex items-center gap-1.5">
-              <span className={`text-sm ${timeIconColor}`} style={{ filter: timeOfDay === 'morning' ? 'drop-shadow(0 0 4px rgba(255,200,0,0.5))' : 'drop-shadow(0 0 4px rgba(100,150,255,0.5))' }}>
-                {timeIcon}
+              <span
+                className={`text-sm ${timeIconColor} inline-flex items-center justify-center`}
+                style={{ filter: timeGlowFilter, width: '16px', height: '16px' }}
+                aria-label={isMorning ? 'Morning sun' : 'Evening moon'}
+                role="img"
+              >
+                {isMorning ? (
+                  // Sun: yellow circle with rays
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <circle cx="8" cy="8" r="3.2" fill="currentColor" />
+                    {/* 8 rays around the sun */}
+                    {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
+                      <line
+                        key={deg}
+                        x1="8"
+                        y1="2"
+                        x2="8"
+                        y2="3.6"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        transform={`rotate(${deg} 8 8)`}
+                      />
+                    ))}
+                  </svg>
+                ) : (
+                  // Moon: crescent shape (full circle minus an offset circle)
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M12.5 8.2a4.5 4.5 0 1 1-5-5 3.5 3.5 0 0 0 5 5z"
+                      fill="currentColor"
+                    />
+                    {/* Tiny star next to the moon for visual interest */}
+                    <circle cx="12.2" cy="3.5" r="0.6" fill="currentColor" opacity="0.7" />
+                    <circle cx="13.5" cy="5.5" r="0.4" fill="currentColor" opacity="0.5" />
+                  </svg>
+                )}
               </span>
               <span className="text-white/80 text-xs capitalize font-medium">{timeOfDay}</span>
             </div>
@@ -339,6 +417,35 @@ export default function HUD() {
               <kbd className="inline-block bg-stone-800/80 text-amber-400/70 text-[9px] px-1 py-0.5 rounded border border-amber-400/15 font-mono">H</kbd>
               <span className="text-white/30">help</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Level-up toast — shows when XP crosses 100/200/300 thresholds ── */}
+      {showLevelUp && (
+        <div
+          className="absolute top-20 left-1/2 z-40 pointer-events-none animate-level-up-toast"
+          style={{ transform: 'translateX(-50%)' }}
+          role="status"
+          aria-live="polite"
+          aria-label={`Level up! Reached ${showLevelUp.threshold} XP, now level ${showLevelUp.level}`}
+        >
+          <div className="rounded-full bg-gradient-to-br from-amber-900/95 via-amber-950/95 to-stone-950/95 border-2 border-amber-400/60 px-5 py-2.5 shadow-2xl shadow-amber-900/50 flex items-center gap-3 backdrop-blur-md">
+            {/* Starburst icon */}
+            <span className="text-2xl" aria-hidden="true">🌟</span>
+            <div className="flex flex-col">
+              <span className="text-amber-300 text-[10px] uppercase tracking-[0.3em] font-bold">
+                Level Up!
+              </span>
+              <span className="text-white text-sm font-bold tracking-wide">
+                Level {showLevelUp.level}
+                <span className="text-amber-400/60 mx-1.5 font-normal">·</span>
+                <span className="text-amber-300 font-mono">{showLevelUp.threshold} XP</span>
+              </span>
+            </div>
+            {/* Decorative sparkles around the toast */}
+            <span className="absolute -top-2 -right-2 text-amber-400 text-xs animate-sparkle" aria-hidden="true">✦</span>
+            <span className="absolute -bottom-1 -left-2 text-amber-300 text-xs animate-sparkle" style={{ animationDelay: '0.2s' }} aria-hidden="true">✦</span>
           </div>
         </div>
       )}

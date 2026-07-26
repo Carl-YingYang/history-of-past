@@ -83,12 +83,15 @@ export default function CodexPanel() {
             🔒
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white/25 text-sm font-semibold tracking-wide">
-              ??? {CATEGORY_TAB_MAP[entry.category] || 'Unknown'} Entry
+            {/* Locked entry title — clearer "Locked" indicator */}
+            <div className="text-white/25 text-sm font-semibold tracking-wide flex items-center gap-1.5">
+              <span>🔒</span>
+              <span>Locked {CATEGORY_TAB_MAP[entry.category] || 'Unknown'} Entry</span>
             </div>
-            <div className="text-white/15 text-xs mt-1 flex items-center gap-1">
-              <span className="text-[10px]">🔓</span>
-              <span>Unlock by exploring San Diego</span>
+            {/* Unlock hint — explicitly tells the player how to unlock */}
+            <div className="text-white/30 text-xs mt-1 flex items-center gap-1.5 italic">
+              <span className="text-[11px] not-italic">📜</span>
+              <span>Unlock by progressing the story</span>
             </div>
             {/* Category hint - small colored dot */}
             <div className="mt-1.5 flex items-center gap-1">
@@ -187,9 +190,27 @@ export default function CodexPanel() {
               {isExpanded ? '✕ Close Details' : '▼ View Details'}
             </Button>
 
-            {/* Expanded details section */}
+            {/* Expanded details section — page-turn animation on open + reading progress bar */}
             {isExpanded && (
-              <div className="mt-2 animate-codex-expand">
+              <div className="mt-2 animate-page-turn">
+                {/* Reading progress bar — shown at the top of long entries */}
+                {entry.details && entry.details.length > 0 && (
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between mb-0.5 text-[9px] uppercase tracking-wider font-semibold">
+                      <span className="text-amber-400/70 flex items-center gap-1">
+                        <span className="animate-pulse">📖</span>
+                        <span>Reading…</span>
+                      </span>
+                      <span className="text-white/30">{entry.details.length} chars</span>
+                    </div>
+                    <div className="relative w-full h-1 rounded-full bg-stone-800/60 overflow-hidden">
+                      <div
+                        className="absolute inset-0 bg-gradient-to-r from-amber-400/60 via-amber-300/50 to-transparent rounded-full animate-reading-progress"
+                        style={{ width: '50%' }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="text-white/65 text-xs leading-relaxed pb-2">
                   {entry.details && (
                     <div className="border-l-2 pl-2.5 italic" style={{ borderColor: entryColor + '60' }}>

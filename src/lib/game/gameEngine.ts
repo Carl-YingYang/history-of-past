@@ -5,6 +5,7 @@
 import { gameEvents } from './eventBus';
 import { spriteLoader } from './spriteLoader';
 import { saveManager } from './saveManager';
+import { soundManager } from './soundManager';
 import mapData from '@/data/mapData.json';
 import dialogueData from '@/data/dialogueData.json';
 import characterData from '@/data/characters.json';
@@ -173,6 +174,13 @@ class GameEngine {
   private npcsTalkedTo: Set<string> = new Set();
   private statsFlushTimer: number = 0;
 
+  // === Ambient sound system integration (Task 9-b) ===
+  // Tracks the last time a footstep was played so we can throttle to ~400ms.
+  private lastFootstepTime: number = 0;
+  // Cached Market building bounds (computed once from mapData.buildingLabels)
+  // used to gate the market ambient loop based on player proximity.
+  private marketBounds: { row: number; col: number; width: number; height: number } | null = null;
+
   // Atmosphere: ambient particles (dust motes)
   private particles: Particle[] = [];
   private particleSpawnTimer: number = 0;
@@ -198,6 +206,19 @@ class GameEngine {
     
     // Pre-compute building groups (contiguous regions of same tile type)
     this._computeBuildingGroups();
+
+    // Cache the Market building bounds from mapData.buildingLabels so we can
+    // quickly check player proximity to drive the market ambient loop.
+    const marketLabel = (mapData as { buildingLabels: { row: number; col: number; width: number; height: number; label: string }[] })
+      .buildingLabels.find(b => /market/i.test(b.label));
+    if (marketLabel) {
+      this.marketBounds = {
+        row: marketLabel.row,
+        col: marketLabel.col,
+        width: marketLabel.width,
+        height: marketLabel.height,
+      };
+    }
   }
 
   private _computeBuildingGroups(): void {
@@ -296,6 +317,13 @@ class GameEngine {
     const gameState = saveManager.getGameState();
     this.chapterPhase = gameState.chapterPhase;
     this.timeOfDay = gameState.timeOfDay;
+
+    // Sync the nature ambient mode with the loaded time of day. The actual
+    // ambient loop is started later by soundManager.initOnUserGesture()
+    // (called from page.tsx on the first user gesture, per browser autoplay
+    // policy), but we set the correct mode up-front so the first chirps match
+    // the in-game time.
+    soundManager.setNatureMode(this.timeOfDay === 'morning' || this.timeOfDay === 'afternoon' ? 'day' : 'night');
     
     if (this.chapterPhase !== 'intro') {
       this.introShown = true;
@@ -326,6 +354,23 @@ class GameEngine {
           loc.row * this.tileSize + this.tileSize / 2
         );
       }
+    });
+
+    // === Ambient sound system event hooks (Task 9-b) ===
+    // Ring the church bell when a chapter completes. The soundManager handles
+    // its own gating (soundEnabled / ambientEnabled) so we always emit.
+    gameEvents.on('chapter:complete', () => {
+      soundManager.playChurchBell();
+    });
+
+    // Keep the nature ambient mode in sync with the in-game time of day.
+    // Currently the engine only models 'morning' and 'afternoon' (both 'day'),
+    // but we still re-affirm the mode so future 'evening'/'night' states would
+    // automatically switch to cricket ambience.
+    gameEvents.on('time:transition', (time: unknown) => {
+      const t = time as 'morning' | 'afternoon' | 'evening' | 'night';
+      const mode: 'day' | 'night' = (t === 'evening' || t === 'night') ? 'night' : 'day';
+      soundManager.setNatureMode(mode);
     });
 
     // Start auto-save
@@ -737,9 +782,20 @@ class GameEngine {
       const newY = this.player.y + moveY * this.player.speed * dt;
 
       // Collision check
-      if (!this._isBlocked(newX, newY)) {
+      const blocked = this._isBlocked(newX, newY);
+      if (!blocked) {
         this.player.x = newX;
         this.player.y = newY;
+
+        // === Footstep ambient sound (Task 9-b) ===
+        // Throttle to ~400ms between steps. Only play when the player actually
+        // moved (not when blocked by a wall) so shuffling into a corner doesn't
+        // spam footsteps.
+        const nowMs = performance.now();
+        if (nowMs - this.lastFootstepTime >= 400) {
+          this.lastFootstepTime = nowMs;
+          soundManager.playFootstep();
+        }
       }
 
       // Update animation
@@ -784,6 +840,13 @@ class GameEngine {
 
     // Check trigger zones
     this._checkTriggerZones();
+
+    // === Market ambient sound proximity check (Task 9-b) ===
+    // If the player is within 4 tiles (Chebyshev distance) of the Market
+    // building's bounding box, ensure the market ambient loop is running;
+    // otherwise stop it. The soundManager.start/stopMarketAmbient() calls are
+    // idempotent so it's safe to call them every frame.
+    this._updateMarketAmbient();
 
     // Update particles
     this._updateParticles(dt);
@@ -928,6 +991,39 @@ class GameEngine {
             break;
         }
       }
+    }
+  }
+
+  /**
+   * Start or stop the Market ambient sound loop based on the player's
+   * proximity to the Market building. The player must be within 4 tiles
+   * (Chebyshev distance) of the building's bounding box.
+   *
+   * The soundManager calls are idempotent — startMarketAmbient() is a no-op
+   * if already running, stopMarketAmbient() is a no-op if already stopped —
+   * so it's safe to call this every frame.
+   */
+  private _updateMarketAmbient(): void {
+    if (!this.player || !this.marketBounds) {
+      soundManager.stopMarketAmbient();
+      return;
+    }
+
+    const playerRow = Math.floor(this.player.y / this.tileSize);
+    const playerCol = Math.floor(this.player.x / this.tileSize);
+    const mb = this.marketBounds;
+
+    // Chebyshev distance from the player's tile to the Market bounding box.
+    // 0 means the player is standing on/in the market; >0 means they're that
+    // many tiles away from the nearest edge.
+    const dx = Math.max(mb.col - playerCol, 0, playerCol - (mb.col + mb.width - 1));
+    const dy = Math.max(mb.row - playerRow, 0, playerRow - (mb.row + mb.height - 1));
+    const dist = Math.max(dx, dy);
+
+    if (dist <= 4) {
+      soundManager.startMarketAmbient();
+    } else {
+      soundManager.stopMarketAmbient();
     }
   }
 

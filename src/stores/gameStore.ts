@@ -19,6 +19,47 @@ interface DialogueLine {
   isIbarraSighting?: boolean;
 }
 
+// Warmth tier type — used by the relationship-depth dialogue system.
+// NPCs progress through tiers as the player talks to them more often.
+type WarmthTier = 'acquainted' | 'familiar' | 'trusted';
+
+// Shape of warmth dialogue lines stored in dialogueData.json
+interface WarmthDialogueLine {
+  fil: string;
+  en: string;
+  speaker: string;
+}
+
+interface WarmthDialogues {
+  [npcId: string]: {
+    [tier in WarmthTier]?: WarmthDialogueLine[];
+  };
+}
+
+// Map an NPC id (as used in the game engine) to the warmth dialogue key in
+// dialogueData.warmthDialogues. The engine uses 'mang-tenyo' and 'kitchen-staff'
+// while the warmth section uses the same ids, so this is essentially a 1:1 map
+// today — but kept as a function for future flexibility.
+const WARMTH_NPC_MAP: Record<string, string> = {
+  'mang-tenyo': 'mang-tenyo',
+  'kitchen-staff': 'kitchen-staff',
+  // The market-gossip dialogue involves both Aling Nena and Mang Andres, so we
+  // also recognise the individual ids (used by NPCRelationshipPanel) and treat
+  // them as kitchen-staff for warmth purposes.
+  'aling-nena': 'kitchen-staff',
+  'mang-andres': 'kitchen-staff',
+};
+
+// Dialogues that the game engine fires when the player talks to an NPC they
+// already met. When the store sees one of these on `dialogue:start`, we attempt
+// to replace the first line with a warmth line if the NPC has built up enough
+// relationship depth. This is how we "hook" warmth dialogues in without
+// modifying the (read-only) game engine.
+const REPEAT_DIALOGUE_IDS = new Set<string>([
+  'mang-tenyo-repeat',
+  'mang-tenyo-after-gossip',
+]);
+
 interface GameState {
   // Dialogue state
   dialogueActive: boolean;
@@ -26,6 +67,11 @@ interface GameState {
   currentLine: DialogueLine | null;
   currentLineIndex: number;
   totalLines: number;
+  // Warmth dialogue indicators — set to true while the current line being
+  // shown is a relationship-depth "warmth" bonus line (instead of the
+  // original first line of the dialogue).
+  isWarmthDialogue: boolean;
+  warmthTier: WarmthTier | null;
   
   // Quest tracking
   completedObjectives: string[];
@@ -69,18 +115,123 @@ interface GameState {
   startQuiz: (chapterId: string) => void;
   completeChapterLoop: () => void;
   resetGame: () => void;
+  // Warmth dialogue trigger — picks a random line from the appropriate tier
+  // for the given NPC and starts a dialogue using the dialogue:start event.
+  triggerWarmthDialogue: (npcId: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Warmth dialogue helpers (read-only — do not mutate game state directly)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read NPC interaction counts from localStorage 'noor-npc-interactions'.
+ * Returns a map of npcId → timesTalked. SSR-safe (returns {} on server).
+ */
+function readNpcInteractionCounts(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem('noor-npc-interactions');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const result: Record<string, number> = {};
+    for (const [key, val] of Object.entries(parsed as Record<string, unknown>)) {
+      const v = val as { timesTalked?: unknown };
+      if (typeof v?.timesTalked === 'number') {
+        result[key] = v.timesTalked;
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Determine the warmth tier for an NPC based on its interaction count.
+ * 0       → not encountered (returns null — caller should fall back)
+ * 1–2     → 'acquainted'
+ * 3–4     → 'familiar'
+ * 5+      → 'trusted'
+ */
+function tierFromCount(count: number): WarmthTier | null {
+  if (count <= 0) return null;
+  if (count <= 2) return 'acquainted';
+  if (count <= 4) return 'familiar';
+  return 'trusted';
+}
+
+/**
+ * Pick a random warmth line for the given NPC and tier. Returns null if no
+ * lines are defined for that NPC/tier combo.
+ */
+function pickWarmthLine(npcId: string, tier: WarmthTier): WarmthDialogueLine | null {
+  const warmthKey = WARMTH_NPC_MAP[npcId];
+  if (!warmthKey) return null;
+  const warmthData = (dialogueData as unknown as { warmthDialogues: WarmthDialogues }).warmthDialogues;
+  if (!warmthData) return null;
+  const npcTiers = warmthData[warmthKey];
+  if (!npcTiers) return null;
+  const lines = npcTiers[tier];
+  if (!lines || lines.length === 0) return null;
+  const idx = Math.floor(Math.random() * lines.length);
+  return lines[idx] ?? null;
+}
+
+/**
+ * Convert a warmth dialogue line (with fil/en fields) into the standard
+ * DialogueLine shape used by the rest of the dialogue system.
+ */
+function warmthLineToDialogueLine(line: WarmthDialogueLine): DialogueLine {
+  return {
+    speaker: line.speaker,
+    text: line.fil,
+    translation: line.en,
+  };
 }
 
 export const useGameStore = create<GameState>((set, get) => {
   // Listen to game events and update store
   gameEvents.on('dialogue:start', (data: unknown) => {
     const d = data as { dialogueId: string; line: DialogueLine; lineIndex: number; totalLines: number };
+
+    // ── Warmth dialogue hook ──
+    // When the game engine fires one of the "repeat" dialogues (the player
+    // has already met this NPC), we attempt to show a relationship-depth
+    // "warmth" line instead of the original first line. We do this without
+    // modifying the (read-only) game engine by intercepting the dialogue:start
+    // event here and rewriting the line + isWarmthDialogue flag.
+    let effectiveLine: DialogueLine = d.line;
+    let isWarmthDialogue = false;
+    let warmthTier: WarmthTier | null = null;
+
+    if (REPEAT_DIALOGUE_IDS.has(d.dialogueId)) {
+      // Map repeat dialogue id → NPC id (for warmth lookup).
+      const npcId = d.dialogueId.startsWith('mang-tenyo') ? 'mang-tenyo' : 'kitchen-staff';
+      const interactions = readNpcInteractionCounts();
+      const count = interactions[npcId] ?? 0;
+      const tier = tierFromCount(count);
+      if (tier) {
+        const warmthLine = pickWarmthLine(npcId, tier);
+        if (warmthLine) {
+          effectiveLine = warmthLineToDialogueLine(warmthLine);
+          isWarmthDialogue = true;
+          warmthTier = tier;
+        }
+      }
+      // If no warmth line was found, fall through and show the original
+      // repeat dialogue as-is (default repeat-line behaviour).
+    }
+
     set({
       dialogueActive: true,
       dialogueId: d.dialogueId,
-      currentLine: d.line,
+      currentLine: effectiveLine,
       currentLineIndex: d.lineIndex,
       totalLines: d.totalLines,
+      isWarmthDialogue,
+      warmthTier,
     });
     soundManager.play('dialogue-open');
 
@@ -114,10 +265,14 @@ export const useGameStore = create<GameState>((set, get) => {
 
   gameEvents.on('dialogue:line', (data: unknown) => {
     const d = data as { dialogueId: string; line: DialogueLine; lineIndex: number; totalLines: number };
+    // Once we advance past the warmth "bonus" intro line, clear the warmth
+    // flags — subsequent lines are the standard repeat dialogue.
     set({
       currentLine: d.line,
       currentLineIndex: d.lineIndex,
       totalLines: d.totalLines,
+      isWarmthDialogue: false,
+      warmthTier: null,
     });
     soundManager.play('dialogue-advance');
   });
@@ -129,6 +284,8 @@ export const useGameStore = create<GameState>((set, get) => {
       currentLine: null,
       currentLineIndex: 0,
       totalLines: 0,
+      isWarmthDialogue: false,
+      warmthTier: null,
     });
     soundManager.play('dialogue-close');
   });
@@ -218,6 +375,8 @@ export const useGameStore = create<GameState>((set, get) => {
     currentLine: null,
     currentLineIndex: 0,
     totalLines: 0,
+    isWarmthDialogue: false,
+    warmthTier: null,
     
     completedObjectives: initialSaveData.completedObjectives,
     currentQuest: quests.find(q => q.chapterId === 'ch1') || null,
@@ -342,6 +501,69 @@ export const useGameStore = create<GameState>((set, get) => {
         showMedal: false,
         medalInfo: null,
         introVisible: true,
+        isWarmthDialogue: false,
+        warmthTier: null,
+      });
+    },
+
+    // Warmth dialogue trigger — picks a random line from the appropriate tier
+    // for the given NPC and starts a one-line dialogue using the dialogue:start
+    // event. The game engine doesn't call this directly today (the engine fires
+    // the standard repeat dialogues, which we intercept above); this method is
+    // exposed so other UI surfaces (e.g. an NPC Relationship panel "Talk" button)
+    // can trigger warmth dialogues programmatically. If the NPC has no warmth
+    // lines defined or the player hasn't met them yet, a default repeat line
+    // is shown instead.
+    triggerWarmthDialogue: (npcId: string) => {
+      const interactions = readNpcInteractionCounts();
+      const count = interactions[npcId] ?? 0;
+      const tier = tierFromCount(count);
+
+      // Try to pick a warmth line at the appropriate tier, walking down the
+      // tiers if a higher one is empty (defensive — shouldn't happen with our
+      // data, but safe).
+      let warmthLine: WarmthDialogueLine | null = null;
+      let effectiveTier: WarmthTier | null = null;
+      const tierOrder: WarmthTier[] = ['trusted', 'familiar', 'acquainted'];
+      if (tier) {
+        // Start from the player's current tier and walk down
+        const startIdx = tierOrder.indexOf(tier);
+        for (let i = startIdx; i < tierOrder.length; i++) {
+          const candidate = pickWarmthLine(npcId, tierOrder[i]);
+          if (candidate) {
+            warmthLine = candidate;
+            effectiveTier = tierOrder[i];
+            break;
+          }
+        }
+      }
+
+      let line: DialogueLine;
+      if (warmthLine && effectiveTier) {
+        line = warmthLineToDialogueLine(warmthLine);
+      } else {
+        // Fallback default repeat line — a generic NPC acknowledgement.
+        line = {
+          speaker: 'Narrator',
+          text: 'You greet the townsfolk, but they seem busy with their own thoughts. Perhaps try again later.',
+          translation: '',
+        };
+        effectiveTier = null;
+      }
+
+      // Emit dialogue:start directly. The store's own listener (above) will
+      // pick this up and update the React state accordingly.
+      gameEvents.emit('dialogue:start', {
+        dialogueId: `warmth-${npcId}`,
+        line,
+        lineIndex: 0,
+        totalLines: 1,
+      });
+      // Explicitly set warmth flags (the listener only sets them when the
+      // dialogueId is in REPEAT_DIALOGUE_IDS, which warmth-<id> is not).
+      set({
+        isWarmthDialogue: warmthLine !== null,
+        warmthTier: effectiveTier,
       });
     },
   };

@@ -5,6 +5,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { useUIStore } from './UIManager';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { soundManager } from '@/lib/game/soundManager';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,10 @@ export default function SettingsPanel() {
     if (typeof window === 'undefined') return true;
     return localStorage.getItem('noor-music') !== 'false';
   });
+  const [ambientEnabled, setAmbientEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('noor-ambient-enabled') !== 'false';
+  });
 
   const toggleSound = (enabled: boolean) => {
     setSoundEnabled(enabled);
@@ -54,6 +59,18 @@ export default function SettingsPanel() {
     window.dispatchEvent(new CustomEvent('noor:setting', { detail: { music: enabled } }));
   };
 
+  const toggleAmbient = (enabled: boolean) => {
+    setAmbientEnabled(enabled);
+    localStorage.setItem('noor-ambient-enabled', String(enabled));
+    // Notify any listeners using the legacy `noor:setting` event channel
+    window.dispatchEvent(new CustomEvent('noor:setting', { detail: { ambient: enabled } }));
+    // Apply the change directly — soundManager.setAmbientEnabled() persists
+    // to the same localStorage key, stops running loops when disabled, and
+    // is a no-op when re-enabled (the game engine will resume market/nature
+    // loops on its next proximity/init pass).
+    soundManager.setAmbientEnabled(enabled);
+  };
+
   const handleReset = () => {
     resetGame();
     // Also clear server-side save by sending a reset request
@@ -62,6 +79,7 @@ export default function SettingsPanel() {
     // Clear all secondary localStorage keys too so a fresh start is truly fresh
     localStorage.removeItem('noor-field-notes');
     localStorage.removeItem('noor-discovery-log');
+    localStorage.removeItem('noor-discovered-locations');
     localStorage.removeItem('noor-stats');
     // Reload the page to fully reset game state
     setTimeout(() => window.location.reload(), 500);
@@ -142,6 +160,20 @@ export default function SettingsPanel() {
               <Switch
                 checked={musicEnabled}
                 onCheckedChange={toggleMusic}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-white text-sm font-medium flex items-center gap-2">
+                  <span>🌿</span> Ambient Sounds
+                </div>
+                <div className="text-white/40 text-xs mt-0.5">
+                  Footsteps, market chatter, church bells, and nature sounds.
+                </div>
+              </div>
+              <Switch
+                checked={ambientEnabled}
+                onCheckedChange={toggleAmbient}
               />
             </div>
           </div>

@@ -27,6 +27,8 @@ import DiscoveryLogPanel from '@/components/game/DiscoveryLogPanel';
 import AboutChapterPanel from '@/components/game/AboutChapterPanel';
 import RizalQuoteLibrary from '@/components/game/RizalQuoteLibrary';
 import NPCRelationshipPanel from '@/components/game/NPCRelationshipPanel';
+import PhotoMode from '@/components/game/PhotoMode';
+import ChapterRoadmap from '@/components/game/ChapterRoadmap';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -167,6 +169,12 @@ export default function Home() {
         {/* NPC Relationship Tracker — people of San Diego */}
         <NPCRelationshipPanel />
 
+        {/* Chapter Roadmap — vertical timeline of all 11 chapters */}
+        <ChapterRoadmap />
+
+        {/* Photo Mode — floating camera button + flash overlay + toast */}
+        <PhotoMode />
+
         {/* Achievement unlock toast (top-center, listens to game events) */}
         <AchievementToast />
 
@@ -214,8 +222,10 @@ export default function Home() {
             <span className="text-white/30">move</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">Space</kbd>
             <span className="text-white/30">talk</span>
-            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/J/G/A/L/M/B/D/N/Q/T/S</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/J/G/A/L/M/B/D/N/Q/T/R/S</kbd>
             <span className="text-white/30">panels</span>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">P</kbd>
+            <span className="text-white/30">photo</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">H</kbd>
             <span className="text-white/30">help</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">Esc</kbd>

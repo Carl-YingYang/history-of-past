@@ -79,6 +79,17 @@ export default function QuestTracker() {
   const [playerPos, setPlayerPos] = useState({ row: 15, col: 10 });
   const [stats, setStats] = useState({ tilesExplored: 0, npcsTalkedTo: 0 });
   const prevCompletedRef = useRef(completedObjectives);
+  // Mobile collapsible mode — collapsed by default on small screens to avoid
+  // overlapping the wrapped toolbar buttons. Users can tap the chevron to expand.
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const currentQuest = quests.find(q => q.chapterId === 'ch1');
 
@@ -170,7 +181,15 @@ export default function QuestTracker() {
     : 0;
 
   return (
-    <div className="absolute top-16 right-4 z-20 max-w-xs w-72 md:w-80">
+    <div
+      className={`absolute z-20 ${
+        isMobile && !mobileExpanded
+          ? 'top-16 right-2 w-[180px]'
+          : isMobile
+            ? 'top-16 right-2 w-[280px]'
+            : 'top-16 right-4 max-w-xs w-72 md:w-80'
+      }`}
+    >
       <div className="rounded-xl bg-stone-950/92 backdrop-blur-md border border-amber-400/30 p-3 shadow-2xl shadow-black/40 parchment-texture">
         {/* Header */}
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-amber-400/20">
@@ -184,12 +203,48 @@ export default function QuestTracker() {
               {currentQuest.title}
             </div>
           </div>
-          <div className="text-amber-400 font-mono text-xs ml-2 shrink-0 px-1.5 py-0.5 rounded bg-amber-950/40 border border-amber-400/20">
-            {completedCount}/{totalCount}
+          <div className="flex items-center gap-1 ml-2 shrink-0">
+            {isMobile && (
+              <button
+                onClick={() => setMobileExpanded(v => !v)}
+                className="text-amber-400/70 hover:text-amber-300 text-xs w-6 h-6 rounded flex items-center justify-center hover:bg-amber-950/40 transition-colors"
+                aria-label={mobileExpanded ? 'Collapse quest panel' : 'Expand quest panel'}
+                title={mobileExpanded ? 'Collapse' : 'Expand'}
+              >
+                {mobileExpanded ? '▾' : '▸'}
+              </button>
+            )}
+            <div className="text-amber-400 font-mono text-xs px-1.5 py-0.5 rounded bg-amber-950/40 border border-amber-400/20">
+              {completedCount}/{totalCount}
+            </div>
           </div>
         </div>
 
-        {/* Progress bar */}
+        {/* Mobile collapsed mode: show compact summary only */}
+        {isMobile && !mobileExpanded && (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="text-amber-400/80">{Math.round(progress)}%</span>
+              <div className="flex-1 h-1 bg-stone-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            {currentObjective && (
+              <div className="flex items-center gap-1 text-[10px] text-white/70 truncate">
+                <span>{getObjectiveIcon(currentObjective.id)}</span>
+                <span className="truncate">{currentObjective.description}</span>
+              </div>
+            )}
+            <div className="text-[9px] text-amber-400/50 text-center pt-0.5">Tap ▸ to expand</div>
+          </div>
+        )}
+
+        {/* Progress bar — hidden in mobile collapsed mode */}
+        {!(isMobile && !mobileExpanded) && (
+        <>
         <div className="mb-3">
           <Progress value={progress} className="h-1.5 bg-stone-800" />
           <div className="flex items-center justify-between mt-1">
@@ -298,6 +353,8 @@ export default function QuestTracker() {
             <span className="text-amber-400/80 font-mono">{stats.npcsTalkedTo}</span>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

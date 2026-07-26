@@ -167,8 +167,11 @@ class SaveManager {
   }
 
   addJournalEntry(text: string, chapterId: string = 'ch1'): void {
+    // Use a per-instance counter + timestamp + random suffix to guarantee unique IDs
+    // even when multiple entries are added within the same millisecond.
+    this._journalCounter = (this._journalCounter || 0) + 1;
     const entry: JournalEntry = {
-      id: `journal-${Date.now()}`,
+      id: `journal-${Date.now()}-${this._journalCounter}-${Math.random().toString(36).slice(2, 8)}`,
       chapterId,
       text,
       timestamp: Date.now(),
@@ -176,6 +179,8 @@ class SaveManager {
     this.saveData.journalEntries.push(entry);
     gameEvents.emit('journal:entry', entry);
   }
+
+  private _journalCounter: number = 0;
 
   awardXp(amount: number): void {
     this.saveData.xp += amount;

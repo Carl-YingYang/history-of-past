@@ -86,6 +86,8 @@ export default function DialogueBox() {
     dialogueId,
     introVisible,
     chapterPhase,
+    isWarmthDialogue,
+    warmthTier,
   } = useGameStore();
   const { activePanel } = useUIStore();
 
@@ -304,15 +306,37 @@ export default function DialogueBox() {
             <div className="flex-1 min-w-0">
               {/* Speaker name */}
               {!isNarrator && (
-                <div className="mb-1.5 flex items-center gap-2">
+                <div className="mb-1.5 flex items-center gap-2 flex-wrap">
                   <span
                     className="text-xs font-bold px-2.5 py-0.5 rounded-full shadow-md text-white"
                     style={{ backgroundColor: speakerStyle.color }}
                   >
                     {currentLine.speaker}
                   </span>
+                  {/* Warmth dialogue badge — shown when the current line is a
+                      relationship-depth "warmth" bonus line. The badge varies
+                      by tier so the player can see which tier they're in. */}
+                  {isWarmthDialogue && warmthTier && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm flex items-center gap-1 animate-warmth-badge-in ${
+                        warmthTier === 'trusted'
+                          ? 'bg-rose-950/60 border-rose-400/50 text-rose-200'
+                          : warmthTier === 'familiar'
+                            ? 'bg-amber-950/60 border-amber-300/50 text-amber-200'
+                            : 'bg-stone-800/60 border-stone-400/40 text-stone-200'
+                      }`}
+                      title={`Relationship tier: ${warmthTier} — you've built a deeper bond with this person.`}
+                    >
+                      <span className="text-[11px]">
+                        {warmthTier === 'trusted' ? '💛' : warmthTier === 'familiar' ? '✨' : '💕'}
+                      </span>
+                      <span className="uppercase tracking-wider">
+                        {warmthTier === 'trusted' ? 'Trusted' : warmthTier === 'familiar' ? 'Familiar' : 'Warmth +1'}
+                      </span>
+                    </span>
+                  )}
                   {/* Decorative line */}
-                  <div className="flex-1 h-px bg-gradient-to-r from-amber-400/40 to-transparent" />
+                  <div className="flex-1 h-px bg-gradient-to-r from-amber-400/40 to-transparent min-w-[20px]" />
                 </div>
               )}
 

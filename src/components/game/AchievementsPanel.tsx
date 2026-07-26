@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Category = Achievement['category'];
 type TabValue = 'all' | Category;
+type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 const CATEGORY_META: Record<Category, { label: string; icon: string }> = {
   exploration: { label: 'Exploration', icon: '🧭' },
@@ -18,6 +19,70 @@ const CATEGORY_META: Record<Category, { label: string; icon: string }> = {
   milestone: { label: 'Milestones', icon: '🏅' },
   secret: { label: 'Secret', icon: '✨' },
 };
+
+/**
+ * Determine the rarity of an achievement based on its XP reward.
+ *   - 5 XP   → common (gray)
+ *   - 10 XP  → rare (blue)
+ *   - 15 XP  → epic (purple)
+ *   - 20+ XP → legendary (gold)
+ * Hidden (secret) achievements are automatically legendary — they're rare to
+ * even discover.
+ */
+function getRarity(ach: Achievement): Rarity {
+  if (ach.hidden) return 'legendary';
+  if (ach.xpReward >= 20) return 'legendary';
+  if (ach.xpReward >= 15) return 'epic';
+  if (ach.xpReward >= 10) return 'rare';
+  return 'common';
+}
+
+const RARITY_STYLES: Record<Rarity, {
+  label: string;
+  border: string;
+  ring: string;
+  glow: string;
+  badge: string;
+}> = {
+  common: {
+    label: 'Common',
+    border: 'border-stone-500/40',
+    ring: 'ring-stone-400/20',
+    glow: 'shadow-stone-900/20',
+    badge: 'border-stone-400/40 text-stone-300 bg-stone-900/40',
+  },
+  rare: {
+    label: 'Rare',
+    border: 'border-sky-500/50',
+    ring: 'ring-sky-400/25',
+    glow: 'shadow-sky-900/30',
+    badge: 'border-sky-400/50 text-sky-300 bg-sky-950/40',
+  },
+  epic: {
+    label: 'Epic',
+    border: 'border-purple-500/50',
+    ring: 'ring-purple-400/25',
+    glow: 'shadow-purple-900/30',
+    badge: 'border-purple-400/50 text-purple-300 bg-purple-950/40',
+  },
+  legendary: {
+    label: 'Legendary',
+    border: 'border-amber-400/60',
+    ring: 'ring-amber-300/30',
+    glow: 'shadow-amber-900/40',
+    badge: 'border-amber-400/60 text-amber-300 bg-amber-950/40',
+  },
+};
+
+// Confetti colors for the achievement unlock celebration
+const CONFETTI_COLORS = ['#FBBF24', '#F59E0B', '#A78BFA', '#60A5FA', '#34D399', '#F472B6', '#FB7185'];
+const CONFETTI_PIECES = Array.from({ length: 14 }, (_, i) => ({
+  id: i,
+  left: `${10 + (i * 6)}%`,
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  delay: `${(i % 7) * 0.08}s`,
+  duration: `${1.6 + (i % 5) * 0.15}s`,
+}));
 
 /**
  * AchievementsPanel - Player milestone tracker (beyond chapter medals).
@@ -83,27 +148,61 @@ export default function AchievementsPanel() {
       : ach.description;
     const displayIcon = isHiddenLocked ? '❔' : ach.icon;
     const meta = CATEGORY_META[ach.category];
+    const rarity = getRarity(ach);
+    const rarityStyle = RARITY_STYLES[rarity];
+
+    // Determine if this achievement was unlocked very recently — within the
+    // last 6 seconds. If so, we show a confetti celebration on the card.
+    const unlockedAt = isUnlocked ? achievementManager.getUnlockedAt(ach.id) : null;
+    const isRecentlyUnlocked = isUnlocked && unlockedAt !== null && unlockedAt !== undefined
+      && (Date.now() - unlockedAt) < 6_000;
 
     return (
       <div
         key={ach.id}
-        className={`relative rounded-lg p-3 border transition-all ${
+        className={`relative rounded-lg p-3 border transition-all overflow-hidden ${
           isUnlocked
-            ? 'bg-amber-950/30 border-amber-400/50 shadow-md shadow-amber-950/20'
+            ? `bg-amber-950/30 ${rarityStyle.border} shadow-md ${rarityStyle.glow}`
             : 'bg-stone-900/40 border-stone-700/40'
         }`}
         style={isUnlocked ? {
-          boxShadow: '0 0 0 1px rgba(251, 191, 36, 0.15), 0 4px 14px -2px rgba(251, 191, 36, 0.18)',
+          boxShadow: `0 0 0 1px rgba(251, 191, 36, 0.15), 0 4px 14px -2px rgba(251, 191, 36, 0.18)`,
         } : undefined}
       >
-        <div className="flex items-start gap-3">
+        {/* Confetti celebration — only for recently-unlocked achievements */}
+        {isRecentlyUnlocked && (
+          <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden" aria-hidden="true">
+            {CONFETTI_PIECES.map(piece => (
+              <span
+                key={piece.id}
+                className="absolute top-0 w-1.5 h-1.5 rounded-sm animate-confetti-fall"
+                style={{
+                  left: piece.left,
+                  backgroundColor: piece.color,
+                  animationDelay: piece.delay,
+                  animationDuration: piece.duration,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Rarity left-edge accent stripe */}
+        {isUnlocked && (
+          <div
+            className={`absolute top-0 bottom-0 left-0 w-[3px] ${rarityStyle.border.replace('border-', 'bg-')}`}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className="flex items-start gap-3 relative">
           {/* Icon */}
           <div
             className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl shrink-0 ring-1 ring-inset ring-white/5 ${
               isUnlocked
-                ? 'bg-amber-900/40 border border-amber-400/40'
+                ? `bg-amber-900/40 border ${rarityStyle.border}`
                 : 'bg-stone-900/60 border border-stone-800/60'
-            }`}
+            } ${isRecentlyUnlocked ? 'animate-sparkle' : ''}`}
             style={isUnlocked ? { filter: 'none' } : { filter: 'grayscale(1) brightness(0.6)' }}
           >
             {displayIcon}
@@ -132,6 +231,16 @@ export default function AchievementsPanel() {
                   className="text-[10px] px-1.5 py-0 border-stone-600/60 text-white/40 bg-stone-900/40"
                 >
                   🔒 Locked
+                </Badge>
+              )}
+              {/* Rarity badge — only shown on unlocked cards */}
+              {isUnlocked && (
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] px-1.5 py-0 uppercase tracking-wider font-bold ${rarityStyle.badge}`}
+                  title={`${rarityStyle.label} rarity — based on XP reward`}
+                >
+                  ◆ {rarityStyle.label}
                 </Badge>
               )}
             </div>

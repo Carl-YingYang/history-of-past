@@ -24,7 +24,7 @@ import { gameEvents } from '@/lib/game/eventBus';
  *     does NOT pause the game (the engine keeps running).
  */
 
-export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs' | null;
+export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs' | 'roadmap' | null;
 
 interface UIState {
   activePanel: PanelId;
@@ -152,6 +152,18 @@ export function GlobalKeyboardShortcuts() {
         case 't':
           // NPCs / People — relationship tracker
           store.togglePanel('npcs');
+          e.preventDefault();
+          break;
+        case 'r':
+          // Chapter Roadmap — vertical timeline of all 11 chapters
+          store.togglePanel('roadmap');
+          e.preventDefault();
+          break;
+        case 'p':
+          // Photo Mode — capture a screenshot of the game canvas.
+          // Dispatch a custom event (handled by PhotoMode.tsx) to avoid a
+          // circular import between UIManager and PhotoMode.
+          window.dispatchEvent(new Event('noor:capture-photo'));
           e.preventDefault();
           break;
         case 'h':

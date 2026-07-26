@@ -7,6 +7,7 @@ import { toggleFieldNotesPanel } from './FieldNotesPanel';
 import { toggleDiscoveryLogPanel } from './DiscoveryLogPanel';
 import { toggleRizalQuoteLibrary } from './RizalQuoteLibrary';
 import { toggleNPCRelationshipPanel } from './NPCRelationshipPanel';
+import { triggerPhotoCapture } from './PhotoMode';
 import codex from '@/data/codex.json';
 import { achievementManager } from '@/lib/game/achievementManager';
 
@@ -112,7 +113,7 @@ export default function Toolbar() {
   }, []);
 
   const buttons: {
-    id: 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs';
+    id: 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs' | 'roadmap';
     icon: string;
     label: string;
     shortcut: string;
@@ -127,6 +128,7 @@ export default function Toolbar() {
     { id: 'about', icon: '❦', label: 'About', shortcut: 'B' },
     { id: 'quotes', icon: '💡', label: 'Quotes', shortcut: 'Q', counter: `${favoritesCount}` },
     { id: 'npcs', icon: '👥', label: 'People', shortcut: 'T' },
+    { id: 'roadmap', icon: '🛣️', label: 'Roadmap', shortcut: 'R', counter: '1/11' },
     { id: 'settings', icon: '⚙️', label: 'Settings', shortcut: 'S' },
   ];
 
@@ -206,6 +208,27 @@ export default function Toolbar() {
         </div>
         <div className="hidden md:block text-white/25 text-[8px] text-center font-mono leading-none mt-0.5">
           N
+        </div>
+      </button>
+
+      {/* Photo Mode — capture screenshot (icon-only on mobile, label on md+) */}
+      <button
+        onClick={triggerPhotoCapture}
+        className="group rounded-lg border p-1.5 shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-gradient-to-br hover:from-stone-800/90 hover:to-amber-950/30 hover:border-amber-400/50"
+        title="📸 Photo Mode (P)"
+        aria-label="Capture a screenshot (Photo Mode, shortcut P)"
+      >
+        <div className="flex items-center gap-1">
+          <span className="text-sm transition-transform duration-200 group-hover:scale-105">📸</span>
+          {/* Label hidden on mobile — subtle icon-only button */}
+          <span className="hidden md:inline text-amber-400 font-bold text-[10px] leading-none group-hover:text-amber-300">Photo</span>
+        </div>
+        {/* No counter for photo capture */}
+        <div className="text-amber-400/40 text-[9px] mt-0.5 text-center font-mono leading-none">
+          <span aria-hidden="true">·</span>
+        </div>
+        <div className="hidden md:block text-white/25 text-[8px] text-center font-mono leading-none mt-0.5">
+          P
         </div>
       </button>
     </div>

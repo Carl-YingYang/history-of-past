@@ -152,5 +152,44 @@
       ],
       "unlocksObjective": null
     }
+  },
+  "warmthDialogues": {
+    "mang-tenyo": {
+      "acquainted": [
+        { "fil": "Umuwi ka na naman? Dito ka lang palagi.", "en": "You came back again? You're always here.", "speaker": "Mang Tenyo" },
+        { "fil": "Kumain ka na ba? Baka gutom ka na naman.", "en": "Have you eaten? You're probably hungry again.", "speaker": "Mang Tenyo" },
+        { "fil": "Ikaw ba talaga ang guro? Kakaiba ka kasi — parang hindi mo alam kung nasaan ka.", "en": "Are you really the teacher? You're strange — like you don't know where you are.", "speaker": "Mang Tenyo" },
+        { "fil": "Ang init ngayon, ano? Magpahinga ka muna sa lilim. Hindi naman tayo nag-aagawan ng oras.", "en": "It's hot today, isn't it? Rest in the shade a while. There's no rush here.", "speaker": "Mang Tenyo" }
+      ],
+      "familiar": [
+        { "fil": "Alam mo, parang anak na rin kita. Mag-ingat ka palagi.", "en": "You know, you're like a child to me. Take care always.", "speaker": "Mang Tenyo" },
+        { "fil": "Marami akong kwento sa iyo — pero may tamang panahon din iyan.", "en": "I have many stories for you — but there's a right time for those too.", "speaker": "Mang Tenyo" },
+        { "fil": "Nakikita ko sa mata mo — marami kang tanong. Hahanapin mo ang sagot, kahit masakit.", "en": "I see it in your eyes — you have many questions. You will seek the answers, even if it hurts.", "speaker": "Mang Tenyo" },
+        { "fil": "Sila na lang ang mag-usap ni Ibarra. Ikaw, manood ka mula sa gilid — mas marami kang matutunan.", "en": "Let them talk to Ibarra. You, watch from the edges — you'll learn more.", "speaker": "Mang Tenyo" }
+      ],
+      "trusted": [
+        { "fil": "Ito ang lihim ko, anak — ang bayang ito, may nakabaong kalungkutan. Mag-ingat ka sa mga lihim na hindi mo hinihingi.", "en": "Here is my secret, child — this town has buried sorrow. Be careful with secrets you did not ask for.", "speaker": "Mang Tenyo" },
+        { "fil": "Sinabi ko sa iyo ito dahil alam kong marinig mo. Ang iba, bingi sa sigaw ng katotohanan.", "en": "I tell you this because I know you can hear it. Others are deaf to the cry of truth.", "speaker": "Mang Tenyo" },
+        { "fil": "Kung dumating ang araw na kailanganin mo ang tulong ko — alam mo kung saan ako. Hindi kita iiwan.", "en": "If the day comes that you need my help — you know where I am. I will not abandon you.", "speaker": "Mang Tenyo" }
+      ]
+    },
+    "kitchen-staff": {
+      "acquainted": [
+        { "fil": "Ikaw na naman? Anong balita sa labas?", "en": "You again? What's the news outside?", "speaker": "Aling Nena" },
+        { "fil": "Oy, huwag kang pumunta doon sa may kumbento — masungit si Padre Dámaso ngayon.", "en": "Hey, don't go near the convent — Padre Dámaso is in a foul mood today.", "speaker": "Mang Andres" },
+        { "fil": "Gutom ka ba? May turon pa ako dito. Huwag ka nang mahiya.", "en": "Are you hungry? I still have some turon here. Don't be shy.", "speaker": "Aling Nena" },
+        { "fil": "Bago ka dito, ano? Halata sa lakad mo. Wag kang mag-alala — sanay din kami sa mga bago.", "en": "You're new here, right? It shows in how you walk. Don't worry — we're used to newcomers.", "speaker": "Mang Andres" }
+      ],
+      "familiar": [
+        { "fil": "Sshh — may bagong tsismo. Pero baka mabalitaan nila na pinag-uusapan natin.", "en": "Shh — there's new gossip. But they might hear we're talking.", "speaker": "Mang Andres" },
+        { "fil": "Narinig ko kagabi — may plano raw si Ibarra na magpatayo ng paaralan. Maganda iyon, ano?", "en": "I heard last night — Ibarra supposedly plans to build a school. That's good, isn't it?", "speaker": "Aling Nena" },
+        { "fil": "Ang sabi, may nangyari sa ama ni Ibarra — kay Don Rafael. Hindi natin alam ang buong kwento.", "en": "They say something happened to Ibarra's father — Don Rafael. We don't know the whole story.", "speaker": "Mang Andres" },
+        { "fil": "Ikaw, marunong ka bang magbasa? Kasi ang mga bata dito — kailangan ng guro. Sana ikaw na nga.", "en": "You, can you read? Because the children here — they need a teacher. I hope it's you.", "speaker": "Aling Nena" }
+      ],
+      "trusted": [
+        { "fil": "Ito ang sasabihin ko sa iyo, at huwag mo ring sabihin kay Padre Dámaso — may listahan daw siya ng mga taong nag-aaral. Nag-aalala ako para sa iyo.", "en": "I will tell you this, and do not tell Padre Dámaso — they say he keeps a list of those who study. I worry for you.", "speaker": "Aling Nena" },
+        { "fil": "Kapag may nagtanong sa iyo, ikaw ay bago pa rin dito. Wala kang alam. Ganyan ka na lang. Para sa ikabubuti mo.", "en": "If anyone asks, you are still new here. You know nothing. Just play along. For your own good.", "speaker": "Mang Andres" }
+      ]
+    }
   }
 }

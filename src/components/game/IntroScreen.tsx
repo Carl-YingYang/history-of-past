@@ -51,6 +51,7 @@ export default function IntroScreen() {
   const [fading, setFading] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(false);
 
   const hasProgress = completedObjectives.length > 0;
 
@@ -77,6 +78,25 @@ export default function IntroScreen() {
     const t = setTimeout(() => setShowHint(true), 4000);
     return () => clearTimeout(t);
   }, []);
+
+  // Detect if the intro content overflows the viewport — if so, show a
+  // "scroll-down-to-continue" hint after a short delay so the player knows
+  // there is more to read below.
+  useEffect(() => {
+    if (!visible) return;
+    const checkOverflow = () => {
+      // Check if the body is scrollable (i.e. the intro content exceeds viewport)
+      const overflowed = document.documentElement.scrollHeight > window.innerHeight + 8;
+      setShowScrollHint(overflowed);
+    };
+    // Wait for fonts / layout to settle
+    const t = setTimeout(checkOverflow, 500);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [visible]);
 
   // Listen for keyboard to also dismiss
   useEffect(() => {
@@ -186,11 +206,11 @@ export default function IntroScreen() {
           based on <span className="italic text-amber-300/80">Noli Me Tangere</span> by José Rizal · 1887
         </div>
 
-        {/* Decorative ornament */}
+        {/* Decorative ornament — the ✦ stars twinkle on staggered delays */}
         <div className="flex items-center justify-center gap-2 mb-8 text-amber-400/40 animate-subtitle-fade" style={{ animationDelay: '2s' }}>
-          <span>✦</span>
+          <span className="animate-star-twinkle" style={{ animationDelay: '0s', animationDuration: '2.6s' }}>✦</span>
           <span className="text-2xl">❦</span>
-          <span>✦</span>
+          <span className="animate-star-twinkle" style={{ animationDelay: '1.3s', animationDuration: '3.1s' }}>✦</span>
         </div>
 
         {/* Description — delayed fade */}
@@ -234,7 +254,7 @@ export default function IntroScreen() {
           </div>
         </div>
 
-        {/* Begin button — ornamental border style */}
+        {/* Begin button — ornamental border style with subtle gold shimmer on hover */}
         <button
           onClick={handleBegin}
           disabled={!gameReady}
@@ -242,8 +262,9 @@ export default function IntroScreen() {
                      bg-gradient-to-br from-amber-600 to-amber-800 text-white font-bold tracking-wide
                      border-2 border-amber-400/50 shadow-2xl shadow-amber-900/50
                      hover:from-amber-500 hover:to-amber-700 hover:scale-105
-                     active:scale-100 transition-all duration-200
-                     disabled:opacity-50 disabled:cursor-wait animate-subtitle-fade"
+                     active:scale-100 transition-all duration-200 overflow-hidden
+                     disabled:opacity-50 disabled:cursor-wait animate-subtitle-fade
+                     animate-gold-shimmer-hover"
           style={{ animationDelay: '2.8s' }}
         >
           <span className="text-lg">{hasProgress ? '▶' : '✦'}</span>
@@ -265,10 +286,25 @@ export default function IntroScreen() {
           </div>
         )}
 
-        {/* Footer attribution */}
+        {/* Scroll-down hint — only shown when intro content overflows viewport */}
+        {showScrollHint && (
+          <div
+            className="text-amber-400/60 text-[10px] mt-6 flex items-center justify-center gap-1.5 animate-pulse"
+            aria-hidden="true"
+          >
+            <span className="uppercase tracking-[0.3em] font-medium">Scroll</span>
+            <span className="text-base animate-bounce">↓</span>
+            <span className="uppercase tracking-[0.3em] font-medium">to continue</span>
+          </div>
+        )}
+
+        {/* Footer attribution — build version + edition year */}
         <div className="absolute -bottom-12 left-0 right-0 text-center">
           <div className="text-white/30 text-[10px] tracking-widest uppercase">
-            Chapter 1 of 11 · Build v0.4
+            Chapter 1 of 11 · Build v0.4 · 2026 Edition
+          </div>
+          <div className="text-white/15 text-[9px] tracking-[0.2em] mt-0.5 italic" style={{ fontFamily: 'Georgia, serif' }}>
+            An educational RPG · Based on Noli Me Tangere by José Rizal
           </div>
         </div>
       </div>

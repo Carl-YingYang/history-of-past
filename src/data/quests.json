@@ -1,0 +1,37 @@
+[
+  {
+    "id": "mq.ch1.arrival",
+    "type": "main",
+    "chapterId": "ch1",
+    "title": "A Stranger's Welcome",
+    "storyPurpose": "Establish the player's cover identity and introduce San Diego.",
+    "learningObjective": "Ibarra's homecoming after seven years studying in Europe, and the social tension it creates.",
+    "npcIds": ["mang-tenyo", "char.tiago", "char.damaso"],
+    "objectives": [
+      {
+        "id": "obj.ch1.follow_tenyo",
+        "description": "Follow Mang Tenyo into town",
+        "type": "dialogue",
+        "targetNpcId": "mang-tenyo",
+        "completed": false
+      },
+      {
+        "id": "obj.ch1.overhear_gossip",
+        "description": "Overhear the reception gossip from the market/kitchen staff",
+        "type": "trigger",
+        "triggerZone": "market-gossip",
+        "completed": false
+      },
+      {
+        "id": "obj.ch1.see_ibarra",
+        "description": "See Ibarra briefly in the plaza the next morning",
+        "type": "trigger",
+        "triggerZone": "ibarra-sighting",
+        "completed": false
+      }
+    ],
+    "rewardXp": 60,
+    "codexUnlockIds": ["char.ibarra", "char.tiago", "char.damaso"],
+    "historicalExplanation": "Ilustrados like Ibarra (and Rizal himself) often returned from European study to a colonial society deeply suspicious of the reformist ideas they brought back."
+  }
+]

@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GameSave {
+  id              String   @id @default(cuid())
+  playerId        String   @unique
+  currentChapter  String   @default("ch1")
+  completedObjectives String @default("[]")
+  completedQuests  String  @default("[]")
+  unlockedCodex    String  @default("[]")
+  journalEntries   String  @default("[]")
+  xp              Int      @default(0)
+  chapterMedals    String  @default("[]")
+  gameState        String  @default("{}")
+  lastSaveTime     BigInt   @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

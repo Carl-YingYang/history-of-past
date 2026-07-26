@@ -1,0 +1,38 @@
+[
+  {
+    "id": "quiz.ch1.q1",
+    "chapterId": "ch1",
+    "question": "How long was Crisóstomo Ibarra away studying in Europe?",
+    "options": [
+      { "id": "a", "text": "3 years", "correct": false },
+      { "id": "b", "text": "5 years", "correct": false },
+      { "id": "c", "text": "7 years", "correct": true },
+      { "id": "d", "text": "10 years", "correct": false }
+    ],
+    "correctExplanation": "Ibarra spent seven years studying in Europe — the same length of time Rizal himself was abroad. This European education shaped his reformist ideas, which worried the Spanish colonial authorities."
+  },
+  {
+    "id": "quiz.ch1.q2",
+    "chapterId": "ch1",
+    "question": "Who hosted the homecoming reception dinner for Ibarra?",
+    "options": [
+      { "id": "a", "text": "Padre Dámaso", "correct": false },
+      { "id": "b", "text": "Capitán Tiago", "correct": true },
+      { "id": "c", "text": "Mang Tenyo", "correct": false },
+      { "id": "d", "text": "Maria Clara", "correct": false }
+    ],
+    "correctExplanation": "Capitán Tiago, a wealthy Filipino elite, hosted the dinner. He tried to navigate the social tensions between the Spanish friars and the Filipino community — but Padre Dámaso's behavior made that impossible."
+  },
+  {
+    "id": "quiz.ch1.q3",
+    "chapterId": "ch1",
+    "question": "Why was Padre Dámaso hostile to Ibarra at the reception, despite having been close to Ibarra's late father?",
+    "options": [
+      { "id": "a", "text": "Ibarra insulted him first", "correct": false },
+      { "id": "b", "text": "Dámaso feared Ibarra's European ideas would challenge Spanish authority", "correct": true },
+      { "id": "c", "text": "Dámaso was jealous of Ibarra's wealth", "correct": false },
+      { "id": "d", "text": "Ibarra refused to attend mass", "correct": false }
+    ],
+    "correctExplanation": "Padre Dámaso represented the Spanish friar class that held immense power in colonial Philippines. The return of an educated Filipino with reformist ideas threatened that authority — even though Dámaso had once been close to Ibarra's father, Don Rafael."
+  }
+]

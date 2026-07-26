@@ -1,0 +1,32 @@
+[
+  {
+    "id": "char.ibarra",
+    "name": "Crisóstomo Ibarra (later \"Simoun\")",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "A young, European-educated mestizo who returns to San Diego hoping to reform his country through education. Years later he resurfaces in Manila as the wealthy, embittered jeweler Simoun.",
+    "details": "Ibarra spent seven years studying in Europe, returning to San Diego with progressive ideas about education and reform. His homecoming reception at Capitán Tiago's house became infamous when Padre Dámaso openly insulted him — a sign of the deep social tensions between the Spanish friars and the Filipino ilustrados.",
+    "category": "characters",
+    "relatedEntries": ["char.tiago", "char.damaso"]
+  },
+  {
+    "id": "char.tiago",
+    "name": "Capitán Tiago",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "A wealthy, socially anxious Filipino elite who hosted Ibarra's homecoming reception. Maria Clara's legal father.",
+    "details": "Don Santiago de los Santos, known as Capitán Tiago, is one of the wealthiest men in Manila. He hosted the dinner reception for Ibarra's return, but his social anxieties and desire to please both Spanish authorities and Filipino elites made him a complicated figure in colonial society.",
+    "category": "characters",
+    "relatedEntries": ["char.ibarra", "char.damaso"]
+  },
+  {
+    "id": "char.damaso",
+    "name": "Padre Dámaso",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "An arrogant Franciscan friar and former San Diego parish priest, openly hostile to Ibarra at the reception dinner despite once being close to Ibarra's late father.",
+    "details": "Padre Dámaso was the parish priest of San Diego for many years and was close to Ibarra's father, Don Rafael. However, after Don Rafael's death, Dámaso's attitude changed dramatically. At Ibarra's homecoming reception, he was openly rude and hostile — shocking the other guests and revealing the deep power dynamics between Spanish friars and the Filipino community.",
+    "category": "characters",
+    "relatedEntries": ["char.ibarra", "char.tiago"]
+  }
+]

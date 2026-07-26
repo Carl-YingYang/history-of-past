@@ -1,0 +1,916 @@
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "a7e81455-b1a4-4723-94f3-4dada6e5cf17",
+        "name": "Full body 2D chibi pixel art character sprite based on image_3.png, of a young adult male character standing in a 3/4 front view facing slightly right. Character has a medium-tan skin complexion and a full head of well-defined, spiky black hair with pixel volume layers. He has soft dark brown eyes and a friendly, gentle pixel smile.\n\nClothing Details: He wears a crisp white short-sleeved tailored polo shirt. Crucially, anchoring the ID: Clearly defined and positioned around his neck is a thin, woven-texture, matte purple fabric ID lanyard. Clearly visible on his chest, hanging from the lanyard, is a rectangular plastic ID badge with simplified pixelated text and a small photo box detail, distinct from the shirt.\n\nLower Body: Dark Matte Black tailored slacks with visible crease definitions and shading. Simplified black leather school-style shoes with defined soles.\n\nPosture and Style: Standing posture, hands down by his sides. The art is isolated pixel art, approximately 64 pixels tall, on a clean transparent alpha channel background canvas. Crisp edges for every pixel, with distinct dark outlines for all elements (hair, face, lanyard, shirt, pants, shoes) to prevent color bleeding and preserve detail definitions on an isolated output.",
+        "prompt": "Full body 2D chibi pixel art character sprite based on image_3.png, of a young adult male character standing in a 3/4 front view facing slightly right. Character has a medium-tan skin complexion and a full head of well-defined, spiky black hair with pixel volume layers. He has soft dark brown eyes and a friendly, gentle pixel smile.\n\nClothing Details: He wears a crisp white short-sleeved tailored polo shirt. Crucially, anchoring the ID: Clearly defined and positioned around his neck is a thin, woven-texture, matte purple fabric ID lanyard. Clearly visible on his chest, hanging from the lanyard, is a rectangular plastic ID badge with simplified pixelated text and a small photo box detail, distinct from the shirt.\n\nLower Body: Dark Matte Black tailored slacks with visible crease definitions and shading. Simplified black leather school-style shoes with defined soles.\n\nPosture and Style: Standing posture, hands down by his sides. The art is isolated pixel art, approximately 64 pixels tall, on a clean transparent alpha channel background canvas. Crisp edges for every pixel, with distinct dark outlines for all elements (hair, face, lanyard, shirt, pants, shoes) to prevent color bleeding and preserve detail definitions on an isolated output.",
+        "size": {
+          "width": 72,
+          "height": 72
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-07-26T11:34:35.787514+00:00"
+      },
+      "folder": "Full_body_2D_chibi_pixel_art_character_sprite_base",
+      "frames": {
+        "rotations": {
+          "south": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/south.png",
+          "south-east": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/south-east.png",
+          "east": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/east.png",
+          "north-east": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/north-east.png",
+          "north": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/north.png",
+          "north-west": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/north-west.png",
+          "west": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/west.png",
+          "south-west": "Full_body_2D_chibi_pixel_art_character_sprite_base/rotations/south-west.png"
+        },
+        "animations": {
+          "Walk": {
+            "west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/west/frame_005.png"
+            ],
+            "north-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-east/frame_005.png"
+            ],
+            "north": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north/frame_005.png"
+            ],
+            "south-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-west/frame_005.png"
+            ],
+            "south": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south/frame_005.png"
+            ],
+            "north-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/north-west/frame_005.png"
+            ],
+            "south-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/south-east/frame_005.png"
+            ],
+            "east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Walk/east/frame_005.png"
+            ]
+          },
+          "Breathing_Idle": {
+            "north-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-east/frame_003.png"
+            ],
+            "south-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-west/frame_003.png"
+            ],
+            "north-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north-west/frame_003.png"
+            ],
+            "south-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south-east/frame_003.png"
+            ],
+            "west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/west/frame_003.png"
+            ],
+            "east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/east/frame_003.png"
+            ],
+            "north": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/north/frame_003.png"
+            ],
+            "south": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Breathing_Idle/south/frame_003.png"
+            ]
+          },
+          "Running": {
+            "south": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south/frame_007.png"
+            ],
+            "east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/east/frame_007.png"
+            ],
+            "south-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-east/frame_007.png"
+            ],
+            "north-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-west/frame_007.png"
+            ],
+            "south-west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/south-west/frame_007.png"
+            ],
+            "north": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north/frame_007.png"
+            ],
+            "west": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/west/frame_007.png"
+            ],
+            "north-east": [
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_000.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_001.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_002.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_003.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_004.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_005.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_006.png",
+              "Full_body_2D_chibi_pixel_art_character_sprite_base/animations/Running/north-east/frame_007.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-07-26T12:11:27.658769"
+}---
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "ca1cf5d9-adfb-412c-85c8-3675e6d44e61",
+        "name": "Young Filipino mestizo man in his early 20s, formal 19th century attire \u2014 \ndark blue coat, vest, slacks, brown leather shoulder bag, neat dark hair, \nconfident expression, pixel art style",
+        "prompt": "Young Filipino mestizo man in his early 20s, formal 19th century attire \u2014 \ndark blue coat, vest, slacks, brown leather shoulder bag, neat dark hair, \nconfident expression, pixel art style",
+        "size": {
+          "width": 76,
+          "height": 76
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-07-25T10:02:08.562814+00:00"
+      },
+      "folder": "Young_Filipino_mestizo_man_in_his_early_20s_formal",
+      "frames": {
+        "rotations": {
+          "south": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/south.png",
+          "south-east": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/south-east.png",
+          "east": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/east.png",
+          "north-east": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/north-east.png",
+          "north": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/north.png",
+          "north-west": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/north-west.png",
+          "west": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/west.png",
+          "south-west": "Young_Filipino_mestizo_man_in_his_early_20s_formal/rotations/south-west.png"
+        },
+        "animations": {
+          "Running": {
+            "south-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-east/frame_007.png"
+            ],
+            "north-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-east/frame_007.png"
+            ],
+            "east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/east/frame_007.png"
+            ],
+            "north": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north/frame_007.png"
+            ],
+            "north-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/north-west/frame_007.png"
+            ],
+            "south": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south/frame_007.png"
+            ],
+            "south-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/south-west/frame_007.png"
+            ],
+            "west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_005.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_006.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Running/west/frame_007.png"
+            ]
+          },
+          "Breathing_Idle": {
+            "east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/east/frame_003.png"
+            ],
+            "north": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north/frame_003.png"
+            ],
+            "south-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-west/frame_003.png"
+            ],
+            "north-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-west/frame_003.png"
+            ],
+            "south-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south-east/frame_003.png"
+            ],
+            "west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/west/frame_003.png"
+            ],
+            "south": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/south/frame_003.png"
+            ],
+            "north-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Breathing_Idle/north-east/frame_003.png"
+            ]
+          },
+          "Walk": {
+            "north-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-east/frame_005.png"
+            ],
+            "east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/east/frame_005.png"
+            ],
+            "south-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-west/frame_005.png"
+            ],
+            "west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/west/frame_005.png"
+            ],
+            "north": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north/frame_005.png"
+            ],
+            "south": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south/frame_005.png"
+            ],
+            "north-west": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/north-west/frame_005.png"
+            ],
+            "south-east": [
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_000.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_001.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_002.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_003.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_004.png",
+              "Young_Filipino_mestizo_man_in_his_early_20s_formal/animations/Walk/south-east/frame_005.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-07-26T09:17:07.025202"
+}---
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "09095bff-aeea-4d21-80b4-e2918c4af531",
+        "name": "Young Filipina mestiza teenager, mid-to-late 19th century Philippine \nattire \u2014 cream-colored pi\u00f1a embroidered kimona/shawl over the shoulders, \nlong dark blue skirt (saya), long straight black hair with a cream ribbon \nbow, holding a rosary necklace, warm light-brown skin, gentle smile, \nsoft brown eyes, delicate features, chibi pixel art style",
+        "prompt": "Young Filipina mestiza teenager, mid-to-late 19th century Philippine \nattire \u2014 cream-colored pi\u00f1a embroidered kimona/shawl over the shoulders, \nlong dark blue skirt (saya), long straight black hair with a cream ribbon \nbow, holding a rosary necklace, warm light-brown skin, gentle smile, \nsoft brown eyes, delicate features, chibi pixel art style",
+        "size": {
+          "width": 68,
+          "height": 68
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-07-25T11:47:48.284942+00:00"
+      },
+      "folder": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c",
+      "frames": {
+        "rotations": {
+          "south": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/south.png",
+          "south-east": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/south-east.png",
+          "east": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/east.png",
+          "north-east": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/north-east.png",
+          "north": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/north.png",
+          "north-west": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/north-west.png",
+          "west": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/west.png",
+          "south-west": "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/rotations/south-west.png"
+        },
+        "animations": {
+          "Walk": {
+            "east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/east/frame_005.png"
+            ],
+            "south-west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-west/frame_005.png"
+            ],
+            "south-east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south-east/frame_005.png"
+            ],
+            "north-east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-east/frame_005.png"
+            ],
+            "south": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/south/frame_005.png"
+            ],
+            "north-west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north-west/frame_005.png"
+            ],
+            "north": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/north/frame_005.png"
+            ],
+            "west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_003.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_004.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Walk/west/frame_005.png"
+            ]
+          },
+          "Breathing_Idle": {
+            "north": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north/frame_003.png"
+            ],
+            "north-west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-west/frame_003.png"
+            ],
+            "south-east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-east/frame_003.png"
+            ],
+            "south-west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south-west/frame_003.png"
+            ],
+            "north-east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/north-east/frame_003.png"
+            ],
+            "east": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/east/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/east/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/east/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/east/frame_003.png"
+            ],
+            "south": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/south/frame_003.png"
+            ],
+            "west": [
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/west/frame_000.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/west/frame_001.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/west/frame_002.png",
+              "Young_Filipina_mestiza_teenager_mid-to-late_19th_c/animations/Breathing_Idle/west/frame_003.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-07-26T09:17:14.533243"
+}---
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "0bb54bff-5877-4269-95cc-d9c16930fec4",
+        "name": "Young adult male Filipino medical student, mid-to-late 19th century attire, simple white short-sleeved shirt, dark trousers, shoulder-length dark brown hair, serious expression, holding an open book, brown satchel bag, chibi pixel art style",
+        "prompt": "Young adult male Filipino medical student, mid-to-late 19th century attire, simple white short-sleeved shirt, dark trousers, shoulder-length dark brown hair, serious expression, holding an open book, brown satchel bag, chibi pixel art style",
+        "size": {
+          "width": 68,
+          "height": 68
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-07-26T09:32:16.812457+00:00"
+      },
+      "folder": "Young_adult_male_Filipino_medical_student_mid-to-l",
+      "frames": {
+        "rotations": {
+          "south": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/south.png",
+          "south-east": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/south-east.png",
+          "east": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/east.png",
+          "north-east": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/north-east.png",
+          "north": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/north.png",
+          "north-west": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/north-west.png",
+          "west": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/west.png",
+          "south-west": "Young_adult_male_Filipino_medical_student_mid-to-l/rotations/south-west.png"
+        },
+        "animations": {
+          "Running": {
+            "south": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south/frame_007.png"
+            ],
+            "north": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north/frame_007.png"
+            ],
+            "north-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-east/frame_007.png"
+            ],
+            "east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/east/frame_007.png"
+            ],
+            "south-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-west/frame_007.png"
+            ],
+            "north-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/north-west/frame_007.png"
+            ],
+            "west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/west/frame_007.png"
+            ],
+            "south-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_005.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_006.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Running/south-east/frame_007.png"
+            ]
+          },
+          "Crouching": {
+            "north-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-west/frame_004.png"
+            ],
+            "south": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south/frame_004.png"
+            ],
+            "south-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-east/frame_004.png"
+            ],
+            "south-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/south-west/frame_004.png"
+            ],
+            "north-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north-east/frame_004.png"
+            ],
+            "east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/east/frame_004.png"
+            ],
+            "north": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/north/frame_004.png"
+            ],
+            "west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Crouching/west/frame_004.png"
+            ]
+          },
+          "Breathing_Idle": {
+            "east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/east/frame_003.png"
+            ],
+            "south": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south/frame_003.png"
+            ],
+            "north-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-east/frame_003.png"
+            ],
+            "north": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north/frame_003.png"
+            ],
+            "south-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-east/frame_003.png"
+            ],
+            "north-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/north-west/frame_003.png"
+            ],
+            "south-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/south-west/frame_003.png"
+            ],
+            "west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Breathing_Idle/west/frame_003.png"
+            ]
+          },
+          "Walk": {
+            "west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/west/frame_005.png"
+            ],
+            "east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/east/frame_005.png"
+            ],
+            "north-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-east/frame_005.png"
+            ],
+            "north-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north-west/frame_005.png"
+            ],
+            "north": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/north/frame_005.png"
+            ],
+            "south-west": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-west/frame_005.png"
+            ],
+            "south": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south/frame_005.png"
+            ],
+            "south-east": [
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_000.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_001.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_002.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_003.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_004.png",
+              "Young_adult_male_Filipino_medical_student_mid-to-l/animations/Walk/south-east/frame_005.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-07-26T10:40:19.784146"
+}

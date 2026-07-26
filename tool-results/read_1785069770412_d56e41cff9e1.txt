@@ -1,0 +1,808 @@
+     1→     1→// GameEngine - Core game loop, Canvas rendering, input handling, and scene management
+     2→     2→// Pokémon-style top-down 2D RPG engine for Project Noor
+     3→     3→
+     4→     4→import { gameEvents } from './eventBus';
+     5→     5→import { spriteLoader } from './spriteLoader';
+     6→     6→import { saveManager } from './saveManager';
+     7→     7→import mapData from '@/data/mapData.json';
+     8→     8→import dialogueData from '@/data/dialogueData.json';
+     9→     9→import characterData from '@/data/characters.json';
+    10→    10→
+    11→    11→// Direction constants
+    12→    12→const DIRECTIONS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'] as const;
+    13→    13→type Direction = typeof DIRECTIONS[number];
+    14→    14→
+    15→    15→interface Entity {
+    16→    16→  id: string;
+    17→    17→  x: number;
+    18→    18→  y: number;
+    19→    19→  direction: Direction;
+    20→    20→  characterKey: string;
+    21→    21→  isMoving: boolean;
+    22→    22→  animationFrame: number;
+    23→    23→  animationTimer: number;
+    24→    24→  speed: number;
+    25→    25→  visible: boolean;
+    26→    26→  isPlayer: boolean;
+    27→    27→  dialogueTriggered: boolean;
+    28→    28→  appearsAfterObjective?: string;
+    29→    29→}
+    30→    30→
+    31→    31→interface TriggerZone {
+    32→    32→  id: string;
+    33→    33→  type: string;
+    34→    34→  npcId?: string;
+    35→    35→  row: number;
+    36→    36→  col: number;
+    37→    37→  width: number;
+    38→    38→  height: number;
+    39→    39→  radius: number;
+    40→    40→  requiresObjective?: string;
+    41→    41→  triggersTimeTransition?: boolean;
+    42→    42→  triggered: boolean;
+    43→    43→}
+    44→    44→
+    45→    45→class GameEngine {
+    46→    46→  private canvas: HTMLCanvasElement | null = null;
+    47→    47→  private ctx: CanvasRenderingContext2D | null = null;
+    48→    48→  private animationFrameId: number | null = null;
+    49→    49→  private lastTimestamp: number = 0;
+    50→    50→  private tileSize: number = 48;
+    51→    51→  private cameraX: number = 0;
+    52→    52→  private cameraY: number = 0;
+    53→    53→
+    54→    54→  // Entities
+    55→    55→  private entities: Map<string, Entity> = new Map();
+    56→    56→  private player: Entity | null = null;
+    57→    57→
+    58→    58→  // Input state
+    59→    59→  private keys: Set<string> = new Set();
+    60→    60→
+    61→    61→  // Game state
+    62→    62→  private chapterPhase: string = 'intro';
+    63→    63→  private introShown: boolean = false;
+    64→    64→  private triggerZones: TriggerZone[] = [];
+    65→    65→  private dialogueActive: boolean = false;
+    66→    66→  private currentDialogueId: string | null = null;
+    67→    67→  private currentDialogueLineIndex: number = 0;
+    68→    68→  private pendingDialogue: string | null = null;
+    69→    69→  private timeOfDay: 'afternoon' | 'morning' = 'afternoon';
+    70→    70→  private ibarraAppeared: boolean = false;
+    71→    71→
+    72→    72→  // Canvas dimensions
+    73→    73→  private viewWidth: number = 960;
+    74→    74→  private viewHeight: number = 768;
+    75→    75→
+    76→    76→  // NPC interaction
+    77→    77→  private interactCooldown: number = 0;
+    78→    78→
+    79→    79→  constructor() {
+    80→    80→    // Initialize trigger zones from map data
+    81→    81→    this.triggerZones = mapData.triggerZones.map(z => ({ ...z, triggered: false }));
+    82→    82→  }
+    83→    83→
+    84→    84→  async init(canvas: HTMLCanvasElement): Promise<void> {
+    85→    85→    this.canvas = canvas;
+    86→    86→    this.ctx = canvas.getContext('2d')!;
+    87→    87→    
+    88→    88→    // Set canvas size
+    89→    89→    this.resizeCanvas();
+    90→    90→    window.addEventListener('resize', () => this.resizeCanvas());
+    91→    91→
+    92→    92→    // Load all required sprites
+    93→    93→    const charsToLoad = ['student', 'ibara', 'mang-tenyo', 'kitchen-staff-1', 'kitchen-staff-2'];
+    94→    94→    for (const charId of charsToLoad) {
+    95→    95→      await spriteLoader.loadCharacter(charId);
+    96→    96→    }
+    97→    97→
+    98→    98→    // Create player entity
+    99→    99→    const spawn = mapData.playerSpawn;
+   100→   100→    this.player = {
+   101→   101→      id: 'player',
+   102→   102→      x: spawn.col * this.tileSize + this.tileSize / 2,
+   103→   103→      y: spawn.row * this.tileSize + this.tileSize / 2,
+   104→   104→      direction: 'north',
+   105→   105→      characterKey: 'student',
+   106→   106→      isMoving: false,
+   107→   107→      animationFrame: 0,
+   108→   108→      animationTimer: 0,
+   109→   109→      speed: 120,
+   110→   110→      visible: true,
+   111→   111→      isPlayer: true,
+   112→   112→      dialogueTriggered: false,
+   113→   113→    };
+   114→   114→    this.entities.set('player', this.player);
+   115→   115→
+   116→   116→    // Create NPC entities
+   117→   117→    const npcPositions = mapData.npcPositions as Record<string, { row: number; col: number; direction: string; appearsAfter?: string }>;
+   118→   118→    for (const [npcId, pos] of Object.entries(npcPositions)) {
+   119→   119→      const entity: Entity = {
+   120→   120→        id: npcId,
+   121→   121→        x: pos.col * this.tileSize + this.tileSize / 2,
+   122→   122→        y: pos.row * this.tileSize + this.tileSize / 2,
+   123→   123→        direction: pos.direction as Direction,
+   124→   124→        characterKey: npcId,
+   125→   125→        isMoving: false,
+   126→   126→        animationFrame: 0,
+   127→   127→        animationTimer: 0,
+   128→   128→        speed: 0,
+   129→   129→        visible: !pos.appearsAfter || saveManager.isObjectiveCompleted(pos.appearsAfter),
+   130→   130→        isPlayer: false,
+   131→   131→        dialogueTriggered: false,
+   132→   132→        appearsAfterObjective: pos.appearsAfter,
+   133→   133→      };
+   134→   134→      this.entities.set(npcId, entity);
+   135→   135→    }
+   136→   136→
+   137→   137→    // Load saved progress
+   138→   138→    await saveManager.loadProgress();
+   139→   139→    const gameState = saveManager.getGameState();
+   140→   140→    this.chapterPhase = gameState.chapterPhase;
+   141→   141→    this.timeOfDay = gameState.timeOfDay;
+   142→   142→    
+   143→   143→    if (this.chapterPhase !== 'intro') {
+   144→   144→      this.introShown = true;
+   145→   145→    }
+   146→   146→
+   147→   147→    // Update entity visibility based on completed objectives
+   148→   148→    this._updateEntityVisibility();
+   149→   149→
+   150→   150→    // Mark already-triggered zones
+   151→   151→    this.triggerZones.forEach(zone => {
+   152→   152→      if (zone.requiresObjective && saveManager.isObjectiveCompleted(zone.requiresObjective)) {
+   153→   153→        // The prerequisite is done, but this zone itself may not have been triggered yet
+   154→   154→        // Only mark as triggered if the objective THIS zone completes is also done
+   155→   155→      }
+   156→   156→    });
+   157→   157→
+   158→   158→    // Bind input handlers
+   159→   159→    this._bindInput();
+   160→   160→
+   161→   161→    // Start auto-save
+   162→   162→    saveManager.startAutoSave();
+   163→   163→
+   164→   164→    // Emit game ready
+   165→   165→    gameEvents.emit('game:ready');
+   166→   166→
+   167→   167→    // Start game loop
+   168→   168→    this.lastTimestamp = performance.now();
+   169→   169→    this._gameLoop(this.lastTimestamp);
+   170→   170→  }
+   171→   171→
+   172→   172→  private resizeCanvas(): void {
+   173→   173→    if (!this.canvas) return;
+   174→   174→    const container = this.canvas.parentElement;
+   175→   175→    if (container) {
+   176→   176→      this.viewWidth = container.clientWidth;
+   177→   177→      this.viewHeight = container.clientHeight;
+   178→   178→    }
+   179→   179→    this.canvas.width = this.viewWidth;
+   180→   180→    this.canvas.height = this.viewHeight;
+   181→   181→  }
+   182→   182→
+   183→   183→  private _bindInput(): void {
+   184→   184→    window.addEventListener('keydown', (e) => {
+   185→   185→      this.keys.add(e.key.toLowerCase());
+   186→   186→      // Space/Enter for NPC interaction
+   187→   187→      if (e.key === ' ' || e.key === 'Enter') {
+   188→   188→        this._handleInteract();
+   189→   189→      }
+   190→   190→    });
+   191→   191→    window.addEventListener('keyup', (e) => {
+   192→   192→      this.keys.delete(e.key.toLowerCase());
+   193→   193→    });
+   194→   194→  }
+   195→   195→
+   196→   196→  private _handleInteract(): void {
+   197→   197→    if (this.dialogueActive) return;
+   198→   198→    if (this.interactCooldown > 0) return;
+   199→   199→    
+   200→   200→    // Check if player is near an NPC they can talk to
+   201→   201→    if (!this.player) return;
+   202→   202→
+   203→   203→    for (const [npcId, npc] of this.entities) {
+   204→   204→      if (npc.isPlayer || !npc.visible) continue;
+   205→   205→      
+   206→   206→      const dist = this._distanceBetween(this.player, npc);
+   207→   207→      if (dist < this.tileSize * 2) {
+   208→   208→        this.interactCooldown = 500;
+   209→   209→        
+   210→   210→        // Determine which dialogue to trigger
+   211→   211→        if (npcId === 'mang-tenyo' && !saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
+   212→   212→          this._startDialogue('mang-tenyo-first');
+   213→   213→          return;
+   214→   214→        }
+   215→   215→        // Mang Tenyo can be talked to again but won't repeat the quest dialogue
+   216→   216→        if (npcId === 'mang-tenyo' && saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
+   217→   217→          this._startDialogue('mang-tenyo-repeat');
+   218→   218→          return;
+   219→   219→        }
+   220→   220→      }
+   221→   221→    }
+   222→   222→  }
+   223→   223→
+   224→   224→  private _distanceBetween(a: Entity, b: Entity): number {
+   225→   225→    const dx = a.x - b.x;
+   226→   226→    const dy = a.y - b.y;
+   227→   227→    return Math.sqrt(dx * dx + dy * dy);
+   228→   228→  }
+   229→   229→
+   230→   230→  private _startDialogue(dialogueId: string): void {
+   231→   231→    const dialogue = dialogueData.dialogues[dialogueId as keyof typeof dialogueData.dialogues];
+   232→   232→    if (!dialogue) {
+   233→   233→      console.warn(`Dialogue not found: ${dialogueId}`);
+   234→   234→      return;
+   235→   235→    }
+   236→   236→
+   237→   237→    this.dialogueActive = true;
+   238→   238→    this.currentDialogueId = dialogueId;
+   239→   239→    this.currentDialogueLineIndex = 0;
+   240→   240→
+   241→   241→    gameEvents.emit('dialogue:start', {
+   242→   242→      dialogueId,
+   243→   243→      line: dialogue.lines[0],
+   244→   244→      lineIndex: 0,
+   245→   245→      totalLines: dialogue.lines.length,
+   246→   246→    });
+   247→   247→  }
+   248→   248→
+   249→   249→  advanceDialogue(): void {
+   250→   250→    if (!this.currentDialogueId) return;
+   251→   251→    
+   252→   252→    const dialogue = dialogueData.dialogues[this.currentDialogueId as keyof typeof dialogueData.dialogues];
+   253→   253→    if (!dialogue) return;
+   254→   254→
+   255→   255→    this.currentDialogueLineIndex++;
+   256→   256→
+   257→   257→    if (this.currentDialogueLineIndex >= dialogue.lines.length) {
+   258→   258→      // Dialogue complete
+   259→   259→      this._endDialogue(dialogue);
+   260→   260→      return;
+   261→   261→    }
+   262→   262→
+   263→   263→    const line = dialogue.lines[this.currentDialogueLineIndex];
+   264→   264→    
+   265→   265→    // Check for time transition
+   266→   266→    if (line.isTimeTransition) {
+   267→   267→      this.timeOfDay = 'morning';
+   268→   268→      this.chapterPhase = 'ibarra-sighting';
+   269→   269→      saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   270→   270→      gameEvents.emit('time:transition', 'morning');
+   271→   271→    }
+   272→   272→
+   273→   273→    // Check for Ibarra sighting
+   274→   274→    if (line.isIbarraSighting) {
+   275→   275→      this.ibarraAppeared = true;
+   276→   276→      // Show Ibarra NPC
+   277→   277→      const ibaraEntity = this.entities.get('ibara');
+   278→   278→      if (ibaraEntity) {
+   279→   279→        ibaraEntity.visible = true;
+   280→   280→      }
+   281→   281→    }
+   282→   282→
+   283→   283→    gameEvents.emit('dialogue:line', {
+   284→   284→      dialogueId: this.currentDialogueId,
+   285→   285→      line,
+   286→   286→      lineIndex: this.currentDialogueLineIndex,
+   287→   287→      totalLines: dialogue.lines.length,
+   288→   288→    });
+   289→   289→  }
+   290→   290→
+   291→   291→  private _endDialogue(dialogue: { unlocksObjective?: string | null; id: string }): void {
+   292→   292→    this.dialogueActive = false;
+   293→   293→    this.currentDialogueId = null;
+   294→   294→    this.currentDialogueLineIndex = 0;
+   295→   295→
+   296→   296→    // Complete objective if dialogue unlocks one
+   297→   297→    if (dialogue.unlocksObjective) {
+   298→   298→      saveManager.completeObjective(dialogue.unlocksObjective);
+   299→   299→      
+   300→   300→      // Update entity visibility after objectives
+   301→   301→      this._updateEntityVisibility();
+   302→   302→    }
+   303→   303→
+   304→   304→    gameEvents.emit('dialogue:end', dialogue.id);
+   305→   305→
+   306→   306→    // Check if this was the gossip dialogue - enable Ibarra sighting zone
+   307→   307→    if (dialogue.id === 'market-gossip') {
+   308→   308→      // The market gossip zone should now be triggered, check for ibarra sighting zone
+   309→   309→      this.triggerZones.forEach(z => {
+   310→   310→        if (z.id === 'market-gossip') z.triggered = true;
+   311→   311→      });
+   312→   312→    }
+   313→   313→
+   314→   314→    // Check if chapter is complete after Ibarra sighting dialogue
+   315→   315→    if (dialogue.id === 'ibarra-sighting') {
+   316→   316→      this._triggerChapterComplete();
+   317→   317→    }
+   318→   318→  }
+   319→   319→
+   320→   320→  private _updateEntityVisibility(): void {
+   321→   321→    for (const [npcId, entity] of this.entities) {
+   322→   322→      if (entity.appearsAfterObjective) {
+   323→   323→        entity.visible = saveManager.isObjectiveCompleted(entity.appearsAfterObjective);
+   324→   324→      }
+   325→   325→    }
+   326→   326→    
+   327→   327→    // Special: Ibarra appears after gossip objective AND time transition
+   328→   328→    const ibara = this.entities.get('ibara');
+   329→   329→    if (ibara && this.timeOfDay === 'morning' && saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+   330→   330→      ibara.visible = true;
+   331→   331→    }
+   332→   332→  }
+   333→   333→
+   334→   334→  private _triggerChapterComplete(): void {
+   335→   335→    // Run the end-of-chapter loop (Section 8)
+   336→   336→    // 1. Quiz is triggered via event
+   337→   337→    gameEvents.emit('quiz:start', 'ch1');
+   338→   338→    // The quiz component handles the rest (XP, codex, journal, medal, save)
+   339→   339→  }
+   340→   340→
+   341→   341→  completeChapterLoop(): void {
+   342→   342→    // Called after quiz is completed
+   343→   343→    // 2. Award XP
+   344→   344→    saveManager.awardXp(60);
+   345→   345→    // 3. Unlock codex entries
+   346→   346→    saveManager.unlockCodexEntry('char.ibarra');
+   347→   347→    saveManager.unlockCodexEntry('char.tiago');
+   348→   348→    saveManager.unlockCodexEntry('char.damaso');
+   349→   349→    // 4. Journal entry
+   350→   350→    saveManager.addJournalEntry(
+   351→   351→      "Mang Tenyo warned me not to mention the Ibarra name loudly. Something happened at last night's reception. I overheard the kitchen staff talking about Padre Dámaso's rudeness to Ibarra. Then I saw Ibarra himself crossing the plaza — a young man carrying ideas from Europe that the friars fear.",
+   352→   352→      'ch1'
+   353→   353→    );
+   354→   354→    // 5. Chapter medal
+   355→   355→    saveManager.awardChapterMedal('ch1', 'Listener');
+   356→   356→    // 6. Complete quest
+   357→   357→    saveManager.completeQuest('mq.ch1.arrival');
+   358→   358→    saveManager.completeChapter('ch1');
+   359→   359→    // 7. Save progress
+   360→   360→    saveManager.saveProgress();
+   361→   361→    
+   362→   362→    this.chapterPhase = 'complete';
+   363→   363→    gameEvents.emit('chapter:complete', 'ch1');
+   364→   364→  }
+   365→   365→
+   366→   366→  private _gameLoop(timestamp: number): void {
+   367→   367→    const deltaTime = (timestamp - this.lastTimestamp) / 1000;
+   368→   368→    this.lastTimestamp = timestamp;
+   369→   369→
+   370→   370→    this._update(deltaTime);
+   371→   371→    this._render();
+   372→   372→
+   373→   373→    this.animationFrameId = requestAnimationFrame(this._gameLoop.bind(this));
+   374→   374→  }
+   375→   375→
+   376→   376→  private _update(dt: number): void {
+   377→   377→    if (!this.player) return;
+   378→   378→    
+   379→   379→    // Update interact cooldown
+   380→   380→    if (this.interactCooldown > 0) {
+   381→   381→      this.interactCooldown -= dt * 1000;
+   382→   382→    }
+   383→   383→
+   384→   384→    // Don't allow movement during dialogue
+   385→   385→    if (this.dialogueActive) return;
+   386→   386→
+   387→   387→    // Handle intro state
+   388→   388→    if (this.chapterPhase === 'intro' && !this.introShown) {
+   389→   389→      this.introShown = true;
+   390→   390→      this._startDialogue('intro-text');
+   391→   391→      return;
+   392→   392→    }
+   393→   393→
+   394→   394→    // Player movement
+   395→   395→    let moveX = 0;
+   396→   396→    let moveY = 0;
+   397→   397→
+   398→   398→    if (this.keys.has('w') || this.keys.has('arrowup')) moveY = -1;
+   399→   399→    if (this.keys.has('s') || this.keys.has('arrowdown')) moveY = 1;
+   400→   400→    if (this.keys.has('a') || this.keys.has('arrowleft')) moveX = -1;
+   401→   401→    if (this.keys.has('d') || this.keys.has('arrowright')) moveX = 1;
+   402→   402→
+   403→   403→    // Normalize diagonal movement
+   404→   404→    if (moveX !== 0 && moveY !== 0) {
+   405→   405→      const len = Math.sqrt(moveX * moveX + moveY * moveY);
+   406→   406→      moveX /= len;
+   407→   407→      moveY /= len;
+   408→   408→    }
+   409→   409→
+   410→   410→    this.player.isMoving = moveX !== 0 || moveY !== 0;
+   411→   411→
+   412→   412→    if (this.player.isMoving) {
+   413→   413→      // Determine direction from movement vector
+   414→   414→      this.player.direction = this._vectorToDirection(moveX, moveY);
+   415→   415→      
+   416→   416→      const newX = this.player.x + moveX * this.player.speed * dt;
+   417→   417→      const newY = this.player.y + moveY * this.player.speed * dt;
+   418→   418→
+   419→   419→      // Collision check
+   420→   420→      if (!this._isBlocked(newX, newY)) {
+   421→   421→        this.player.x = newX;
+   422→   422→        this.player.y = newY;
+   423→   423→      }
+   424→   424→
+   425→   425→      // Update animation
+   426→   426→      this.player.animationTimer += dt;
+   427→   427→      const animConfig = characterData.characters.student.animations.Walk;
+   428→   428→      if (this.player.animationTimer >= 1 / animConfig.frameRate) {
+   429→   429→        this.player.animationTimer = 0;
+   430→   430→        this.player.animationFrame = (this.player.animationFrame + 1) % animConfig.frames;
+   431→   431→      }
+   432→   432→    } else {
+   433→   433→      // Idle animation
+   434→   434→      this.player.animationTimer += dt;
+   435→   435→      const animConfig = characterData.characters.student.animations.Breathing_Idle;
+   436→   436→      if (this.player.animationTimer >= 1 / animConfig.frameRate) {
+   437→   437→        this.player.animationTimer = 0;
+   438→   438→        this.player.animationFrame = (this.player.animationFrame + 1) % animConfig.frames;
+   439→   439→      }
+   440→   440→    }
+   441→   441→
+   442→   442→    // Update camera to follow player
+   443→   443→    this.cameraX = this.player.x - this.viewWidth / 2;
+   444→   444→    this.cameraY = this.player.y - this.viewHeight / 2;
+   445→   445→
+   446→   446→    // Clamp camera to map bounds
+   447→   447→    const mapPixelWidth = mapData.width * this.tileSize;
+   448→   448→    const mapPixelHeight = mapData.height * this.tileSize;
+   449→   449→    this.cameraX = Math.max(0, Math.min(this.cameraX, mapPixelWidth - this.viewWidth));
+   450→   450→    this.cameraY = Math.max(0, Math.min(this.cameraY, mapPixelHeight - this.viewHeight));
+   451→   451→
+   452→   452→    // NPC idle animations
+   453→   453→    for (const [npcId, npc] of this.entities) {
+   454→   454→      if (npc.isPlayer || !npc.visible) continue;
+   455→   455→      npc.animationTimer += dt;
+   456→   456→      const animConfig = characterData.characters[npc.characterKey as keyof typeof characterData.characters]?.animations?.Breathing_Idle;
+   457→   457→      if (animConfig) {
+   458→   458→        if (npc.animationTimer >= 1 / animConfig.frameRate) {
+   459→   459→          npc.animationTimer = 0;
+   460→   460→          npc.animationFrame = (npc.animationFrame + 1) % animConfig.frames;
+   461→   461→        }
+   462→   462→      }
+   463→   463→    }
+   464→   464→
+   465→   465→    // Check trigger zones
+   466→   466→    this._checkTriggerZones();
+   467→   467→
+   468→   468→    // Update game state in SaveManager
+   469→   469→    saveManager.updateGameState({
+   470→   470→      playerPosition: {
+   471→   471→        row: Math.floor(this.player.y / this.tileSize),
+   472→   472→        col: Math.floor(this.player.x / this.tileSize),
+   473→   473→      },
+   474→   474→      playerDirection: this.player.direction,
+   475→   475→      currentDialogue: this.currentDialogueId,
+   476→   476→      timeOfDay: this.timeOfDay,
+   477→   477→      chapterPhase: this.chapterPhase,
+   478→   478→    });
+   479→   479→  }
+   480→   480→
+   481→   481→  private _vectorToDirection(x: number, y: number): Direction {
+   482→   482→    // Map movement vector to 8-direction name
+   483→   483→    const angle = Math.atan2(y, x) * (180 / Math.PI);
+   484→   484→    // Adjust for south-first (our south is positive Y)
+   485→   485→    // Angle: south=90, south-east=45ish... need to remap
+   486→   486→    
+   487→   487→    if (angle >= -22.5 && angle < 22.5) return 'east';
+   488→   488→    if (angle >= 22.5 && angle < 67.5) return 'south-east';
+   489→   489→    if (angle >= 67.5 && angle < 112.5) return 'south';
+   490→   490→    if (angle >= 112.5 && angle < 157.5) return 'south-west';
+   491→   491→    if (angle >= 157.5 || angle < -157.5) return 'west';
+   492→   492→    if (angle >= -157.5 && angle < -112.5) return 'north-west';
+   493→   493→    if (angle >= -112.5 && angle < -67.5) return 'north';
+   494→   494→    if (angle >= -67.5 && angle < -22.5) return 'north-east';
+   495→   495→    return 'south';
+   496→   496→  }
+   497→   497→
+   498→   498→  private _isBlocked(x: number, y: number): boolean {
+   499→   499→    // Check collision map
+   500→   500→    const col = Math.floor(x / this.tileSize);
+   501→   501→    const row = Math.floor(y / this.tileSize);
+   502→   502→    
+   503→   503→    if (row < 0 || row >= mapData.height || col < 0 || col >= mapData.width) return true;
+   504→   504→    
+   505→   505→    // Check player sprite footprint (check a small area around center)
+   506→   506→    const checks = [
+   507→   507→      { x: x - 16, y: y - 16 },
+   508→   508→      { x: x + 16, y: y - 16 },
+   509→   509→      { x: x - 16, y: y + 16 },
+   510→   510→      { x: x + 16, y: y + 16 },
+   511→   511→    ];
+   512→   512→    
+   513→   513→    for (const check of checks) {
+   514→   514→      const cCol = Math.floor(check.x / this.tileSize);
+   515→   515→      const cRow = Math.floor(check.y / this.tileSize);
+   516→   516→      if (cRow < 0 || cRow >= mapData.height || cCol < 0 || cCol >= mapData.width) return true;
+   517→   517→      if (mapData.layers.collision[cRow][cCol] === 1) return true;
+   518→   518→    }
+   519→   519→    
+   520→   520→    return false;
+   521→   521→  }
+   522→   522→
+   523→   523→  private _checkTriggerZones(): void {
+   524→   524→    if (!this.player || this.dialogueActive) return;
+   525→   525→    
+   526→   526→    const playerRow = Math.floor(this.player.y / this.tileSize);
+   527→   527→    const playerCol = Math.floor(this.player.x / this.tileSize);
+   528→   528→
+   529→   529→    for (const zone of this.triggerZones) {
+   530→   530→      if (zone.triggered) continue;
+   531→   531→
+   532→   532→      // Check prerequisite objective
+   533→   533→      if (zone.requiresObjective && !saveManager.isObjectiveCompleted(zone.requiresObjective)) continue;
+   534→   534→
+   535→   535→      // Check if player is in the zone
+   536→   536→      const inZone = playerCol >= zone.col && playerCol < zone.col + zone.width &&
+   537→   537→                     playerRow >= zone.row && playerRow < zone.row + zone.height;
+   538→   538→
+   539→   539→      // Or within radius of NPC
+   540→   540→      let nearNpc = false;
+   541→   541→      if (zone.radius > 0 && zone.npcId) {
+   542→   542→        const npc = this.entities.get(zone.npcId);
+   543→   543→        if (npc && npc.visible) {
+   544→   544→          nearNpc = this._distanceBetween(this.player, npc) < this.tileSize * zone.radius;
+   545→   545→        }
+   546→   546→      }
+   547→   547→
+   548→   548→      if (inZone || nearNpc) {
+   549→   549→        zone.triggered = true;
+   550→   550→
+   551→   551→        switch (zone.type) {
+   552→   552→          case 'npc-interact':
+   553→   553→            // NPC interaction zones just highlight the NPC, actual dialogue starts on interact
+   554→   554→            break;
+   555→   555→          case 'auto-trigger':
+   556→   556→            if (zone.id === 'market-gossip') {
+   557→   557→              this._startDialogue('market-gossip');
+   558→   558→            } else if (zone.id === 'ibarra-sighting') {
+   559→   559→              // Time transition first
+   560→   560→              this.timeOfDay = 'morning';
+   561→   561→              this.chapterPhase = 'ibarra-sighting';
+   562→   562→              saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   563→   563→              this._updateEntityVisibility();
+   564→   564→              this._startDialogue('ibarra-sighting');
+   565→   565→            }
+   566→   566→            break;
+   567→   567→        }
+   568→   568→      }
+   569→   569→    }
+   570→   570→  }
+   571→   571→
+   572→   572→  private _render(): void {
+   573→   573→    if (!this.ctx || !this.canvas) return;
+   574→   574→    const ctx = this.ctx;
+   575→   575→
+   576→   576→    // Clear canvas
+   577→   577→    ctx.clearRect(0, 0, this.viewWidth, this.viewHeight);
+   578→   578→
+   579→   579→    // Draw sky/background based on time of day
+   580→   580→    if (this.timeOfDay === 'afternoon') {
+   581→   581→      ctx.fillStyle = '#87CEEB'; // Light blue afternoon sky
+   582→   582→    } else {
+   583→   583→      ctx.fillStyle = '#E8D5B7'; // Warm morning light
+   584→   584→    }
+   585→   585→    ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+   586→   586→
+   587→   587→    // Render map layers
+   588→   588→    this._renderMap(ctx);
+   589→   589→
+   590→   590→    // Render building labels
+   591→   591→    this._renderBuildingLabels(ctx);
+   592→   592→
+   593→   593→    // Render entities (sorted by Y for depth)
+   594→   594→    const sortedEntities = [...this.entities.values()]
+   595→   595→      .filter(e => e.visible)
+   596→   596→      .sort((a, b) => a.y - b.y);
+   597→   597→
+   598→   598→    for (const entity of sortedEntities) {
+   599→   599→      this._renderEntity(ctx, entity);
+   600→   600→    }
+   601→   601→
+   602→   602→    // Render NPC interaction indicators
+   603→   603→    this._renderInteractionIndicators(ctx);
+   604→   604→
+   605→   605→    // Render trigger zone hints (subtle visual cues)
+   606→   606→    this._renderTriggerHints(ctx);
+   607→   607→  }
+   608→   608→
+   609→   609→  private _renderMap(ctx: CanvasRenderingContext2D): void {
+   610→   610→    // Only render visible tiles (camera culling)
+   611→   611→    const startCol = Math.floor(this.cameraX / this.tileSize);
+   612→   612→    const startRow = Math.floor(this.cameraY / this.tileSize);
+   613→   613→    const endCol = Math.min(mapData.width, startCol + Math.ceil(this.viewWidth / this.tileSize) + 1);
+   614→   614→    const endRow = Math.min(mapData.height, startRow + Math.ceil(this.viewHeight / this.tileSize) + 1);
+   615→   615→
+   616→   616→    // Draw ground layer
+   617→   617→    for (let row = startRow; row < endRow; row++) {
+   618→   618→      for (let col = startCol; col < endCol; col++) {
+   619→   619→        if (row < 0 || col < 0) continue;
+   620→   620→        const tileType = mapData.layers.ground[row]?.[col];
+   621→   621→        if (tileType && tileType !== 0) {
+   622→   622→          const color = mapData.tileColors[String(tileType) as keyof typeof mapData.tileColors];
+   623→   623→          const x = col * this.tileSize - this.cameraX;
+   624→   624→          const y = row * this.tileSize - this.cameraY;
+   625→   625→          
+   626→   626→          ctx.fillStyle = color;
+   627→   627→          ctx.fillRect(x, y, this.tileSize, this.tileSize);
+   628→   628→          
+   629→   629→          // Add subtle grid lines for ground tiles
+   630→   630→          ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+   631→   631→          ctx.lineWidth = 0.5;
+   632→   632→          ctx.strokeRect(x, y, this.tileSize, this.tileSize);
+   633→   633→        }
+   634→   634→      }
+   635→   635→    }
+   636→   636→
+   637→   637→    // Draw buildings layer
+   638→   638→    for (let row = startRow; row < endRow; row++) {
+   639→   639→      for (let col = startCol; col < endCol; col++) {
+   640→   640→        if (row < 0 || col < 0) continue;
+   641→   641→        const tileType = mapData.layers.buildings[row]?.[col];
+   642→   642→        if (tileType && tileType !== 0) {
+   643→   643→          const color = mapData.tileColors[String(tileType) as keyof typeof mapData.tileColors];
+   644→   644→          const x = col * this.tileSize - this.cameraX;
+   645→   645→          const y = row * this.tileSize - this.cameraY;
+   646→   646→
+   647→   647→          ctx.fillStyle = color;
+   648→   648→          ctx.fillRect(x, y, this.tileSize, this.tileSize);
+   649→   649→          
+   650→   650→          // Building shadow
+   651→   651→          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+   652→   652→          ctx.fillRect(x, y + this.tileSize - 8, this.tileSize, 8);
+   653→   653→        }
+   654→   654→      }
+   655→   655→    }
+   656→   656→
+   657→   657→    // Draw grass/outskirts border (rows 0-1 and 13-15)
+   658→   658→    ctx.fillStyle = '#6B8E23';
+   659→   659→    for (let row = startRow; row < endRow; row++) {
+   660→   660→      for (let col = startCol; col < endCol; col++) {
+   661→   661→        if (row < 0 || col < 0) continue;
+   662→   662→        const tileType = mapData.layers.ground[row]?.[col];
+   663→   663→        if (tileType === 2) {
+   664→   664→          const x = col * this.tileSize - this.cameraX;
+   665→   665→          const y = row * this.tileSize - this.cameraY;
+   666→   666→          // Grass pattern
+   667→   667→          ctx.fillStyle = '#6B8E23';
+   668→   668→          ctx.fillRect(x, y, this.tileSize, this.tileSize);
+   669→   669→          // Grass blades
+   670→   670→          ctx.fillStyle = '#7CFC00';
+   671→   671→          for (let i = 0; i < 5; i++) {
+   672→   672→            const bx = x + (i * this.tileSize / 5) + 4;
+   673→   673→            const by = y + this.tileSize / 2;
+   674→   674→            ctx.fillRect(bx, by - 6, 2, 6);
+   675→   675→          }
+   676→   676→        }
+   677→   677→      }
+   678→   678→    }
+   679→   679→  }
+   680→   680→
+   681→   681→  private _renderBuildingLabels(ctx: CanvasRenderingContext2D): void {
+   682→   682→    for (const label of mapData.buildingLabels) {
+   683→   683→      const centerX = (label.col + label.width / 2) * this.tileSize - this.cameraX;
+   684→   684→      const topY = label.row * this.tileSize - this.cameraY - 12;
+   685→   685→
+   686→   686→      ctx.font = 'bold 14px "Geist", sans-serif';
+   687→   687→      ctx.fillStyle = '#FFFFFF';
+   688→   688→      ctx.strokeStyle = '#000000';
+   689→   689→      ctx.lineWidth = 3;
+   690→   690→      ctx.textAlign = 'center';
+   691→   691→
+   692→   692→      // Draw text with outline
+   693→   693→      ctx.strokeText(label.label, centerX, topY);
+   694→   694→      ctx.fillText(label.label, centerX, topY);
+   695→   695→
+   696→   696→      if (label.sublabel) {
+   697→   697→        ctx.font = '10px "Geist", sans-serif';
+   698→   698→        ctx.strokeText(label.sublabel, centerX, topY + 14);
+   699→   699→        ctx.fillText(label.sublabel, centerX, topY + 14);
+   700→   700→      }
+   701→   701→    }
+   702→   702→  }
+   703→   703→
+   704→   704→  private _renderEntity(ctx: CanvasRenderingContext2D, entity: Entity): void {
+   705→   705→    const screenX = entity.x - this.cameraX;
+   706→   706→    const screenY = entity.y - this.cameraY;
+   707→   707→
+   708→   708→    // Don't render if off screen
+   709→   709→    if (screenX < -100 || screenX > this.viewWidth + 100 || 
+   710→   710→        screenY < -100 || screenY > this.viewHeight + 100) return;
+   711→   711→
+   712→   712→    const anim = entity.isMoving ? 'Walk' : 'Breathing_Idle';
+   713→   713→    const dir = entity.direction;
+   714→   714→    const frame = entity.animationFrame;
+   715→   715→
+   716→   716→    const sprite = spriteLoader.getFrame(entity.characterKey, anim, dir, frame);
+   717→   717→    
+   718→   718→    if (sprite) {
+   719→   719→      // Center the sprite on the entity position
+   720→   720→      const spriteW = sprite.width || characterData.characters[entity.characterKey as keyof typeof characterData.characters]?.size?.width || 72;
+   721→   721→      const spriteH = sprite.height || characterData.characters[entity.characterKey as keyof typeof characterData.characters]?.size?.height || 72;
+   722→   722→      
+   723→   723→      // Scale sprites up for visibility (2x scale)
+   724→   724→      const scale = 2;
+   725→   725→      const drawW = spriteW * scale;
+   726→   726→      const drawH = spriteH * scale;
+   727→   727→      
+   728→   728→      ctx.drawImage(sprite, screenX - drawW / 2, screenY - drawH / 2, drawW, drawH);
+   729→   729→    }
+   730→   730→
+   731→   731→    // Entity name label
+   732→   732→    if (!entity.isPlayer) {
+   733→   733→      const displayName = characterData.characters[entity.characterKey as keyof typeof characterData.characters]?.displayName || entity.characterKey;
+   734→   734→      ctx.font = '10px "Geist", sans-serif';
+   735→   735→      ctx.fillStyle = '#FFFFFF';
+   736→   736→      ctx.strokeStyle = '#000000';
+   737→   737→      ctx.lineWidth = 2;
+   738→   738→      ctx.textAlign = 'center';
+   739→   739→      ctx.strokeText(displayName, screenX, screenY - 50);
+   740→   740→      ctx.fillText(displayName, screenX, screenY - 50);
+   741→   741→    }
+   742→   742→  }
+   743→   743→
+   744→   744→  private _renderInteractionIndicators(ctx: CanvasRenderingContext2D): void {
+   745→   745→    if (!this.player) return;
+   746→   746→    
+   747→   747→    for (const [npcId, npc] of this.entities) {
+   748→   748→      if (npc.isPlayer || !npc.visible) continue;
+   749→   749→      
+   750→   750→      const dist = this._distanceBetween(this.player, npc);
+   751→   751→      if (dist < this.tileSize * 2 && !this.dialogueActive) {
+   752→   752→        const screenX = npc.x - this.cameraX;
+   753→   753→        const screenY = npc.y - this.cameraY;
+   754→   754→        
+   755→   755→        // Draw "!" indicator
+   756→   756→        ctx.font = 'bold 20px "Geist", sans-serif';
+   757→   757→        ctx.fillStyle = '#FFD700';
+   758→   758→        ctx.strokeStyle = '#000000';
+   759→   759→        ctx.lineWidth = 2;
+   760→   760→        ctx.textAlign = 'center';
+   761→   761→        const bounceY = Math.sin(Date.now() / 300) * 4;
+   762→   762→        ctx.strokeText('!', screenX, screenY - 60 + bounceY);
+   763→   763→        ctx.fillText('!', screenX, screenY - 60 + bounceY);
+   764→   764→        
+   765→   765→        // Draw "Press Space" hint
+   766→   766→        ctx.font = '8px "Geist", sans-serif';
+   767→   767→        ctx.fillStyle = '#FFFFFF';
+   768→   768→        ctx.strokeStyle = '#000000';
+   769→   769→        ctx.lineWidth = 2;
+   770→   770→        ctx.strokeText('[Space]', screenX, screenY - 45 + bounceY);
+   771→   771→        ctx.fillText('[Space]', screenX, screenY - 45 + bounceY);
+   772→   772→      }
+   773→   773→    }
+   774→   774→  }
+   775→   775→
+   776→   776→  private _renderTriggerHints(ctx: CanvasRenderingContext2D): void {
+   777→   777→    // Subtle visual hint for the gossip area
+   778→   778→    const gossipZone = this.triggerZones.find(z => z.id === 'market-gossip');
+   779→   779→    if (gossipZone && !gossipZone.triggered && saveManager.isObjectiveCompleted(gossipZone.requiresObjective || '')) {
+   780→   780→      const x = gossipZone.col * this.tileSize - this.cameraX;
+   781→   781→      const y = gossipZone.row * this.tileSize - this.cameraY;
+   782→   782→      ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+   783→   783→      ctx.fillRect(x, y, gossipZone.width * this.tileSize, gossipZone.height * this.tileSize);
+   784→   784→    }
+   785→   785→  }
+   786→   786→
+   787→   787→  destroy(): void {
+   788→   788→    if (this.animationFrameId) {
+   789→   789→      cancelAnimationFrame(this.animationFrameId);
+   790→   790→    }
+   791→   791→    saveManager.stopAutoSave();
+   792→   792→    window.removeEventListener('keydown', this._bindInput);
+   793→   793→    window.removeEventListener('keyup', this._bindInput);
+   794→   794→  }
+   795→   795→
+   796→   796→  // Public getters for UI
+   797→   797→  getPlayer(): Entity | null { return this.player; }
+   798→   798→  getEntities(): Map<string, Entity> { return this.entities; }
+   799→   799→  getChapterPhase(): string { return this.chapterPhase; }
+   800→   800→  getTimeOfDay(): string { return this.timeOfDay; }
+   801→   801→  isDialogueActive(): boolean { return this.dialogueActive; }
+   802→   802→  getCurrentDialogueId(): string | null { return this.currentDialogueId; }
+   803→   803→}
+   804→   804→
+   805→   805→export const gameEngine = new GameEngine();
+   806→   806→export default GameEngine;
+   807→   807→export type { Entity, Direction };
+   808→   808→

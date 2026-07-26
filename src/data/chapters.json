@@ -1,0 +1,14 @@
+[
+  {
+    "id": "ch1",
+    "title": "A Stranger in San Diego",
+    "medal": "Listener",
+    "medalDescription": "You listened to the whispers of San Diego and learned the name that everyone is talking about.",
+    "description": "A present-day Filipino college student finds themselves in 1887 San Diego — the fictional town from José Rizal's Noli Me Tangere. Establish your cover identity, overhear the gossip about last night's reception, and witness the man everyone is talking about.",
+    "introText": "You find yourself at the edge of a town you don't recognize. The year, you'll soon learn, is 1887.",
+    "questIds": ["mq.ch1.arrival"],
+    "codexUnlockIds": ["char.ibarra", "char.tiago", "char.damaso"],
+    "rewardXp": 60,
+    "nextChapterId": null
+  }
+]

@@ -1,0 +1,59 @@
+{
+  "directions": ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"],
+  "characters": {
+    "student": {
+      "spritePath": "/sprites/student",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 6, "frameRate": 8 }
+      },
+      "size": { "width": 72, "height": 72 },
+      "displayName": "Player"
+    },
+    "ibara": {
+      "spritePath": "/sprites/ibara",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 6, "frameRate": 8 }
+      },
+      "size": { "width": 76, "height": 76 },
+      "displayName": "Crisóstomo Ibarra"
+    },
+    "mang-tenyo": {
+      "spritePath": "/sprites/placeholder-npc",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 6, "frameRate": 8 }
+      },
+      "size": { "width": 72, "height": 72 },
+      "displayName": "Mang Tenyo",
+      "placeholder": true,
+      "placeholderColor": "#8B4513",
+      "placeholderLabel": "TODO: replace with real Mang Tenyo sprite"
+    },
+    "kitchen-staff-1": {
+      "spritePath": "/sprites/placeholder-npc",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 6, "frameRate": 8 }
+      },
+      "size": { "width": 72, "height": 72 },
+      "displayName": "Vendor 1",
+      "placeholder": true,
+      "placeholderColor": "#D2691E",
+      "placeholderLabel": "Kitchen staff gossip NPC"
+    },
+    "kitchen-staff-2": {
+      "spritePath": "/sprites/placeholder-npc",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 6, "frameRate": 8 }
+      },
+      "size": { "width": 72, "height": 72 },
+      "displayName": "Vendor 2",
+      "placeholder": true,
+      "placeholderColor": "#CD853F",
+      "placeholderLabel": "Kitchen staff gossip NPC"
+    }
+  }
+}

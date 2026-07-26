@@ -1,0 +1,119 @@
+{
+  "dialogues": {
+    "mang-tenyo-first": {
+      "id": "mang-tenyo-first",
+      "npcId": "mang-tenyo",
+      "trigger": "npc-interact",
+      "questObjectiveId": "obj.ch1.follow_tenyo",
+      "lines": [
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Bagong dating ka, ano? Akala ko ikaw yung guro na hinihintay namin galing Maynila.",
+          "translation": "You're new here, huh? I thought you were the teacher we were expecting from Manila."
+        },
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Sige, sabay ka — pero huwag mo munang banggitin ang pangalang Ibarra nang malakas ngayong araw, ha?",
+          "translation": "Come along — but best not to mention the name Ibarra too loudly today."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Mang Tenyo gives you a knowing look. Whatever happened with the Ibarra family, it's clearly still fresh in people's minds. Your cover as a visiting scholar's aide begins now."
+        }
+      ],
+      "unlocksObjective": "obj.ch1.follow_tenyo"
+    },
+    "market-gossip": {
+      "id": "market-gossip",
+      "npcId": "kitchen-staff",
+      "trigger": "zone-enter",
+      "questObjectiveId": "obj.ch1.overhear_gossip",
+      "lines": [
+        {
+          "speaker": "Vendor 1",
+          "text": "Nakita mo ba? Bumalik na si Ginoong Ibarra galing Europa — pitong taon, ha!",
+          "translation": "Did you see? Mr. Ibarra has returned from Europe — seven years, huh!"
+        },
+        {
+          "speaker": "Vendor 2",
+          "text": "Oo, pero nakita mo rin ba ang mukha ni Padre Dámaso kagabi? Parang gustong sabunutan ang bata sa harap ng lahat.",
+          "translation": "Yes, but did you also see Padre Dámaso's face last night? Like he wanted to attack the young man right in front of everyone."
+        },
+        {
+          "speaker": "Vendor 1",
+          "text": "Kawawa naman si Capitán Tiago — nag-host pa ng magandang dinner, tapos ginulo ni Padre Dámaso.",
+          "translation": "Poor Capitán Tiago — he even hosted a nice dinner, and then Padre Dámaso ruined it."
+        },
+        {
+          "speaker": "Vendor 2",
+          "text": "Hindi ba malapit sila dati? Ang Padre Dámaso at ang ama ni Ibarra?",
+          "translation": "Weren't they close before? Padre Dámaso and Ibarra's father?"
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The gossip fades as you step away. You now understand why Mang Tenyo warned you — Ibarra's return has stirred up old tensions between the friars and the Filipino community."
+        }
+      ],
+      "unlocksObjective": "obj.ch1.overhear_gossip"
+    },
+    "ibarra-sighting": {
+      "id": "ibarra-sighting",
+      "npcId": "ibara",
+      "trigger": "zone-enter",
+      "questObjectiveId": "obj.ch1.see_ibarra",
+      "lines": [
+        {
+          "speaker": "Narrator",
+          "text": "The next morning, the plaza is quieter. A light breeze carries the scent of fresh bread from the market stalls.",
+          "isTimeTransition": true
+        },
+        {
+          "speaker": "Narrator",
+          "text": "A young man in a fine coat crosses the plaza, greeting the vendors with an ease that doesn't quite match the tension you overheard about last night.",
+          "isIbarraSighting": true
+        },
+        {
+          "speaker": "Narrator",
+          "text": "That must be Crisóstomo Ibarra. After seven years in Europe, he looks like someone who has seen the world beyond these streets — and perhaps carries ideas that the friars would rather he didn't."
+        }
+      ],
+      "unlocksObjective": "obj.ch1.see_ibarra"
+    },
+    "mang-tenyo-repeat": {
+      "id": "mang-tenyo-repeat",
+      "npcId": "mang-tenyo",
+      "trigger": "npc-interact",
+      "questObjectiveId": null,
+      "lines": [
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Mabuti nandito ka rin. Ang plaza, kumakalat na ang tsismis tungkol sa reception kagabi. Mag-ingat ka.",
+          "translation": "Good you're here too. The plaza, gossip about last night's reception is spreading. Be careful."
+        },
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Pumunta ka sa market area — may mga kusinera doon na nag-uusap. Baka makakuha ka ng impormasyon.",
+          "translation": "Go to the market area — there are kitchen staff talking there. You might learn something."
+        }
+      ],
+      "unlocksObjective": null
+    },
+    "intro-text": {
+      "id": "intro-text",
+      "npcId": "narrator",
+      "trigger": "game-start",
+      "questObjectiveId": null,
+      "lines": [
+        {
+          "speaker": "Narrator",
+          "text": "You find yourself at the edge of a town you don't recognize. The year, you'll soon learn, is 1887."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The air smells different here — earth and woodsmoke, no car exhaust. The buildings are low, the streets unpaved. And somehow, you feel like you've read about this place before..."
+        }
+      ],
+      "unlocksObjective": null
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,25 +14,46 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "Project Noor — A Stranger in San Diego",
+  description:
+    "An educational Pokémon-style RPG that drops a 2026 Filipino college student into José Rizal's 1887 Noli Me Tangere. Explore San Diego, meet its people, and earn the Listener medal.",
+  keywords: [
+    "Project Noor",
+    "Noli Me Tangere",
+    "José Rizal",
+    "Philippine history",
+    "educational RPG",
+    "Filipino literature",
+    "1887",
+    "San Diego",
+    "Crisóstomo Ibarra",
+  ],
+  authors: [{ name: "Project Noor Team" }],
+  applicationName: "Project Noor",
+  category: "education",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "Project Noor — A Stranger in San Diego",
+    description:
+      "Step into 1887 San Diego. An educational RPG based on José Rizal's Noli Me Tangere.",
+    siteName: "Project Noor",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "Project Noor",
+    description: "An educational RPG based on José Rizal's Noli Me Tangere (1887).",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#1c1917",
 };
 
 export default function RootLayout({

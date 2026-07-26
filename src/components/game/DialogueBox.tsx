@@ -7,16 +7,67 @@ import { gameEvents } from '@/lib/game/eventBus';
 import { soundManager } from '@/lib/game/soundManager';
 
 // Speaker color/avatar configuration
-const SPEAKER_STYLES: Record<string, { color: string; emoji: string; bg: string }> = {
-  'Mang Tenyo':          { color: '#D2691E', emoji: '👴', bg: 'bg-amber-900/60' },
-  'Aling Nena':          { color: '#CD853F', emoji: '👩‍🍳', bg: 'bg-orange-900/60' },
-  'Mang Andres':         { color: '#A0522D', emoji: '🧑‍🍳', bg: 'bg-stone-800/60' },
-  'Narrator':            { color: '#9CA3AF', emoji: '📜', bg: 'bg-stone-900/60' },
-  'Crisóstomo Ibarra':   { color: '#FFD700', emoji: '🎩', bg: 'bg-yellow-900/40' },
+// Each speaker has a primary color, accent, emoji, role label, and CSS background gradient
+// for a richer portrait than a plain colored circle.
+const SPEAKER_STYLES: Record<string, {
+  color: string;
+  accent: string;
+  emoji: string;
+  bg: string;
+  role: string;
+  gradient: string;
+}> = {
+  'Mang Tenyo': {
+    color: '#D2691E',
+    accent: '#F4A460',
+    emoji: '👴',
+    bg: 'bg-amber-900/60',
+    role: 'Cart Driver',
+    gradient: 'radial-gradient(circle at 35% 35%, #F4A460 0%, #D2691E 60%, #8B4513 100%)',
+  },
+  'Aling Nena': {
+    color: '#CD853F',
+    accent: '#FFD89B',
+    emoji: '👩‍🍳',
+    bg: 'bg-orange-900/60',
+    role: 'Kitchen Staff',
+    gradient: 'radial-gradient(circle at 35% 35%, #FFD89B 0%, #CD853F 60%, #8B5A2B 100%)',
+  },
+  'Mang Andres': {
+    color: '#A0522D',
+    accent: '#E8B579',
+    emoji: '🧑‍🍳',
+    bg: 'bg-stone-800/60',
+    role: 'Kitchen Staff',
+    gradient: 'radial-gradient(circle at 35% 35%, #E8B579 0%, #A0522D 60%, #5C3317 100%)',
+  },
+  'Narrator': {
+    color: '#9CA3AF',
+    accent: '#E5E7EB',
+    emoji: '📜',
+    bg: 'bg-stone-900/60',
+    role: 'Storyteller',
+    gradient: 'radial-gradient(circle at 35% 35%, #E5E7EB 0%, #9CA3AF 60%, #4B5563 100%)',
+  },
+  'Crisóstomo Ibarra': {
+    color: '#FFD700',
+    accent: '#FFFACD',
+    emoji: '🎩',
+    bg: 'bg-yellow-900/40',
+    role: 'Ilustrado · Just returned from Europe',
+    gradient: 'radial-gradient(circle at 35% 35%, #FFFACD 0%, #FFD700 60%, #B8860B 100%)',
+  },
 };
 
 function getSpeakerStyle(speaker: string) {
-  return SPEAKER_STYLES[speaker] || { color: '#8B7355', emoji: '🗣️', bg: 'bg-stone-800/60' };
+  return SPEAKER_STYLES[speaker] || {
+    color: '#8B7355',
+    accent: '#C9B498',
+    emoji: '🗣️',
+    bg: 'bg-stone-800/60',
+    role: 'Townsperson',
+    gradient: 'radial-gradient(circle at 35% 35%, #C9B498 0%, #8B7355 60%, #5C4033 100%)',
+  };
 }
 
 export default function DialogueBox() {
@@ -150,16 +201,32 @@ export default function DialogueBox() {
         }`}
       >
         <div className="flex gap-3 p-4">
-          {/* Speaker avatar */}
-          <div
-            className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 shadow-inner"
-            style={{
-              backgroundColor: speakerStyle.color + '30',
-              borderColor: speakerStyle.color,
-              boxShadow: `0 0 14px ${speakerStyle.color}40 inset, 0 2px 6px rgba(0,0,0,0.4)`,
-            }}
-          >
-            {isNarrator ? '📜' : speakerStyle.emoji}
+          {/* Speaker portrait with gradient background and decorative ring */}
+          <div className="shrink-0 flex flex-col items-center gap-1">
+            <div
+              className="relative w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 shadow-lg"
+              style={{
+                background: speakerStyle.gradient,
+                borderColor: speakerStyle.accent,
+                boxShadow: `0 0 18px ${speakerStyle.color}50, 0 4px 10px rgba(0,0,0,0.5), inset 0 0 12px rgba(0,0,0,0.25)`,
+              }}
+            >
+              {isNarrator ? '📜' : speakerStyle.emoji}
+              {/* Small decorative dot indicator (top-right of portrait) */}
+              <div
+                className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border border-stone-950"
+                style={{ backgroundColor: speakerStyle.accent }}
+              />
+            </div>
+            {/* Speaker role / title under portrait */}
+            {!isNarrator && (
+              <div
+                className="text-[9px] uppercase tracking-wider font-semibold text-center max-w-[80px] leading-tight"
+                style={{ color: speakerStyle.accent }}
+              >
+                {speakerStyle.role}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 min-w-0">

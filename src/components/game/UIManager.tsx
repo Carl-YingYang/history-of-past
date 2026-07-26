@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { useEffect } from 'react';
+import { gameEvents } from '@/lib/game/eventBus';
 
 /**
  * UIManager - Centralized control for overlay panels (Codex, Journal, Settings, Minimap, Help).
@@ -16,12 +17,14 @@ import { useEffect } from 'react';
  *   - A click on the modal backdrop closes the active panel.
  *   - Panels register their content via the `activePanel` state.
  *   - Keyboard shortcuts (C, J, M, S, H, Esc) drive panel switching.
+ *   - Opening a panel emits a `panel:opened` event on the game event bus
+ *     so other systems (e.g. achievement tracking) can react.
  *   - The backdrop sits at z-40, panel content at z-50, dialogue at z-30 —
  *     so opening any panel hides the dialogue click-catcher visually but
  *     does NOT pause the game (the engine keeps running).
  */
 
-export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'about' | null;
+export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | null;
 
 interface UIState {
   activePanel: PanelId;
@@ -34,6 +37,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   activePanel: null,
   openPanel: (id) => {
     set({ activePanel: id });
+    // Emit a `panel:opened` event so other systems (achievement tracking,
+    // analytics, etc.) can react. We only emit for non-null ids.
+    if (id) {
+      gameEvents.emit('panel:opened', id);
+    }
     // Mirror state to a body data attribute so non-React systems
     // (TouchControls, InteractButton) can react via MutationObserver.
     if (typeof document !== 'undefined') {
@@ -107,6 +115,18 @@ export function GlobalKeyboardShortcuts() {
           break;
         case 's':
           store.togglePanel('settings');
+          e.preventDefault();
+          break;
+        case 'g':
+          store.togglePanel('glossary');
+          e.preventDefault();
+          break;
+        case 'a':
+          store.togglePanel('achievements');
+          e.preventDefault();
+          break;
+        case 'l':
+          store.togglePanel('storylog');
           e.preventDefault();
           break;
         case 'h':

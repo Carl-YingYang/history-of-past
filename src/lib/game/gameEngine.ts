@@ -538,6 +538,38 @@ class GameEngine {
       }
     }
 
+    // ===== Progressive Codex unlocks =====
+    // Codex entries unlock as the player meets characters and overhears gossip,
+    // so the Codex fills up DURING the chapter (not all at once at the end).
+    // This gives the player a sense of progression and discovery.
+    if (dialogue.id === 'mang-tenyo-first') {
+      // After meeting Mang Tenyo: unlock himself + he mentions Ibarra
+      saveManager.unlockCodexEntry('char.mang-tenyo');
+      saveManager.unlockCodexEntry('char.ibarra');
+      saveManager.addJournalEntry(
+        'I arrived in San Diego. A cart driver named Mang Tenyo warned me not to mention the name "Ibarra" too loudly — something happened at last night\'s reception.',
+        'ch1'
+      );
+    } else if (dialogue.id === 'market-gossip') {
+      // After overhearing gossip: unlock the people mentioned
+      saveManager.unlockCodexEntry('char.tiago');
+      saveManager.unlockCodexEntry('char.damaso');
+      saveManager.unlockCodexEntry('place.san-diego');
+      saveManager.addJournalEntry(
+        'At the market, Aling Nena and Mang Andres gossiped about Ibarra\'s homecoming reception. Padre Dámaso publicly insulted Ibarra — and he was once a close friend of Ibarra\'s late father. Capitán Tiago hosted the disastrous dinner.',
+        'ch1'
+      );
+    } else if (dialogue.id === 'ibarra-sighting') {
+      // After seeing Ibarra: unlock the broader historical context
+      saveManager.unlockCodexEntry('historical.ilustrados');
+      saveManager.unlockCodexEntry('historical.rizal');
+      saveManager.unlockCodexEntry('historical.noli');
+      saveManager.addJournalEntry(
+        'I saw Crisóstomo Ibarra himself crossing the plaza at dawn. After seven years in Europe, he carries himself with an ease that the friars clearly fear. The gossip was right — his return has stirred up old tensions.',
+        'ch1'
+      );
+    }
+
     gameEvents.emit('dialogue:end', dialogue.id);
 
     // Check if this was the gossip dialogue - enable Ibarra sighting zone
@@ -1823,14 +1855,46 @@ class GameEngine {
   }
 
   private _renderTimeOfDayOverlay(ctx: CanvasRenderingContext2D): void {
-    // Subtle color overlay based on time of day
+    // Subtle but distinct color overlay based on time of day
+    // Afternoon = warm golden hour with soft amber glow
+    // Morning = cool blue dawn with misty atmosphere
     if (this.timeOfDay === 'afternoon') {
-      // Warm golden tint
-      ctx.fillStyle = 'rgba(255,200,100,0.06)';
+      // Warm golden tint across the whole scene
+      ctx.fillStyle = 'rgba(255,180,80,0.10)';
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+      
+      // Stronger warm glow at the top-right (sun position)
+      const sunGrad = ctx.createRadialGradient(
+        this.viewWidth * 0.85, this.viewHeight * 0.15, 0,
+        this.viewWidth * 0.85, this.viewHeight * 0.15, this.viewWidth * 0.6
+      );
+      sunGrad.addColorStop(0, 'rgba(255,220,150,0.18)');
+      sunGrad.addColorStop(0.4, 'rgba(255,200,100,0.08)');
+      sunGrad.addColorStop(1, 'rgba(255,180,80,0)');
+      ctx.fillStyle = sunGrad;
       ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
     } else {
-      // Cool blue-white morning tint
-      ctx.fillStyle = 'rgba(180,200,240,0.08)';
+      // Cool blue morning tint
+      ctx.fillStyle = 'rgba(180,210,250,0.12)';
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+      
+      // Soft misty gradient at the bottom (atmospheric depth)
+      const mistGrad = ctx.createLinearGradient(0, this.viewHeight * 0.6, 0, this.viewHeight);
+      mistGrad.addColorStop(0, 'rgba(220,230,240,0)');
+      mistGrad.addColorStop(0.6, 'rgba(220,230,240,0.08)');
+      mistGrad.addColorStop(1, 'rgba(200,220,240,0.18)');
+      ctx.fillStyle = mistGrad;
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+      
+      // Soft dawn glow on the left (sunrise)
+      const dawnGrad = ctx.createRadialGradient(
+        this.viewWidth * 0.15, this.viewHeight * 0.2, 0,
+        this.viewWidth * 0.15, this.viewHeight * 0.2, this.viewWidth * 0.5
+      );
+      dawnGrad.addColorStop(0, 'rgba(255,220,200,0.12)');
+      dawnGrad.addColorStop(0.5, 'rgba(200,220,250,0.05)');
+      dawnGrad.addColorStop(1, 'rgba(180,210,250,0)');
+      ctx.fillStyle = dawnGrad;
       ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
     }
   }

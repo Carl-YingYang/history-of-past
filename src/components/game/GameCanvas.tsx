@@ -3,6 +3,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { gameEvents } from '@/lib/game/eventBus';
+import { storyLogManager } from '@/lib/game/storyLogManager';
+import { achievementManager } from '@/lib/game/achievementManager';
 
 // Engine reference for external controls (touch D-pad, interact button)
 export interface EngineControls {
@@ -25,6 +27,15 @@ export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineInstanceRef = useRef<any>(null);
   const { gameReady } = useGameStore();
+
+  // Boot the achievement tracker + story log tracker as soon as the canvas
+  // mounts. Both managers are idempotent and safe to call before saveManager
+  // has finished loading (storyLogManager persists to its own localStorage
+  // key, achievementManager defers its save-data sync until `game:ready`).
+  useEffect(() => {
+    achievementManager.init();
+    storyLogManager.init();
+  }, []);
 
   // Listen for dialogue advance events from UI
   useEffect(() => {

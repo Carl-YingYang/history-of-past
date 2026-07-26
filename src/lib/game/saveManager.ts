@@ -4,6 +4,12 @@
 
 import { gameEvents } from './eventBus';
 
+interface AchievementRecord {
+  id: string;
+  unlockedAt: number;
+  xpAwarded: number;
+}
+
 interface SaveData {
   playerId: string;
   currentChapter: string;
@@ -13,6 +19,7 @@ interface SaveData {
   journalEntries: JournalEntry[];
   xp: number;
   chapterMedals: ChapterMedal[];
+  unlockedAchievements: AchievementRecord[];
   gameState: GameState;
   lastSaveTime: number;
 }
@@ -56,6 +63,7 @@ class SaveManager {
       journalEntries: [],
       xp: 0,
       chapterMedals: [],
+      unlockedAchievements: [],
       gameState: {
         playerPosition: { row: 15, col: 10 },
         playerDirection: 'north',
@@ -91,7 +99,7 @@ class SaveManager {
       if (res.ok) {
         const serverData = await res.json();
         if (serverData && serverData.playerId) {
-          this.saveData = serverData;
+          this.saveData = this._normalize(serverData);
           localStorage.setItem('noor-save', JSON.stringify(this.saveData));
           return this.saveData;
         }
@@ -104,7 +112,7 @@ class SaveManager {
     const local = localStorage.getItem('noor-save');
     if (local) {
       try {
-        this.saveData = JSON.parse(local);
+        this.saveData = this._normalize(JSON.parse(local));
         return this.saveData;
       } catch {
         this.saveData = this._createDefaultSaveData();
@@ -112,6 +120,29 @@ class SaveManager {
     }
 
     return this.saveData;
+  }
+
+  /**
+   * Ensure all expected fields exist on a freshly-loaded save object.
+   * Older save data (from before achievements were added) will be missing
+   * `unlockedAchievements`; this fills in sane defaults without dropping
+   * any existing fields.
+   */
+  private _normalize(data: Partial<SaveData>): SaveData {
+    const defaults = this._createDefaultSaveData();
+    return {
+      playerId: data.playerId ?? defaults.playerId,
+      currentChapter: data.currentChapter ?? defaults.currentChapter,
+      completedObjectives: data.completedObjectives ?? [],
+      completedQuests: data.completedQuests ?? [],
+      unlockedCodexEntries: data.unlockedCodexEntries ?? [],
+      journalEntries: data.journalEntries ?? [],
+      xp: data.xp ?? 0,
+      chapterMedals: data.chapterMedals ?? [],
+      unlockedAchievements: data.unlockedAchievements ?? [],
+      gameState: data.gameState ?? defaults.gameState,
+      lastSaveTime: data.lastSaveTime ?? 0,
+    };
   }
 
   unlockCodexEntry(id: string): void {
@@ -208,6 +239,35 @@ class SaveManager {
     return this.saveData.chapterMedals;
   }
 
+  // --- Achievements ---
+
+  unlockAchievement(id: string, xpReward: number): boolean {
+    if (this.saveData.unlockedAchievements.find(a => a.id === id)) {
+      return false;
+    }
+    const record: AchievementRecord = {
+      id,
+      unlockedAt: Date.now(),
+      xpAwarded: xpReward,
+    };
+    this.saveData.unlockedAchievements.push(record);
+    // Award the achievement XP to the player's total too
+    this.saveData.xp += xpReward;
+    return true;
+  }
+
+  isAchievementUnlocked(id: string): boolean {
+    return this.saveData.unlockedAchievements.some(a => a.id === id);
+  }
+
+  getUnlockedAchievements(): AchievementRecord[] {
+    return this.saveData.unlockedAchievements;
+  }
+
+  getAchievementsXp(): number {
+    return this.saveData.unlockedAchievements.reduce((sum, a) => sum + a.xpAwarded, 0);
+  }
+
   resetProgress(): void {
     this.saveData = this._createDefaultSaveData();
     localStorage.removeItem('noor-save');
@@ -230,4 +290,4 @@ class SaveManager {
 
 export const saveManager = new SaveManager();
 export default SaveManager;
-export type { SaveData, JournalEntry, ChapterMedal, GameState };
+export type { SaveData, JournalEntry, ChapterMedal, GameState, AchievementRecord };

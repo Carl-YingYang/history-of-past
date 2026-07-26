@@ -14,6 +14,9 @@ import InteractButton from '@/components/game/InteractButton';
 import ChapterCompleteScreen from '@/components/game/ChapterCompleteScreen';
 import HelpPanel from '@/components/game/HelpPanel';
 import IntroScreen from '@/components/game/IntroScreen';
+import GlossaryPanel from '@/components/game/GlossaryPanel';
+import AchievementsPanel from '@/components/game/AchievementsPanel';
+import StoryLogPanel from '@/components/game/StoryLogPanel';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -91,6 +94,9 @@ export default function Home() {
         <SettingsPanel />
         <Minimap />
         <HelpPanel />
+        <GlossaryPanel />
+        <AchievementsPanel />
+        <StoryLogPanel />
 
         {/* HUD (XP, time, medal, chapter progress) */}
         <HUD />
@@ -117,7 +123,7 @@ export default function Home() {
             📚 An educational RPG based on José Rizal&apos;s <em>Noli Me Tangere</em>
           </div>
           <div className="text-white/30 text-xs hidden sm:block">
-            WASD: Move · Space: Talk · C/J/M/S: Panels · H: Help · Esc: Close
+            WASD: Move · Space: Talk · C/G/J/A/L/M/S: Panels · H: Help · Esc: Close
           </div>
         </div>
       </footer>

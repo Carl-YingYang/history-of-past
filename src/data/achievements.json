@@ -1,0 +1,157 @@
+[
+  {
+    "id": "ach.first-steps",
+    "name": "First Steps",
+    "description": "Move your character for the first time. Every journey through San Diego begins with a single step.",
+    "icon": "👣",
+    "category": "exploration",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "player:moved"
+  },
+  {
+    "id": "ach.conversationalist",
+    "name": "Conversationalist",
+    "description": "Complete 3 dialogues with the people of San Diego. Listen well — every voice has a story.",
+    "icon": "💬",
+    "category": "social",
+    "xpReward": 15,
+    "hidden": false,
+    "check": "dialogue:end",
+    "count": 3
+  },
+  {
+    "id": "ach.curious-mind",
+    "name": "Curious Mind",
+    "description": "Open 5 different panels. A curious traveler learns more than a hasty one.",
+    "icon": "🔍",
+    "category": "exploration",
+    "xpReward": 10,
+    "hidden": false,
+    "check": "panel:opened",
+    "count": 5,
+    "unique": true
+  },
+  {
+    "id": "ach.cartographer",
+    "name": "Cartographer",
+    "description": "Open the Minimap. Knowing the land is the first step to understanding its people.",
+    "icon": "🗺️",
+    "category": "exploration",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:minimap"
+  },
+  {
+    "id": "ach.scholar",
+    "name": "Scholar",
+    "description": "Open the Rizal Codex. Knowledge of history lights the path forward.",
+    "icon": "📖",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:codex"
+  },
+  {
+    "id": "ach.diarist",
+    "name": "Diarist",
+    "description": "Open your Journal. Recording observations is the mark of a thoughtful traveler.",
+    "icon": "📔",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:journal"
+  },
+  {
+    "id": "ach.help-seeker",
+    "name": "Help Seeker",
+    "description": "Open the Help panel. Even the wisest scholar sometimes needs guidance.",
+    "icon": "❓",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:help"
+  },
+  {
+    "id": "ach.polyglot",
+    "name": "Polyglot",
+    "description": "Open the Filipino Glossary. Language carries the soul of a people.",
+    "icon": "🗣️",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:glossary"
+  },
+  {
+    "id": "ach.gossip-collector",
+    "name": "Gossip Collector",
+    "description": "Overhear the kitchen staff gossiping at the market. Words travel fast in a small town.",
+    "icon": "🤫",
+    "category": "social",
+    "xpReward": 10,
+    "hidden": false,
+    "check": "objective:completed:obj.ch1.overhear_gossip"
+  },
+  {
+    "id": "ach.ibarra-witness",
+    "name": "Ibarra Witness",
+    "description": "See Crisóstomo Ibarra crossing the plaza at dawn. A returning son carries the weight of two worlds.",
+    "icon": "👁️",
+    "category": "milestone",
+    "xpReward": 15,
+    "hidden": false,
+    "check": "objective:completed:obj.ch1.see_ibarra"
+  },
+  {
+    "id": "ach.listener",
+    "name": "Listener",
+    "description": "Earn the Chapter 1 medal. You have heard the voices of San Diego — and understood.",
+    "icon": "🏅",
+    "category": "milestone",
+    "xpReward": 20,
+    "hidden": false,
+    "check": "chapter:medal:ch1"
+  },
+  {
+    "id": "ach.night-owl-early-bird",
+    "name": "Night Owl → Early Bird",
+    "description": "Experience the time transition from afternoon to morning. San Diego wears a different face at dawn.",
+    "icon": "🌅",
+    "category": "milestone",
+    "xpReward": 10,
+    "hidden": false,
+    "check": "time:transition"
+  },
+  {
+    "id": "ach.persistent-pilgrim",
+    "name": "Persistent Pilgrim",
+    "description": "Try to walk into the church walls 5 times. Faith, perhaps, is also persistence.",
+    "icon": "⛪",
+    "category": "secret",
+    "xpReward": 15,
+    "hidden": true,
+    "check": "player:collide:church",
+    "count": 5
+  },
+  {
+    "id": "ach.wanderer",
+    "name": "The Wanderer",
+    "description": "Take 50 steps exploring San Diego. To walk is to know a place.",
+    "icon": "🚶",
+    "category": "secret",
+    "xpReward": 10,
+    "hidden": true,
+    "check": "player:moved",
+    "count": 50
+  },
+  {
+    "id": "ach.konami",
+    "name": "The Old Code",
+    "description": "Discover the ancient sequence known to scholars of an older era.",
+    "icon": "🎮",
+    "category": "secret",
+    "xpReward": 5,
+    "hidden": true,
+    "check": "secret:konami"
+  }
+]

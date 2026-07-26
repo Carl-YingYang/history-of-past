@@ -4,12 +4,21 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { gameEvents } from '@/lib/game/eventBus';
 
-// We need a reference to the game engine instance to call advanceDialogue
-// This is set up in this component
-let engineRef: { advanceDialogue: () => void } | null = null;
+// Engine reference for external controls (touch D-pad, interact button)
+export interface EngineControls {
+  advanceDialogue: () => void;
+  setMoveDirection: (direction: 'up' | 'down' | 'left' | 'right' | null) => void;
+  triggerInteract: () => void;
+}
 
-export function setEngineRef(ref: { advanceDialogue: () => void }) {
+let engineRef: EngineControls | null = null;
+
+export function setEngineRef(ref: EngineControls) {
   engineRef = ref;
+}
+
+export function getEngineControls(): EngineControls | null {
+  return engineRef;
 }
 
 export default function GameCanvas() {
@@ -37,9 +46,11 @@ export default function GameCanvas() {
     const engine = new GameEngine();
     engineInstanceRef.current = engine;
     
-    // Set up engine reference for UI to call advanceDialogue
+    // Set up engine reference for UI to call advanceDialogue and touch controls
     engineRef = {
       advanceDialogue: () => engine.advanceDialogue(),
+      setMoveDirection: (dir) => engine.setMoveDirection(dir),
+      triggerInteract: () => engine.triggerInteract(),
     };
     
     await engine.init(canvasRef.current);
@@ -70,14 +81,15 @@ export default function GameCanvas() {
       />
       {/* Loading overlay */}
       {!gameReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
           <div className="text-center">
-            <div className="text-amber-400 text-2xl font-bold mb-2" style={{ fontFamily: '"Geist", sans-serif' }}>
-              Project Noor
+            <div className="text-amber-400 text-3xl font-bold mb-3 tracking-wider" style={{ fontFamily: '"Geist", sans-serif' }}>
+              PROJECT NOOR
             </div>
-            <div className="text-white/60 text-sm">Loading San Diego — 1887...</div>
+            <div className="text-amber-400/60 text-sm mb-1 italic">A Stranger in San Diego</div>
+            <div className="text-white/40 text-xs mb-4">Loading San Diego — 1887...</div>
             <div className="mt-4 flex justify-center">
-              <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
             </div>
           </div>
         </div>

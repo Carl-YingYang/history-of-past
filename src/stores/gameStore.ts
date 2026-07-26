@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import { gameEvents } from '@/lib/game/eventBus';
 import { saveManager } from '@/lib/game/saveManager';
+import { soundManager } from '@/lib/game/soundManager';
 import chapters from '@/data/chapters.json';
 import quests from '@/data/quests.json';
 import codex from '@/data/codex.json';
@@ -79,6 +80,7 @@ export const useGameStore = create<GameState>((set, get) => {
       currentLineIndex: d.lineIndex,
       totalLines: d.totalLines,
     });
+    soundManager.play('dialogue-open');
   });
 
   gameEvents.on('dialogue:line', (data: unknown) => {
@@ -88,6 +90,7 @@ export const useGameStore = create<GameState>((set, get) => {
       currentLineIndex: d.lineIndex,
       totalLines: d.totalLines,
     });
+    soundManager.play('dialogue-advance');
   });
 
   gameEvents.on('dialogue:end', () => {
@@ -98,20 +101,24 @@ export const useGameStore = create<GameState>((set, get) => {
       currentLineIndex: 0,
       totalLines: 0,
     });
+    soundManager.play('dialogue-close');
   });
 
   gameEvents.on('quest:objectiveComplete', (objectiveId: unknown) => {
     set(state => ({
       completedObjectives: [...state.completedObjectives, objectiveId as string],
     }));
+    soundManager.play('objective-complete');
   });
 
   gameEvents.on('xp:gained', (amount: unknown) => {
     set(state => ({ xp: state.xp + (amount as number) }));
+    soundManager.play('xp-gain');
   });
 
   gameEvents.on('codex:unlock', (id: unknown) => {
     set(state => ({ unlockedCodex: [...state.unlockedCodex, id as string] }));
+    soundManager.play('codex-unlock');
   });
 
   gameEvents.on('journal:entry', (entry: unknown) => {
@@ -131,16 +138,19 @@ export const useGameStore = create<GameState>((set, get) => {
         medalDescription: chapter?.medalDescription || '',
       },
     });
+    soundManager.play('medal');
     // Auto-hide medal after 5 seconds
     setTimeout(() => set({ showMedal: false, medalInfo: null }), 5000);
   });
 
   gameEvents.on('chapter:complete', () => {
     set({ chapterComplete: true });
+    soundManager.play('chapter-complete');
   });
 
   gameEvents.on('time:transition', (time: unknown) => {
     set({ timeOfDay: time as 'afternoon' | 'morning' });
+    soundManager.play('time-transition');
   });
 
   gameEvents.on('quiz:start', (chapterId: unknown) => {

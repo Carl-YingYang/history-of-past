@@ -74,3 +74,14 @@ export async function GET() {
     return NextResponse.json(null);
   }
 }
+
+export async function DELETE() {
+  try {
+    // Delete all save data (for reset progress feature)
+    await db.gameSave.deleteMany({});
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+  }
+}

@@ -288,6 +288,31 @@ class GameEngine {
     });
   }
 
+  // Public methods for touch/mobile controls
+  setMoveDirection(direction: 'up' | 'down' | 'left' | 'right' | null): void {
+    if (direction === null) {
+      this.keys.delete('w');
+      this.keys.delete('s');
+      this.keys.delete('a');
+      this.keys.delete('d');
+      this.keys.delete('arrowup');
+      this.keys.delete('arrowdown');
+      this.keys.delete('arrowleft');
+      this.keys.delete('arrowright');
+    } else {
+      switch (direction) {
+        case 'up': this.keys.add('w'); this.keys.delete('s'); this.keys.delete('a'); this.keys.delete('d'); break;
+        case 'down': this.keys.add('s'); this.keys.delete('w'); this.keys.delete('a'); this.keys.delete('d'); break;
+        case 'left': this.keys.add('a'); this.keys.delete('d'); this.keys.delete('w'); this.keys.delete('s'); break;
+        case 'right': this.keys.add('d'); this.keys.delete('a'); this.keys.delete('w'); this.keys.delete('s'); break;
+      }
+    }
+  }
+
+  triggerInteract(): void {
+    this._handleInteract();
+  }
+
   private _handleInteract(): void {
     if (this.dialogueActive) return;
     if (this.interactCooldown > 0) return;

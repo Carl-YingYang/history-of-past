@@ -7,7 +7,9 @@
     "summary": "A young, European-educated mestizo who returns to San Diego hoping to reform his country through education. Years later he resurfaces in Manila as the wealthy, embittered jeweler Simoun.",
     "details": "Ibarra spent seven years studying in Europe, returning to San Diego with progressive ideas about education and reform. His homecoming reception at Capitán Tiago's house became infamous when Padre Dámaso openly insulted him — a sign of the deep social tensions between the Spanish friars and the Filipino ilustrados.",
     "category": "characters",
-    "relatedEntries": ["char.tiago", "char.damaso"]
+    "relatedEntries": ["char.tiago", "char.damaso"],
+    "icon": "🎓",
+    "color": "#D4A574"
   },
   {
     "id": "char.tiago",
@@ -17,7 +19,9 @@
     "summary": "A wealthy, socially anxious Filipino elite who hosted Ibarra's homecoming reception. Maria Clara's legal father.",
     "details": "Don Santiago de los Santos, known as Capitán Tiago, is one of the wealthiest men in Manila. He hosted the dinner reception for Ibarra's return, but his social anxieties and desire to please both Spanish authorities and Filipino elites made him a complicated figure in colonial society.",
     "category": "characters",
-    "relatedEntries": ["char.ibarra", "char.damaso"]
+    "relatedEntries": ["char.ibarra", "char.damaso"],
+    "icon": "🎩",
+    "color": "#8B7355"
   },
   {
     "id": "char.damaso",
@@ -27,6 +31,68 @@
     "summary": "An arrogant Franciscan friar and former San Diego parish priest, openly hostile to Ibarra at the reception dinner despite once being close to Ibarra's late father.",
     "details": "Padre Dámaso was the parish priest of San Diego for many years and was close to Ibarra's father, Don Rafael. However, after Don Rafael's death, Dámaso's attitude changed dramatically. At Ibarra's homecoming reception, he was openly rude and hostile — shocking the other guests and revealing the deep power dynamics between Spanish friars and the Filipino community.",
     "category": "characters",
-    "relatedEntries": ["char.ibarra", "char.tiago"]
+    "relatedEntries": ["char.ibarra", "char.tiago"],
+    "icon": "⛪",
+    "color": "#5C4033"
+  },
+  {
+    "id": "char.mang-tenyo",
+    "name": "Mang Tenyo",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "A cart driver who gives the player their cover identity as a visiting scholar's aide from Manila. The first friendly face in San Diego.",
+    "details": "Mang Tenyo represents the everyday Filipino townsfolk of 1887 — observant, cautious, and quietly aware of the social tensions around them. His warning not to mention the Ibarra name too loudly hints at how deeply Padre Dámaso's outburst affected the community.",
+    "category": "characters",
+    "relatedEntries": ["char.ibarra"],
+    "icon": "🛒",
+    "color": "#8B4513"
+  },
+  {
+    "id": "place.san-diego",
+    "name": "San Diego (Town)",
+    "kind": "fictional",
+    "firstAvailableChapter": "ch1",
+    "summary": "The fictional town where much of Noli Me Tangere takes place — Rizal's composite of typical Philippine towns under Spanish colonial rule.",
+    "details": "San Diego is not a real town but a fictional composite. Rizal used it to represent the typical Philippine town of the 1880s — with its church, convent, plaza, market, and the social hierarchy that defined colonial life. The town's name ('Saint Didacus') reflects the Spanish Catholic influence. In the novel, San Diego is where Ibarra's family estate is located.",
+    "category": "places",
+    "relatedEntries": ["char.ibarra", "char.damaso"],
+    "icon": "🏘️",
+    "color": "#6B8E23"
+  },
+  {
+    "id": "historical.ilustrados",
+    "name": "The Ilustrados",
+    "kind": "historical",
+    "firstAvailableChapter": "ch1",
+    "summary": "The educated Filipino class who studied in Europe and brought back reformist ideas — Ibarra (and Rizal himself) exemplify this group.",
+    "details": "The ilustrados ('enlightened ones') were Filipino students and professionals who studied in Spain, France, Germany, and other European countries in the late 1800s. They were exposed to liberal ideas, secular education, and political reform movements. When they returned to the Philippines, they were viewed with suspicion by Spanish colonial authorities and the friars, who feared their calls for equality and representation. José Rizal himself was an ilustrado, and Crisóstomo Ibarra is his fictional counterpart in the novel.",
+    "category": "concepts",
+    "relatedEntries": ["char.ibarra", "historical.rizal"],
+    "icon": "📚",
+    "color": "#4169E1"
+  },
+  {
+    "id": "historical.rizal",
+    "name": "José Rizal",
+    "kind": "historical",
+    "firstAvailableChapter": "ch1",
+    "summary": "The author of Noli Me Tangere (1887) — a Filipino nationalist, novelist, and reformist whose works helped inspire the Philippine Revolution.",
+    "details": "José Protasio Rizal Mercado y Alonso Realonda (1861–1896) wrote Noli Me Tangere in Spanish, publishing it in Berlin in 1887. The novel exposed the abuses of Spanish colonial rule, particularly the power of the friars. Rizal was executed by firing squad on December 30, 1896, on charges of rebellion, sedition, and conspiracy — an event that catalyzed the Philippine Revolution. He is now the national hero of the Philippines.",
+    "category": "concepts",
+    "relatedEntries": ["historical.ilustrados", "char.ibarra"],
+    "icon": "✍️",
+    "color": "#B8860B"
+  },
+  {
+    "id": "historical.noli",
+    "name": "Noli Me Tangere (The Novel)",
+    "kind": "historical",
+    "firstAvailableChapter": "ch1",
+    "summary": "José Rizal's 1887 novel that exposed Spanish colonial abuses in the Philippines. Its title is Latin for 'Touch me not'.",
+    "details": "Noli Me Tangere was published in Berlin, Germany in 1887. The title comes from the Latin words Jesus spoke to Mary Magdalene after the Resurrection. The novel follows Crisóstomo Ibarra's return to the Philippines after seven years in Europe, and depicts the corruption and abuses of the Spanish friars and colonial officials. The book was banned in the Philippines but circulated secretly, becoming a catalyst for the reform movement and eventual revolution.",
+    "category": "concepts",
+    "relatedEntries": ["historical.rizal", "char.ibarra"],
+    "icon": "📖",
+    "color": "#8B0000"
   }
 ]

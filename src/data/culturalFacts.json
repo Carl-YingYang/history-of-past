@@ -1,0 +1,62 @@
+[
+  {
+    "id": "fact.pan-de-sal",
+    "text": "🇵🇭 Pan de sal — 'bread of salt' — was the most common breakfast bread in 1880s Philippines, sold by street vendors each morning.",
+    "category": "food",
+    "triggerZone": "market"
+  },
+  {
+    "id": "fact.plaza-layout",
+    "text": "🇵🇭 Colonial Philippine towns were built around the plaza complex: church + convent + municipal hall + market — a physical map of Spanish authority.",
+    "category": "history",
+    "triggerZone": "plaza"
+  },
+  {
+    "id": "fact.friar-control",
+    "text": "🇵🇭 In 1880s Philippines, a parish friar could exile a Filipino without trial — no judge, no hearing, just the friar's order.",
+    "category": "history",
+    "triggerZone": "church"
+  },
+  {
+    "id": "fact.ilustrado-return",
+    "text": "🇓🇪 Filipino students who studied in Europe (ilustrados) were viewed with suspicion by Spanish authorities — their education was seen as dangerous.",
+    "category": "history",
+    "triggerZone": "ibarra-house"
+  },
+  {
+    "id": "fact.pansit",
+    "text": "🇵🇭 Pansit — Chinese-origin noodles — were a staple at Filipino town gatherings, always present at receptions and town celebrations.",
+    "category": "food",
+    "triggerZone": "market"
+  },
+  {
+    "id": "fact.capitan",
+    "text": "🇵🇭 'Capitán' in colonial Philippines was an honorary title for wealthy Filipino elites, not a military rank — Tiago was 'Capitán' because of his wealth.",
+    "category": "language",
+    "triggerZone": "tiago-house"
+  },
+  {
+    "id": "fact.noli-title",
+    "text": "📖 'Noli Me Tangere' is Latin for 'Touch me not' — words Jesus spoke to Mary Magdalene. Rizal chose this title as a warning about the colonial condition.",
+    "category": "literature",
+    "triggerZone": "plaza"
+  },
+  {
+    "id": "fact.bagong-dating",
+    "text": "🇵🇭 In a colonial town like San Diego, a 'bagong dating' (newcomer) would be noticed within hours — gossip spread faster than official news.",
+    "category": "language",
+    "triggerZone": "plaza"
+  },
+  {
+    "id": "fact.tiangge",
+    "text": "🇵🇭 The tiangge (open-air market) was where Filipino social life happened — not just commerce, but gossip, politics, and community bonding.",
+    "category": "culture",
+    "triggerZone": "market"
+  },
+  {
+    "id": "fact.rizal-berlin",
+    "text": "📖 Rizal published Noli Me Tangere in Berlin, 1887 — he was 26 years old and nearly penniless, borrowing money to print the first 2,000 copies.",
+    "category": "literature",
+    "triggerZone": "church"
+  }
+]

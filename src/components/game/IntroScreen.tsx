@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 
 /**
@@ -12,19 +12,59 @@ import { useGameStore } from '@/stores/gameStore';
  *   - Auto-hides once `gameReady` is true AND the user has clicked Begin
  *     (or has existing save data — in which case it shows "Continue").
  *   - Also shows a tiny "press any key" hint after 4 seconds.
+ *
+ * Fix: Pre-computed particle positions to avoid SSR hydration mismatch
+ * (Math.random() produces different values on server vs client).
  */
+
+// Deterministic particle positions — pre-computed to avoid hydration mismatch
+const PARTICLES = [
+  { w: 3.5, h: 4.0, l: 15, t: 20, bg: 0, dur: 4.5, glow: true },
+  { w: 2.8, h: 3.6, l: 42, t: 55, bg: 1, dur: 4.8, glow: true },
+  { w: 4.2, h: 3.2, l: 72, t: 35, bg: 2, dur: 5.2, glow: true },
+  { w: 2.5, h: 3.8, l: 88, t: 65, bg: 0, dur: 6.0, glow: true },
+  { w: 3.8, h: 2.5, l: 25, t: 80, bg: 1, dur: 5.8, glow: true },
+  { w: 1.8, h: 2.2, l: 55, t: 15, bg: 2, dur: 6.3, glow: false },
+  { w: 3.2, h: 3.5, l: 10, t: 45, bg: 0, dur: 5.4, glow: false },
+  { w: 2.6, h: 2.0, l: 78, t: 72, bg: 1, dur: 4.7, glow: false },
+  { w: 4.0, h: 3.0, l: 35, t: 88, bg: 2, dur: 5.9, glow: false },
+  { w: 2.2, h: 3.7, l: 92, t: 30, bg: 0, dur: 6.5, glow: false },
+  { w: 3.6, h: 2.1, l: 48, t: 70, bg: 1, dur: 5.1, glow: false },
+  { w: 1.6, h: 4.2, l: 82, t: 50, bg: 2, dur: 7.0, glow: false },
+  { w: 3.0, h: 3.3, l: 18, t: 60, bg: 0, dur: 6.8, glow: false },
+  { w: 2.4, h: 2.8, l: 65, t: 40, bg: 1, dur: 5.3, glow: false },
+  { w: 3.9, h: 3.1, l: 30, t: 25, bg: 2, dur: 4.4, glow: false },
+];
+
+const BG_COLORS = [
+  'rgba(251,191,36,0.5)',
+  'rgba(255,220,120,0.4)',
+  'rgba(251,191,36,0.25)',
+];
+
 export default function IntroScreen() {
-  const { gameReady, completedObjectives } = useGameStore();
+  const { gameReady, completedObjectives, setIntroVisible } = useGameStore();
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const hasProgress = completedObjectives.length > 0;
 
+  // Mark as mounted (client-side) to allow animations to start
+  // Note: introVisible defaults to true in the gameStore, so no need to set it here
+  // Using requestAnimationFrame to avoid synchronous setState-in-effect lint warning
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setMounted(true);
+    });
+  }, []);
+
   const handleBegin = useCallback(() => {
     setFading(true);
+    setIntroVisible(false);
     setTimeout(() => setVisible(false), 800);
-  }, []);
+  }, [setIntroVisible]);
 
   useEffect(() => {
     // After 4 seconds, show "press any key" hint
@@ -47,6 +87,24 @@ export default function IntroScreen() {
 
   if (!visible) return null;
 
+  // Don't render particles until mounted (client-side) to avoid hydration mismatch
+  const particleElems = mounted ? PARTICLES.map((p, i) => (
+    <div
+      key={i}
+      className="absolute rounded-full animate-particle-drift"
+      style={{
+        width: `${p.w}px`,
+        height: `${p.h}px`,
+        left: `${p.l}%`,
+        top: `${p.t}%`,
+        background: BG_COLORS[p.bg],
+        animationDelay: `${i * 0.4}s`,
+        animationDuration: `${p.dur}s`,
+        boxShadow: p.glow ? '0 0 4px rgba(251,191,36,0.3)' : 'none',
+      }}
+    />
+  )) : null;
+
   return (
     <div
       className={`absolute inset-0 z-50 flex items-center justify-center transition-opacity duration-700 ${
@@ -55,6 +113,7 @@ export default function IntroScreen() {
       style={{
         background: 'radial-gradient(ellipse at center, rgba(20,12,4,0.92) 0%, rgba(0,0,0,0.98) 70%)',
       }}
+      suppressHydrationWarning
     >
       {/* Vignette effect — dark edges overlay */}
       <div
@@ -72,26 +131,26 @@ export default function IntroScreen() {
         }}
       />
 
-      {/* Animated floating particles/sparkles — more of them with drift animation */}
-      {[...Array(15)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full animate-particle-drift"
-          style={{
-            width: `${1.5 + Math.random() * 3}px`,
-            height: `${1.5 + Math.random() * 3}px`,
-            left: `${8 + Math.random() * 84}%`,
-            top: `${10 + Math.random() * 80}%`,
-            background: i % 3 === 0 ? 'rgba(251,191,36,0.5)' : i % 3 === 1 ? 'rgba(255,220,120,0.4)' : 'rgba(251,191,36,0.25)',
-            animationDelay: `${i * 0.4}s`,
-            animationDuration: `${4 + Math.random() * 4}s`,
-            boxShadow: i < 5 ? '0 0 4px rgba(251,191,36,0.3)' : 'none',
-          }}
-        />
-      ))}
+      {/* Animated floating particles/sparkles — deterministic positions */}
+      {particleElems}
+
+      {/* Additional decorative elements — filipino sun rays */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.04]" suppressHydrationWarning>
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`ray-${i}`}
+            className="absolute left-1/2 top-[55%] w-px bg-gradient-to-b from-amber-400 to-transparent"
+            style={{
+              height: '120px',
+              transformOrigin: 'top center',
+              transform: `rotate(${i * 45}deg)`,
+            }}
+          />
+        ))}
+      </div>
 
       <div className="relative text-center max-w-2xl px-6 z-10">
-        {/* Top decoration */}
+        {/* Top decoration — Filipino sun emblem */}
         <div className="flex items-center justify-center gap-3 mb-6 opacity-60 animate-subtitle-fade" style={{ animationDelay: '0.3s' }}>
           <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-400/60" />
           <span className="text-amber-400/80 text-xs tracking-[0.4em] uppercase">An Educational RPG</span>
@@ -100,7 +159,7 @@ export default function IntroScreen() {
 
         {/* Title */}
         <h1
-          className="text-6xl md:text-7xl font-bold text-amber-400 mb-2 tracking-wider animate-subtitle-fade"
+          className="text-5xl sm:text-6xl md:text-7xl font-bold text-amber-400 mb-2 tracking-wider animate-subtitle-fade"
           style={{
             fontFamily: 'Georgia, serif',
             textShadow: '0 0 24px rgba(255,180,80,0.4), 0 2px 8px rgba(0,0,0,0.8)',
@@ -169,7 +228,7 @@ export default function IntroScreen() {
         {/* Footer attribution */}
         <div className="absolute -bottom-12 left-0 right-0 text-center">
           <div className="text-white/30 text-[10px] tracking-widest uppercase">
-            Chapter 1 of 11 · Build v0.2
+            Chapter 1 of 11 · Build v0.3
           </div>
         </div>
       </div>

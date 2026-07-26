@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import GameCanvas from '@/components/game/GameCanvas';
 import DialogueBox from '@/components/game/DialogueBox';
 import QuestTracker from '@/components/game/QuestTracker';
@@ -13,11 +14,12 @@ import TouchControls from '@/components/game/TouchControls';
 import InteractButton from '@/components/game/InteractButton';
 import ChapterCompleteScreen from '@/components/game/ChapterCompleteScreen';
 import HelpPanel from '@/components/game/HelpPanel';
-import IntroScreen from '@/components/game/IntroScreen';
 import GlossaryPanel from '@/components/game/GlossaryPanel';
 import AchievementsPanel from '@/components/game/AchievementsPanel';
 import StoryLogPanel from '@/components/game/StoryLogPanel';
 import Toolbar from '@/components/game/Toolbar';
+import NPCLabelOverlay from '@/components/game/NPCLabelOverlay';
+import CulturalFactToast from '@/components/game/CulturalFactToast';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -26,6 +28,9 @@ import {
 import { soundManager } from '@/lib/game/soundManager';
 import { useGameStore } from '@/stores/gameStore';
 import quests from '@/data/quests.json';
+
+// Dynamic import with SSR disabled to avoid hydration mismatch from client-only animations
+const IntroScreen = dynamic(() => import('@/components/game/IntroScreen'), { ssr: false });
 
 // Phase indicator color mapping
 const PHASE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -145,6 +150,12 @@ export default function Home() {
 
         {/* Quest tracker sidebar (top-right) */}
         <QuestTracker />
+
+        {/* NPC proximity name labels */}
+        <NPCLabelOverlay />
+
+        {/* Cultural fact toast notifications */}
+        <CulturalFactToast />
 
         {/* Touch controls (bottom-left, also visible on desktop for accessibility) */}
         {!chapterComplete && activePanel === null && (

@@ -2,21 +2,64 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUIStore } from './UIManager';
+import { useGameStore } from '@/stores/gameStore';
 import mapData from '@/data/mapData.json';
+import characterData from '@/data/characters.json';
 
 /**
- * Minimap - Enhanced overview of the San Diego map with player position,
- * building labels, detailed tile colors, and visual polish.
+ * Minimap - Enhanced overview of the San Diego map with building labels,
+ * NPC markers, discovery markers, compass, zoom levels, and visual polish.
  */
+
+// Zoom level cell sizes
+const ZOOM_LEVELS: Record<string, { cellSize: number; label: string }> = {
+  'small':  { cellSize: 8,  label: 'S' },
+  'medium': { cellSize: 12, label: 'M' },
+  'large':  { cellSize: 16, label: 'L' },
+};
+
+// NPC color mapping from characters.json
+const NPC_COLORS: Record<string, string> = {};
+for (const [id, char] of Object.entries(characterData.characters)) {
+  if (char.placeholder && char.placeholderColor) {
+    NPC_COLORS[id] = char.placeholderColor;
+  } else if (id === 'ibara') {
+    NPC_COLORS[id] = '#FFD700'; // Gold for Ibarra
+  }
+}
+// Fallback for known NPC ids not in characters
+NPC_COLORS['mang-tenyo'] = NPC_COLORS['mang-tenyo'] || '#8B4513';
+NPC_COLORS['kitchen-staff-1'] = NPC_COLORS['kitchen-staff-1'] || '#D2691E';
+NPC_COLORS['kitchen-staff-2'] = NPC_COLORS['kitchen-staff-2'] || '#CD853F';
+NPC_COLORS['ibara'] = NPC_COLORS['ibara'] || '#FFD700';
+
 export default function Minimap() {
   const { activePanel, togglePanel } = useUIStore();
   const isOpen = activePanel === 'minimap';
+  const { completedObjectives } = useGameStore();
+
   const [playerPos, setPlayerPos] = useState({ row: 15, col: 10 });
   const [playerDirection, setPlayerDirection] = useState<string>('south');
+  const [zoomLevel, setZoomLevel] = useState<string>('medium');
+  // Lazy initializer: load discovered locations from localStorage on first render
+  const [discoveredLocations, setDiscoveredLocations] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('noor-discovered-locations');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // Ignore
+    }
+    return [];
+  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
+  const discoveredRef = useRef(discoveredLocations);
+  // Keep ref in sync with state via effect (not during render)
+  useEffect(() => {
+    discoveredRef.current = discoveredLocations;
+  }, [discoveredLocations]);
 
-  // Listen for player position updates via custom event
+  // Listen for player position updates and check for discoveries in callback
   useEffect(() => {
     const handlePositionUpdate = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -26,13 +69,44 @@ export default function Minimap() {
     window.addEventListener('noor:positionUpdate', handlePositionUpdate);
 
     // Poll player position from save data every 500ms
+    // Discovery check is done within the polling callback (not directly in effect body)
     const interval = setInterval(() => {
       try {
         const save = localStorage.getItem('noor-save');
         if (save) {
           const data = JSON.parse(save);
           if (data.gameState?.playerPosition) {
-            setPlayerPos(data.gameState.playerPosition);
+            const pos = data.gameState.playerPosition;
+            setPlayerPos(pos);
+
+            // Check for location discovery within this callback
+            const buildingLabelsData = mapData.buildingLabels;
+            const currentDiscoveries = discoveredRef.current;
+            const newDiscoveries: string[] = [];
+
+            for (const building of buildingLabelsData) {
+              const centerRow = building.row + Math.floor(building.height / 2);
+              const centerCol = building.col + Math.floor(building.width / 2);
+              const dist = Math.abs(pos.row - centerRow) + Math.abs(pos.col - centerCol);
+
+              if (dist <= 3 && !currentDiscoveries.includes(building.label)) {
+                newDiscoveries.push(building.label);
+              }
+            }
+
+            if (newDiscoveries.length > 0) {
+              const updated = [...currentDiscoveries, ...newDiscoveries];
+              setDiscoveredLocations(updated);
+              discoveredRef.current = updated;
+              try {
+                localStorage.setItem('noor-discovered-locations', JSON.stringify(updated));
+              } catch (e) {
+                // Ignore
+              }
+            }
+          }
+          if (data.gameState?.playerDirection) {
+            setPlayerDirection(data.gameState.playerDirection);
           }
         }
       } catch (e) {
@@ -46,17 +120,7 @@ export default function Minimap() {
     };
   }, []);
 
-  // Building label positions (key landmarks on the map)
-  const buildingLabels: { row: number; col: number; name: string; color: string }[] = [
-    { row: 2, col: 10, name: 'Church', color: '#E8E0D0' },
-    { row: 3, col: 4, name: 'Convent', color: '#C9B896' },
-    { row: 4, col: 15, name: 'Tiago House', color: '#FFD700' },
-    { row: 8, col: 8, name: 'Fountain', color: '#7CB9E8' },
-    { row: 13, col: 5, name: 'Market', color: '#FF6B35' },
-    { row: 1, col: 14, name: 'Ibarra House', color: '#D4A574' },
-  ];
-
-  // Render minimap to canvas (continuous animation while open)
+  // Render minimap to canvas
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
 
@@ -64,7 +128,7 @@ export default function Minimap() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const cellSize = 12;
+    const { cellSize } = ZOOM_LEVELS[zoomLevel];
     const canvasW = mapData.width * cellSize;
     const canvasH = mapData.height * cellSize;
     canvas.width = canvasW;
@@ -88,105 +152,179 @@ export default function Minimap() {
         for (let col = 0; col < mapData.width; col++) {
           const groundTile = mapData.layers.ground[row]?.[col];
           const buildingTile = mapData.layers.buildings[row]?.[col];
-          const decorTile = mapData.layers.decoration[row]?.[col];
 
           let color = '#1a1a1a';
           let borderColor = '#222222';
 
           if (groundTile === 2) { color = '#3a5f3a'; borderColor = '#4a6f4a'; }
           else if (groundTile === 3) { color = '#8B7355'; borderColor = '#9B8365'; }
-          else if (groundTile === 1) { color = '#A0826D'; borderColor = '#B0927D'; }
-          else if (groundTile === 4) { color = '#5C4033'; borderColor = '#6C5043'; }
+          else if (groundTile === 1) { color = '#C4A76C'; borderColor = '#D4B77C'; }
+          else if (groundTile === 4) { color = '#A0522D'; borderColor = '#B0623D'; }
 
           // Buildings
-          if (buildingTile === 5) { color = '#555555'; borderColor = '#666666'; }
-          if (buildingTile === 6) { color = '#4a3520'; borderColor = '#5a4530'; }
-
-          // Decorations
-          if (decorTile === 7) { color = '#7CB9E8'; borderColor = '#8CC9F8'; } // Fountain/water
-          if (decorTile === 8) { color = '#2d4a2d'; borderColor = '#3d5a3d'; } // Trees
+          if (buildingTile === 5) { color = '#696969'; borderColor = '#797979'; }
+          if (buildingTile === 6) { color = '#8B4513'; borderColor = '#9B5523'; }
 
           ctx.fillStyle = color;
           ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
 
           // Subtle grid lines
           ctx.strokeStyle = borderColor;
-          ctx.lineWidth = 0.5;
+          ctx.lineWidth = 0.3;
           ctx.strokeRect(col * cellSize, row * cellSize, cellSize, cellSize);
         }
       }
 
-      // Draw building labels
-      ctx.font = 'bold 8px monospace';
-      ctx.textAlign = 'center';
-      for (const label of buildingLabels) {
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        const textWidth = ctx.measureText(label.name).width;
-        ctx.fillRect(
-          label.col * cellSize + cellSize / 2 - textWidth / 2 - 2,
-          label.row * cellSize - 2,
-          textWidth + 4,
-          10
-        );
-        ctx.fillStyle = label.color;
-        ctx.fillText(label.name, label.col * cellSize + cellSize / 2, label.row * cellSize + 6);
+      // Draw fountain/water and trees from decoration layer
+      const decorationLayer = (mapData.layers as any).decoration;
+      if (decorationLayer) {
+        for (let row = 0; row < mapData.height; row++) {
+          for (let col = 0; col < mapData.width; col++) {
+            const decorTile = decorationLayer[row]?.[col];
+            if (decorTile === 7) {
+              ctx.fillStyle = '#7CB9E8';
+              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+            if (decorTile === 8) {
+              ctx.fillStyle = '#2d4a2d';
+              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+          }
+        }
       }
 
-      // Draw NPC positions
-      const npcPosData = mapData.npcPositions as Record<string, { row: number; col: number; appearsAfter?: string }>;
+      // ---- Building Labels from mapData.buildingLabels ----
+      const buildingLabelsData = mapData.buildingLabels;
+      const fontSize = zoomLevel === 'large' ? 9 : zoomLevel === 'medium' ? 7 : 6;
+      ctx.font = `bold ${fontSize}px monospace`;
+      ctx.textAlign = 'center';
+
+      for (const building of buildingLabelsData) {
+        const centerRow = building.row + Math.floor(building.height / 2);
+        const centerCol = building.col + Math.floor(building.width / 2);
+        const centerX = centerCol * cellSize + cellSize / 2;
+        const centerY = centerRow * cellSize + cellSize / 2;
+
+        // Background rectangle for label
+        const label = building.label;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(
+          centerX - textWidth / 2 - 2,
+          centerY - fontSize / 2 - 1,
+          textWidth + 4,
+          fontSize + 2
+        );
+
+        // Label text - white/amber
+        ctx.fillStyle = '#E8D0A0';
+        ctx.fillText(label, centerX, centerY + fontSize / 2 - 1);
+
+        // Sublabel if present
+        if (building.sublabel && zoomLevel !== 'small') {
+          const subFontSize = fontSize - 1;
+          ctx.font = `${subFontSize}px monospace`;
+          const subWidth = ctx.measureText(building.sublabel).width;
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(
+            centerX - subWidth / 2 - 1,
+            centerY + fontSize / 2 + 1,
+            subWidth + 2,
+            subFontSize + 1
+          );
+          ctx.fillStyle = '#A08060';
+          ctx.fillText(building.sublabel, centerX, centerY + fontSize / 2 + subFontSize + 1);
+          ctx.font = `bold ${fontSize}px monospace`;
+        }
+
+        // Discovery marker ✦ if player has been near
+        if (discoveredLocations.includes(building.label)) {
+          const discoveryFontSize = fontSize + 2;
+          ctx.font = `bold ${discoveryFontSize}px serif`;
+          ctx.fillStyle = '#FFD700';
+          ctx.textAlign = 'right';
+          ctx.fillText('✦', centerX + textWidth / 2 + 2, centerY - fontSize / 2 - 2);
+          ctx.textAlign = 'center';
+          ctx.font = `bold ${fontSize}px monospace`;
+        }
+      }
+
+      // ---- NPC Position Markers ----
+      const npcPosData = mapData.npcPositions as Record<string, { row: number; col: number; direction: string; appearsAfter?: string }>;
       for (const [id, pos] of Object.entries(npcPosData)) {
         let visible = true;
         if (pos.appearsAfter) {
-          try {
-            const save = localStorage.getItem('noor-save');
-            if (save) {
-              const data = JSON.parse(save);
-              visible = data.completedObjectives?.includes(pos.appearsAfter) || false;
-            }
-          } catch (e) {
-            // Ignore
-          }
+          visible = completedObjectives.includes(pos.appearsAfter);
         }
+
         if (visible) {
-          const npcColor = id === 'ibara' ? '#FFD700' : '#FF6B35';
+          const npcColor = NPC_COLORS[id] || '#FF6B35';
+          const npcX = pos.col * cellSize + cellSize / 2;
+          const npcY = pos.row * cellSize + cellSize / 2;
+          const npcRadius = cellSize / 2 - 1;
+
           // NPC glow
-          ctx.fillStyle = id === 'ibara' ? 'rgba(255,215,0,0.2)' : 'rgba(255,107,53,0.2)';
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = npcColor;
           ctx.beginPath();
-          ctx.arc(
-            pos.col * cellSize + cellSize / 2,
-            pos.row * cellSize + cellSize / 2,
-            cellSize / 2 + 3,
-            0, Math.PI * 2
-          );
+          ctx.arc(npcX, npcY, npcRadius + 3, 0, Math.PI * 2);
           ctx.fill();
+          ctx.globalAlpha = 1;
+
           // NPC dot
           ctx.fillStyle = npcColor;
           ctx.beginPath();
-          ctx.arc(
-            pos.col * cellSize + cellSize / 2,
-            pos.row * cellSize + cellSize / 2,
-            cellSize / 2 - 1,
-            0, Math.PI * 2
-          );
+          ctx.arc(npcX, npcY, npcRadius, 0, Math.PI * 2);
           ctx.fill();
+
+          // Small white center highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.beginPath();
+          ctx.arc(npcX, npcY, Math.max(1, npcRadius - 2), 0, Math.PI * 2);
+          ctx.fill();
+
+          // NPC name label on medium/large zoom
+          if (zoomLevel !== 'small') {
+            const charInfo = characterData.characters[id as keyof typeof characterData.characters];
+            const displayName = charInfo?.displayName || id;
+            const nameFontSize = zoomLevel === 'large' ? 7 : 5;
+            ctx.font = `${nameFontSize}px monospace`;
+            ctx.textAlign = 'center';
+            const nameWidth = ctx.measureText(displayName).width;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(npcX - nameWidth / 2 - 1, npcY - npcRadius - nameFontSize - 3, nameWidth + 2, nameFontSize + 2);
+            ctx.fillStyle = npcColor;
+            ctx.fillText(displayName, npcX, npcY - npcRadius - 2);
+          }
         }
       }
 
-      // Draw player position (pulsing glow)
+      // ---- Player Position (pulsing amber/yellow) ----
       const pulse = (Math.sin(Date.now() / 250) + 1) / 2;
       const px = playerPos.col * cellSize + cellSize / 2;
       const py = playerPos.row * cellSize + cellSize / 2;
+      const playerRadius = cellSize / 2;
 
-      // Outer glow ring
-      ctx.fillStyle = `rgba(0, 255, 100, ${0.15 + pulse * 0.15})`;
+      // Outer glow ring (amber/yellow pulsing)
+      ctx.globalAlpha = 0.15 + pulse * 0.15;
+      ctx.fillStyle = '#FFC107';
       ctx.beginPath();
-      ctx.arc(px, py, cellSize / 2 + pulse * 4, 0, Math.PI * 2);
+      ctx.arc(px, py, playerRadius + pulse * 4, 0, Math.PI * 2);
       ctx.fill();
 
-      // Player dot
-      ctx.fillStyle = `rgba(0, 255, 100, ${0.85 + pulse * 0.15})`;
+      // Inner glow
+      ctx.globalAlpha = 0.3 + pulse * 0.1;
+      ctx.fillStyle = '#FFD54F';
       ctx.beginPath();
-      ctx.arc(px, py, cellSize / 2 - 1, 0, Math.PI * 2);
+      ctx.arc(px, py, playerRadius + 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+
+      // Player dot (bright amber)
+      ctx.fillStyle = `rgba(255, 193, 7, ${0.85 + pulse * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(px, py, playerRadius - 1, 0, Math.PI * 2);
       ctx.fill();
 
       // Direction indicator arrow
@@ -201,15 +339,15 @@ export default function Minimap() {
         'south-west': { dx: -2, dy: 2 },
       };
       const dirOffset = dirOffsets[playerDirection] || dirOffsets['south'];
-      ctx.strokeStyle = '#00FF64';
+      ctx.strokeStyle = '#FFC107';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(px, py);
       ctx.lineTo(px + dirOffset.dx, py + dirOffset.dy);
       ctx.stroke();
 
-      // Player square outline
-      ctx.strokeStyle = '#00FF64';
+      // Player square outline (amber)
+      ctx.strokeStyle = '#FFC107';
       ctx.lineWidth = 1;
       ctx.strokeRect(
         playerPos.col * cellSize + 1,
@@ -217,6 +355,62 @@ export default function Minimap() {
         cellSize - 2,
         cellSize - 2
       );
+
+      // ---- Compass Indicator ----
+      const compassX = canvasW - cellSize * 2;
+      const compassY = cellSize;
+      const compassR = cellSize * 0.8;
+
+      // Compass circle background
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath();
+      ctx.arc(compassX, compassY, compassR + 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Compass circle border
+      ctx.strokeStyle = '#D4A574';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(compassX, compassY, compassR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Compass needle pointing north
+      ctx.fillStyle = '#FFC107';
+      ctx.beginPath();
+      ctx.moveTo(compassX, compassY - compassR + 2);
+      ctx.lineTo(compassX - 2, compassY);
+      ctx.lineTo(compassX + 2, compassY);
+      ctx.closePath();
+      ctx.fill();
+
+      // South needle (darker)
+      ctx.fillStyle = '#5A3A1A';
+      ctx.beginPath();
+      ctx.moveTo(compassX, compassY + compassR - 2);
+      ctx.lineTo(compassX - 2, compassY);
+      ctx.lineTo(compassX + 2, compassY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Compass labels
+      const compassFontSize = Math.max(4, cellSize * 0.4);
+      ctx.font = `bold ${compassFontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#FFC107';
+      ctx.fillText('N', compassX, compassY - compassR - compassFontSize / 2);
+      ctx.fillStyle = '#8B7355';
+      ctx.fillText('S', compassX, compassY + compassR + compassFontSize / 2);
+      ctx.fillText('E', compassX + compassR + compassFontSize / 2, compassY);
+      ctx.fillText('W', compassX - compassR - compassFontSize / 2, compassY);
+      ctx.textBaseline = 'alphabetic';
+
+      // ---- "San Diego — 1887" watermark ----
+      const watermarkFontSize = Math.max(6, cellSize * 0.55);
+      ctx.font = `italic ${watermarkFontSize}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(212, 165, 116, 0.25)';
+      ctx.fillText('San Diego — 1887', canvasW / 2, canvasH - cellSize);
 
       rafRef.current = requestAnimationFrame(draw);
     };
@@ -226,69 +420,136 @@ export default function Minimap() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isOpen, playerPos, playerDirection]);
+  }, [isOpen, playerPos, playerDirection, zoomLevel, discoveredLocations, completedObjectives]);
 
   if (!isOpen) return null;
 
+  const { cellSize } = ZOOM_LEVELS[zoomLevel];
+  const canvasW = mapData.width * cellSize;
+  const canvasH = mapData.height * cellSize;
+
   return (
-    <div className="absolute top-16 right-4 z-50 rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 p-3 animate-panel-slide-in max-w-[calc(100vw-2rem)]">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
-            <span className="text-base">🗺️</span> San Diego Plaza
-          </h3>
-          <div className="text-white/40 text-[10px] mt-0.5">1887 town map · <span className="text-amber-400/50">Chapter 1</span></div>
+    <div className="absolute top-16 right-4 z-50 animate-panel-slide-in max-w-[calc(100vw-2rem)]">
+      {/* Decorative amber border wrapper */}
+      <div className="rounded-xl bg-stone-950/97 shadow-2xl shadow-amber-950/30 overflow-hidden">
+        {/* Ornamental top border — filipino weaving-inspired pattern */}
+        <div className="h-[3px] bg-gradient-to-r from-amber-600/0 via-amber-500 to-amber-600/0" />
+
+        <div className="p-3">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
+                <span className="text-base">🗺️</span> San Diego Plaza
+              </h3>
+              <div className="text-white/40 text-[10px] mt-0.5">
+                1887 town map · <span className="text-amber-400/50">Chapter 1</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Zoom toggle buttons */}
+              <div className="flex gap-1">
+                {(['small', 'medium', 'large'] as const).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setZoomLevel(level)}
+                    className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-all ${
+                      zoomLevel === level
+                        ? 'bg-amber-500 text-stone-900 shadow shadow-amber-400/50'
+                        : 'bg-stone-800/60 text-white/50 hover:bg-stone-700/60 hover:text-white/70'
+                    }`}
+                    aria-label={`Zoom ${level}`}
+                  >
+                    {ZOOM_LEVELS[level].label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => togglePanel('minimap')}
+                className="close-btn-styled w-7 h-7 rounded-md bg-stone-800/40 text-white/60 text-sm flex items-center justify-center"
+                aria-label="Close map"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Canvas with decorative amber border */}
+          <div className="rounded-lg overflow-hidden border-2 border-amber-500/30 bg-black shadow-inner shadow-amber-900/20">
+            <canvas
+              ref={canvasRef}
+              className="block"
+              style={{ imageRendering: 'pixelated', width: canvasW, height: canvasH }}
+            />
+          </div>
+
+          {/* Enhanced legend */}
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow shadow-amber-400/50 animate-pulse" />
+              <span className="text-white/70">You (player)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#8B4513' }} />
+              <span className="text-white/70">Mang Tenyo</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D2691E' }} />
+              <span className="text-white/70">Aling Nena</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#CD853F' }} />
+              <span className="text-white/70">Mang Andres</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow shadow-yellow-400/40" />
+              <span className="text-white/70">Ibarra (sighted)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 bg-gray-500" />
+              <span className="text-white/70">Building</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 bg-blue-400" />
+              <span className="text-white/70">Fountain/Water</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 bg-emerald-700" />
+              <span className="text-white/70">Trees/Garden</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-amber-400 text-[8px]">✦</span>
+              <span className="text-white/70">Discovered</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-200" />
+              <span className="text-white/70">Town Path</span>
+            </div>
+          </div>
+
+          {/* Coordinates and direction */}
+          <div className="mt-2 pt-2 border-t border-amber-400/10 flex items-center justify-between text-[10px]">
+            <div className="text-white/40 font-mono">
+              Position: ({playerPos.col}, {playerPos.row})
+            </div>
+            <div className="text-amber-400/50 font-mono capitalize">
+              Facing: {playerDirection}
+            </div>
+          </div>
+
+          {/* Discovery counter */}
+          <div className="mt-1 flex items-center gap-2 text-[10px]">
+            <span className="text-amber-400/60">✦ Discovered:</span>
+            <span className="text-white/50 font-mono">
+              {discoveredLocations.length}/{mapData.buildingLabels.length} locations
+            </span>
+          </div>
         </div>
-        <button
-          onClick={() => togglePanel('minimap')}
-          className="close-btn-styled w-7 h-7 rounded-md bg-stone-800/40 text-white/60 text-sm flex items-center justify-center"
-          aria-label="Close map"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="rounded-lg overflow-hidden border border-amber-400/20 bg-black">
-        <canvas
-          ref={canvasRef}
-          className="block"
-          style={{ imageRendering: 'pixelated' }}
-        />
-      </div>
-      {/* Enhanced legend */}
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px]">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-400 shadow shadow-green-400/50 animate-pulse" />
-          <span className="text-white/70">You (player)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-          <span className="text-white/70">NPC (Mang Tenyo)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow shadow-yellow-400/40" />
-          <span className="text-white/70">Ibarra (sighted)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-gray-500" />
-          <span className="text-white/70">Building</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-blue-400" />
-          <span className="text-white/70">Fountain/Water</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-emerald-700" />
-          <span className="text-white/70">Trees/Garden</span>
-        </div>
-      </div>
-      {/* Coordinates and direction */}
-      <div className="mt-2 pt-2 border-t border-amber-400/10 flex items-center justify-between text-[10px]">
-        <div className="text-white/40 font-mono">
-          Position: ({playerPos.col}, {playerPos.row})
-        </div>
-        <div className="text-amber-400/50 font-mono capitalize">
-          Facing: {playerDirection}
-        </div>
+
+        {/* Ornamental bottom border */}
+        <div className="h-[3px] bg-gradient-to-r from-amber-600/0 via-amber-500 to-amber-600/0" />
       </div>
     </div>
   );

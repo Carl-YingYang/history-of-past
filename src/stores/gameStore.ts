@@ -60,8 +60,10 @@ interface GameState {
   
   // Intro state
   gameReady: boolean;
+  introVisible: boolean;
   
   // Actions
+  setIntroVisible: (v: boolean) => void;
   advanceDialogue: () => void;
   answerQuiz: (questionIndex: number, answerId: string) => void;
   startQuiz: (chapterId: string) => void;
@@ -215,8 +217,12 @@ export const useGameStore = create<GameState>((set, get) => {
     medalInfo: null,
     
     gameReady: false,
+    introVisible: true,
     
     // Actions
+    setIntroVisible: (v: boolean) => {
+      set({ introVisible: v });
+    },
     advanceDialogue: () => {
       // This calls the game engine's advanceDialogue
       // The engine will emit dialogue:line or dialogue:end events
@@ -308,6 +314,7 @@ export const useGameStore = create<GameState>((set, get) => {
         journalEntries: [],
         showMedal: false,
         medalInfo: null,
+        introVisible: true,
       });
     },
   };

@@ -1,0 +1,1034 @@
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected
+[error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<SegmentViewNode>} forbidden={undefined} unauthorized={undefined}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} segmentPath={[...]} ...>
+              <SegmentViewNode type="page" pagePath="page.tsx">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                  <Home params={Promise} searchParams={Promise}>
+                    <div className="min-h-scre...">
+                      <GlobalKeyboardShortcuts>
+                      <header>
+                      <main className="flex-1 rel..." style={{...}}>
+                        <GameCanvas>
+                        <IntroScreen>
+                          <div className="absolute i..." style={{...}}>
+                            <div>
+                            <div>
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.7009819168127764px"
+-                               width: "3.48645px"
++                               height: "3.9519589025061257px"
+-                               height: "4.1343px"
++                               left: "57.7600852465464%"
+-                               left: "63.6789%"
++                               top: "75.1529317538606%"
+-                               top: "15.0247%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "0s"
++                               animationDuration: "4.449994897041099s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "0s"
+-                               animation-duration: "5.53924s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.9508111684493197px"
+-                               width: "2.68096px"
++                               height: "3.612292313220383px"
+-                               height: "3.5993px"
++                               left: "73.98170427009215%"
+-                               left: "28.3317%"
++                               top: "58.918142638656406%"
+-                               top: "39.4308%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "0.4s"
++                               animationDuration: "4.083117445036141s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "0.4s"
+-                               animation-duration: "4.9532s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.829656078986991px"
+-                               width: "2.67329px"
++                               height: "2.3140920648736207px"
+-                               height: "3.5761px"
++                               left: "88.14321299691038%"
+-                               left: "34.9783%"
++                               top: "42.40296861000011%"
+-                               top: "25.7669%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "0.8s"
++                               animationDuration: "7.342966374578671s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "0.8s"
+-                               animation-duration: "5.26296s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.367858541425594px"
+-                               width: "2.94235px"
++                               height: "3.7152907843439866px"
+-                               height: "3.88536px"
++                               left: "56.17277453229974%"
+-                               left: "10.1337%"
++                               top: "76.71897116694873%"
+-                               top: "53.5631%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "1.2000000000000002s"
++                               animationDuration: "6.2497310606065355s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "1.2s"
+-                               animation-duration: "5.87694s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.737205252907556px"
+-                               width: "2.63906px"
++                               height: "3.8361999816912435px"
+-                               height: "2.97743px"
++                               left: "91.47250607786874%"
+-                               left: "9.87113%"
++                               top: "56.69293902994755%"
+-                               top: "66.3742%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "1.6s"
++                               animationDuration: "5.756317218420218s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "1.6s"
+-                               animation-duration: "5.39669s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.4979704239135034px"
+-                               width: "1.59187px"
++                               height: "3.188349320562801px"
+-                               height: "3.47288px"
++                               left: "74.74954966986893%"
+-                               left: "30.3159%"
++                               top: "78.47954306101832%"
+-                               top: "67.7478%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "2s"
++                               animationDuration: "6.070734347563109s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "2s"
+-                               animation-duration: "4.33801s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "1.904240031767198px"
+-                               width: "3.38687px"
++                               height: "4.268927493110086px"
+-                               height: "2.75148px"
++                               left: "79.92343202772247%"
+-                               left: "10.448%"
++                               top: "50.039188475352496%"
+-                               top: "86.3055%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "2.4000000000000004s"
++                               animationDuration: "6.515368802801435s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "2.4s"
+-                               animation-duration: "6.86894s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.7332095570350194px"
+-                               width: "3.86437px"
++                               height: "1.5180723607098412px"
+-                               height: "2.53955px"
++                               left: "71.76974488136064%"
+-                               left: "70.7353%"
++                               top: "72.92111027183265%"
+-                               top: "17.3883%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "2.8000000000000003s"
++                               animationDuration: "5.47803910627895s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "2.8s"
+-                               animation-duration: "6.68223s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.1405214405038446px"
+-                               width: "1.6495px"
++                               height: "3.691847807479083px"
+-                               height: "2.02175px"
++                               left: "29.638278341162994%"
+-                               left: "72.7316%"
++                               top: "76.25039444932668%"
+-                               top: "30.2619%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "3.2s"
++                               animationDuration: "5.321416366562229s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "3.2s"
+-                               animation-duration: "7.66981s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.066346435185164px"
+-                               width: "2.455px"
++                               height: "3.193991030149659px"
+-                               height: "3.67709px"
++                               left: "89.55480328450477%"
+-                               left: "29.6616%"
++                               top: "58.6237778803214%"
+-                               top: "87.4991%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "3.6s"
++                               animationDuration: "6.900697507918064s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "3.6s"
+-                               animation-duration: "7.64286s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "1.5803812441627099px"
+-                               width: "1.96404px"
++                               height: "3.59417311778426px"
+-                               height: "2.91906px"
++                               left: "85.15985779207345%"
+-                               left: "65.3817%"
++                               top: "64.31191151050625%"
+-                               top: "27.7443%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "4s"
++                               animationDuration: "7.38082536499447s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "4s"
+-                               animation-duration: "4.32653s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.671656102452914px"
+-                               width: "3.16986px"
++                               height: "2.131972861388058px"
+-                               height: "2.37801px"
++                               left: "8.920653158488411%"
+-                               left: "67.9021%"
++                               top: "57.5631772338465%"
+-                               top: "52.7089%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "4.4s"
++                               animationDuration: "7.759269958198605s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "4.4s"
+-                               animation-duration: "5.18396s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.695037833393284px"
+-                               width: "3.93021px"
++                               height: "3.254113383230412px"
+-                               height: "4.0198px"
++                               left: "13.940588423724806%"
+-                               left: "76.0123%"
++                               top: "18.426889280666494%"
+-                               top: "25.5918%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "4.800000000000001s"
++                               animationDuration: "6.86462336950475s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "4.8s"
+-                               animation-duration: "6.62887s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.1743294079559px"
+-                               width: "4.09079px"
++                               height: "2.6851065241724363px"
+-                               height: "1.51132px"
++                               left: "80.0730507494233%"
+-                               left: "64.852%"
++                               top: "58.87633809728371%"
+-                               top: "30.4168%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "5.2s"
++                               animationDuration: "5.4990540518462s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "5.2s"
+-                               animation-duration: "4.85725s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.262365893314959px"
+-                               width: "2.24451px"
++                               height: "2.0281428098501384px"
+-                               height: "3.9261px"
++                               left: "48.28722739376781%"
+-                               left: "9.58104%"
++                               top: "83.46196842153928%"
+-                               top: "60.7449%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "5.6000000000000005s"
++                               animationDuration: "5.970822920277929s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "5.6s"
+-                               animation-duration: "6.86604s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            ...
+                        ...
+                      ...
+              ...
+            ...
+
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected
+[error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<SegmentViewNode>} forbidden={undefined} unauthorized={undefined}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} segmentPath={[...]} ...>
+              <SegmentViewNode type="page" pagePath="page.tsx">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                  <Home params={Promise} searchParams={Promise}>
+                    <div className="min-h-scre...">
+                      <GlobalKeyboardShortcuts>
+                      <header>
+                      <main className="flex-1 rel..." style={{...}}>
+                        <GameCanvas>
+                        <IntroScreen>
+                          <div className="absolute i..." style={{...}}>
+                            <div>
+                            <div>
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.475877854706817px"
+-                               width: "3.58481px"
++                               height: "4.367808912865772px"
+-                               height: "2.36499px"
++                               left: "44.124715761666714%"
+-                               left: "11.4973%"
++                               top: "62.36709954799036%"
+-                               top: "81.1286%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "0s"
++                               animationDuration: "6.283499426804173s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "0s"
+-                               animation-duration: "5.58365s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.1608413307864778px"
+-                               width: "1.58417px"
++                               height: "3.2855921111110726px"
+-                               height: "1.53137px"
++                               left: "15.018932137349754%"
+-                               left: "42.7269%"
++                               top: "12.725607979747409%"
+-                               top: "22.2523%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "0.4s"
++                               animationDuration: "6.049588770720336s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "0.4s"
+-                               animation-duration: "5.75077s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.800312551813734px"
+-                               width: "3.40231px"
++                               height: "3.25408127274135px"
+-                               height: "3.9941px"
++                               left: "68.64641339579694%"
+-                               left: "52.1388%"
++                               top: "82.06907818425881%"
+-                               top: "45.0999%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "0.8s"
++                               animationDuration: "6.846284745719627s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "0.8s"
+-                               animation-duration: "5.52937s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.6383506234616814px"
+-                               width: "3.62605px"
++                               height: "2.7390354340525644px"
+-                               height: "2.03934px"
++                               left: "15.911783280931001%"
+-                               left: "53.5739%"
++                               top: "49.243968707161315%"
+-                               top: "27.5708%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "1.2000000000000002s"
++                               animationDuration: "4.285829084929091s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "1.2s"
+-                               animation-duration: "5.71782s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.0648075568495474px"
+-                               width: "2.95154px"
++                               height: "2.114221107709557px"
+-                               height: "3.91588px"
++                               left: "88.92724667025973%"
+-                               left: "22.8111%"
++                               top: "45.378285610666865%"
+-                               top: "34.5574%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "1.6s"
++                               animationDuration: "7.484640078547178s"
++                               boxShadow: "0 0 4px rgba(251,191,36,0.3)"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "1.6s"
+-                               animation-duration: "6.04336s"
+-                               box-shadow: "rgba(251, 191, 36, 0.3) 0px 0px 4px"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.147617530624977px"
+-                               width: "4.03762px"
++                               height: "1.7418037272853595px"
+-                               height: "1.71207px"
++                               left: "8.293952641676803%"
+-                               left: "70.7051%"
++                               top: "65.74490857830227%"
+-                               top: "74.0079%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "2s"
++                               animationDuration: "4.617587512847988s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "2s"
+-                               animation-duration: "6.46798s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.1572456553746555px"
+-                               width: "2.52157px"
++                               height: "3.4038008688795878px"
+-                               height: "2.24693px"
++                               left: "16.05221797001792%"
+-                               left: "16.9407%"
++                               top: "61.57181299619292%"
+-                               top: "19.1236%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "2.4000000000000004s"
++                               animationDuration: "5.386889796764713s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "2.4s"
+-                               animation-duration: "6.20356s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.096665062329235px"
+-                               width: "3.00554px"
++                               height: "3.875686478805656px"
+-                               height: "3.8587px"
++                               left: "61.67456428160817%"
+-                               left: "44.6876%"
++                               top: "67.12863498221428%"
+-                               top: "64.6847%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "2.8000000000000003s"
++                               animationDuration: "5.71413463072193s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "2.8s"
+-                               animation-duration: "4.14778s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.311096947281846px"
+-                               width: "2.76839px"
++                               height: "2.894102647792361px"
+-                               height: "2.22344px"
++                               left: "59.60119888494311%"
+-                               left: "31.3143%"
++                               top: "80.35572286037635%"
+-                               top: "86.4817%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "3.2s"
++                               animationDuration: "4.958158244732492s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "3.2s"
+-                               animation-duration: "5.17553s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "3.317770640902636px"
+-                               width: "2.51682px"
++                               height: "1.7941905141068748px"
+-                               height: "4.01183px"
++                               left: "59.44587643967832%"
+-                               left: "8.48182%"
++                               top: "34.65102711443272%"
+-                               top: "43.7386%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "3.6s"
++                               animationDuration: "4.6984836699485s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "3.6s"
+-                               animation-duration: "6.66684s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "2.769050424200204px"
+-                               width: "3.29815px"
++                               height: "3.5006902472420705px"
+-                               height: "2.2099px"
++                               left: "42.72461788997662%"
+-                               left: "77.532%"
++                               top: "22.09448516981648%"
+-                               top: "18.2664%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "4s"
++                               animationDuration: "5.313837856606048s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "4s"
+-                               animation-duration: "4.69771s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.0962374336714396px"
+-                               width: "2.25126px"
++                               height: "2.5408431677424796px"
+-                               height: "3.35364px"
++                               left: "51.26438692029745%"
+-                               left: "73.8762%"
++                               top: "68.11125830338379%"
+-                               top: "75.1646%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "4.4s"
++                               animationDuration: "6.663122992521508s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "4.4s"
+-                               animation-duration: "5.77306s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.175908013290102px"
+-                               width: "3.47357px"
++                               height: "1.5016508276338731px"
+-                               height: "1.61347px"
++                               left: "90.74800779059947%"
+-                               left: "38.4854%"
++                               top: "87.32178243271706%"
+-                               top: "40.1226%"
++                               background: "rgba(251,191,36,0.5)"
++                               animationDelay: "4.800000000000001s"
++                               animationDuration: "5.631067993287246s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.5)"
+-                               animation-delay: "4.8s"
+-                               animation-duration: "5.68054s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.383767541388262px"
+-                               width: "2.74702px"
++                               height: "1.6850402197735703px"
+-                               height: "4.48308px"
++                               left: "59.33092189084169%"
+-                               left: "64.83%"
++                               top: "51.81034255106028%"
+-                               top: "87.0453%"
++                               background: "rgba(255,220,120,0.4)"
++                               animationDelay: "5.2s"
++                               animationDuration: "4.6307903587754335s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(255, 220, 120, 0.4)"
+-                               animation-delay: "5.2s"
+-                               animation-duration: "4.73187s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            <div
+                              className="absolute rounded-full animate-particle-drift"
+                              style={{
++                               width: "4.010669543668298px"
+-                               width: "2.30951px"
++                               height: "2.8026743149798983px"
+-                               height: "3.41561px"
++                               left: "68.8465454553768%"
+-                               left: "87.0831%"
++                               top: "64.8300399986737%"
+-                               top: "62.716%"
++                               background: "rgba(251,191,36,0.25)"
++                               animationDelay: "5.6000000000000005s"
++                               animationDuration: "7.4776762480429895s"
++                               boxShadow: "none"
+-                               background-image: "initial"
+-                               background-position-x: "initial"
+-                               background-position-y: "initial"
+-                               background-size: "initial"
+-                               background-repeat: "initial"
+-                               background-attachment: "initial"
+-                               background-origin: "initial"
+-                               background-clip: "initial"
+-                               background-color: "rgba(251, 191, 36, 0.25)"
+-                               animation-delay: "5.6s"
+-                               animation-duration: "4.09209s"
+-                               box-shadow: "none"
+                              }}
+                            >
+                            ...
+                        ...
+                      ...
+              ...
+            ...
+
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 372ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 195ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 140ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 206ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 154ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 238ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 212ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 211ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 222ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 166ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 214ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 364ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 696ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 501ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 518ms
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 515ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 849ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 812ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 193ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 218ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 199ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 146ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 308ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 182ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 472ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 105ms
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 178ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 249ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 212ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 210ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 242ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 238ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 234ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 306ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 233ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 251ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 502ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 213ms
+[log] [Fast Refresh] rebuilding
+[log] [Fast Refresh] done in 299ms
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected
+[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[log] [HMR] connected

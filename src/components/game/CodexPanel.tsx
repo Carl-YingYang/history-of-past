@@ -317,22 +317,35 @@ export default function CodexPanel() {
             const count = tabValue === 'all'
               ? unlockedEntries.length
               : unlockedEntries.filter(e => e.category === tabValue).length;
+            const totalForTab = tabValue === 'all'
+              ? allEntries.length
+              : allEntries.filter(e => e.category === tabValue).length;
             return (
               <button
                 key={tabValue}
-                className={`flex-1 text-xs font-medium rounded-md py-1.5 px-2 transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md py-1.5 px-2 transition-all duration-200 ${
                   isActive
                     ? 'bg-amber-900/30 text-amber-400 shadow-sm shadow-amber-900/20 border border-amber-500/30'
                     : 'text-white/40 hover:text-white/60 hover:bg-stone-800/40 border border-transparent'
                 }`}
                 onClick={() => setTab(tabValue)}
               >
-                {label}
-                {count > 0 && (
-                  <span className={`ml-1 text-[10px] ${isActive ? 'text-amber-500/70' : 'text-white/25'}`}>
-                    {count}
-                  </span>
-                )}
+                <span>{label}</span>
+                {/* Separate count badge — clearly distinct from label */}
+                <span
+                  className={`inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded-full text-[9px] font-mono font-bold leading-none ${
+                    isActive
+                      ? count > 0
+                        ? 'bg-amber-400/30 text-amber-200 border border-amber-300/40'
+                        : 'bg-stone-800/60 text-white/30 border border-white/10'
+                      : count > 0
+                        ? 'bg-amber-950/50 text-amber-400/80 border border-amber-400/20'
+                        : 'bg-stone-800/40 text-white/20 border border-white/5'
+                  }`}
+                  title={`${count} of ${totalForTab} unlocked`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}

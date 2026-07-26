@@ -129,9 +129,16 @@ export default function FieldNotesPanel() {
     return () => window.removeEventListener('keydown', handler, true);
   }, [isOpen]);
 
-  // Auto-save notes with debounce + flash indicator
+  // Auto-save notes with debounce + flash indicator.
+  // Also dispatches a 'noor:field-notes-updated' event so the Toolbar button
+  // can update its live notes-count badge reactively (without polling).
   const triggerSave = useCallback((updatedNotes: Note[]) => {
     setNotes(updatedNotes);
+    // Notify subscribers (Toolbar) of the new count immediately — no debounce,
+    // so the counter feels responsive even before the localStorage flush.
+    window.dispatchEvent(new CustomEvent('noor:field-notes-updated', {
+      detail: { count: updatedNotes.length },
+    }));
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
     }

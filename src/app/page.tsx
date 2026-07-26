@@ -22,6 +22,9 @@ import NPCLabelOverlay from '@/components/game/NPCLabelOverlay';
 import CulturalFactToast from '@/components/game/CulturalFactToast';
 import FieldNotesPanel from '@/components/game/FieldNotesPanel';
 import SaveIndicator from '@/components/game/SaveIndicator';
+import AchievementToast from '@/components/game/AchievementToast';
+import DiscoveryLogPanel from '@/components/game/DiscoveryLogPanel';
+import AboutChapterPanel from '@/components/game/AboutChapterPanel';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -150,6 +153,15 @@ export default function Home() {
         {/* Free-form player notepad (separate from UIManager panel system) */}
         <FieldNotesPanel />
 
+        {/* Auto-recorded discovery log (places, NPCs, landmarks) */}
+        <DiscoveryLogPanel />
+
+        {/* Historical context for the current chapter */}
+        <AboutChapterPanel />
+
+        {/* Achievement unlock toast (top-center, listens to game events) */}
+        <AchievementToast />
+
         {/* HUD (XP, time, medal, chapter progress) */}
         <HUD />
 
@@ -194,7 +206,7 @@ export default function Home() {
             <span className="text-white/30">move</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">Space</kbd>
             <span className="text-white/30">talk</span>
-            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/G/J/N/A/L/M/S</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/J/G/A/L/M/B/D/N/S</kbd>
             <span className="text-white/30">panels</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">H</kbd>
             <span className="text-white/30">help</span>

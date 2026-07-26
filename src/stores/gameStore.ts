@@ -83,6 +83,33 @@ export const useGameStore = create<GameState>((set, get) => {
       totalLines: d.totalLines,
     });
     soundManager.play('dialogue-open');
+
+    // Dispatch a 'noor:discovery' event for the NPC the player is talking to
+    // — this lets the DiscoveryLogPanel auto-record NPC encounters. We dedupe
+    // by speaker name, so repeat conversations with the same NPC don't spam.
+    if (d.line?.speaker && typeof window !== 'undefined') {
+      const speakerName = d.line.speaker;
+      const npcId = `npc-${speakerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      // Only dispatch if not already recorded
+      try {
+        const raw = localStorage.getItem('noor-discovery-log');
+        const existing = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(existing) && !existing.some((e: { id: string }) => e.id === npcId)) {
+          window.dispatchEvent(new CustomEvent('noor:discovery', {
+            detail: {
+              id: npcId,
+              name: speakerName,
+              type: 'npc',
+              position: { x: 0, y: 0 }, // position unknown from dialogue event
+              timestamp: Date.now(),
+              note: `First encountered during "${d.dialogueId}"`,
+            },
+          }));
+        }
+      } catch {
+        // ignore — localStorage may be unavailable
+      }
+    }
   });
 
   gameEvents.on('dialogue:line', (data: unknown) => {

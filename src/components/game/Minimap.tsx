@@ -103,6 +103,25 @@ export default function Minimap() {
               } catch (e) {
                 // Ignore
               }
+
+              // Dispatch 'noor:discovery' events so the DiscoveryLogPanel
+              // (and any other listener) can record full discovery metadata.
+              for (const building of buildingLabelsData) {
+                if (newDiscoveries.includes(building.label)) {
+                  const centerRow = building.row + Math.floor(building.height / 2);
+                  const centerCol = building.col + Math.floor(building.width / 2);
+                  window.dispatchEvent(new CustomEvent('noor:discovery', {
+                    detail: {
+                      id: `bldg-${building.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                      name: building.label,
+                      type: 'building',
+                      position: { x: centerCol, y: centerRow },
+                      timestamp: Date.now(),
+                      note: building.sublabel || undefined,
+                    },
+                  }));
+                }
+              }
             }
           }
           if (data.gameState?.playerDirection) {

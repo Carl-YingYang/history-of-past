@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
+import rizalQuotes from '@/data/rizalQuotes.json';
+
+type RizalQuote = typeof rizalQuotes[0];
 
 /**
  * IntroScreen - Title-card overlay shown on first load.
@@ -51,13 +54,16 @@ export default function IntroScreen() {
 
   const hasProgress = completedObjectives.length > 0;
 
-  // Mark as mounted (client-side) to allow animations to start
-  // Note: introVisible defaults to true in the gameStore, so no need to set it here
-  // Using requestAnimationFrame to avoid synchronous setState-in-effect lint warning
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setMounted(true);
-    });
+  // Pick a deterministic "quote of the day" — rotates daily so the same user
+  // sees the same quote on a given calendar day, but a new one each day.
+  // Uses local date, not server time, so it's stable across reloads.
+  const quoteOfDay = useMemo<RizalQuote>(() => {
+    const now = new Date();
+    // Day-of-year — simple, good enough for rotation
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / 86_400_000);
+    const idx = dayOfYear % rizalQuotes.length;
+    return rizalQuotes[idx] as RizalQuote;
   }, []);
 
   const handleBegin = useCallback(() => {
@@ -188,11 +194,45 @@ export default function IntroScreen() {
         </div>
 
         {/* Description — delayed fade */}
-        <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-lg mx-auto mb-8 animate-subtitle-fade" style={{ fontFamily: 'Georgia, serif', animationDelay: '2.3s' }}>
+        <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-lg mx-auto mb-6 animate-subtitle-fade" style={{ fontFamily: 'Georgia, serif', animationDelay: '2.3s' }}>
           You wake at the edge of a town you don&apos;t recognize.
           The air smells of woodsmoke and earth. The year, you&apos;ll soon learn, is 1887 —
           and a young man named Crisóstomo Ibarra has just returned from Europe.
         </p>
+
+        {/* ── Quote of the Day — rotates daily ── */}
+        <div
+          className="relative max-w-xl mx-auto mb-8 px-5 py-4 rounded-lg border border-amber-400/20 bg-gradient-to-br from-amber-950/30 to-stone-950/40 animate-subtitle-fade"
+          style={{ animationDelay: '2.6s' }}
+        >
+          {/* Decorative open-quote glyph */}
+          <span className="absolute -top-3 left-4 text-3xl text-amber-400/40 select-none" style={{ fontFamily: 'Georgia, serif' }}>&ldquo;</span>
+          {/* Tiny header */}
+          <div className="text-amber-400/50 text-[9px] uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+            <span className="h-px w-6 bg-amber-400/30" />
+            <span>Quote of the Day · José Rizal</span>
+            <span className="h-px w-6 bg-amber-400/30" />
+          </div>
+          {/* English text */}
+          <p className="text-amber-100/80 text-sm md:text-base italic leading-relaxed" style={{ fontFamily: 'Georgia, serif' }}>
+            {quoteOfDay.text}
+          </p>
+          {/* Original Spanish (if any) */}
+          {quoteOfDay.original && (
+            <p className="text-amber-300/50 text-xs italic mt-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <span className="text-amber-400/40 mr-1">orig.</span>
+              {quoteOfDay.original}
+            </p>
+          )}
+          {/* Source attribution */}
+          <div className="text-white/40 text-xs mt-3 flex items-center gap-2">
+            <span className="text-amber-400/40">—</span>
+            <span>{quoteOfDay.source}</span>
+            <span className="ml-auto text-amber-400/30 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-400/20">
+              {quoteOfDay.category}
+            </span>
+          </div>
+        </div>
 
         {/* Begin button — ornamental border style */}
         <button

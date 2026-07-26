@@ -134,6 +134,16 @@ export function GlobalKeyboardShortcuts() {
           window.dispatchEvent(new Event('noor:toggle-field-notes'));
           e.preventDefault();
           break;
+        case 'd':
+          // Discovery Log — separate toggle event (auto-recorded places)
+          window.dispatchEvent(new Event('noor:toggle-discovery-log'));
+          e.preventDefault();
+          break;
+        case 'b':
+          // About Chapter — historical context
+          store.togglePanel('about');
+          e.preventDefault();
+          break;
         case 'h':
         case '?':
           store.togglePanel('help');

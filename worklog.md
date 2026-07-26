@@ -1277,3 +1277,174 @@ Priority recommendations for next phase:
 - Add a "discovery log" feature that auto-records places the player has visited (distinct from manual Field Notes).
 - Consider adding more NPCs with richer dialogue trees for a more living world.
 - Add chapter transition cinematic between Chapter 1 and Chapter 2.
+
+---
+Task ID: Round-7-Features
+Agent: full-stack-developer (new-features)
+Task: Build Achievement Toast, Discovery Log, About Chapter, Rizal Quotes
+
+Work Log:
+- Read worklog.md (prior context), FieldNotesPanel.tsx (panel pattern), UIManager.tsx (PanelId union already includes 'about' + 'achievements'), eventBus.ts, achievementManager.ts (unlock payload shape), AchievementsPanel.tsx (Toast usage reference), StoryLogPanel.tsx (panel-id pattern), CodexPanel.tsx, globals.css (existing animations + custom-scroll-amber), shadcn/ui AlertDialog/Input/Badge APIs, page.tsx + Toolbar.tsx (integration points — NOT modified per task rules).
+- Created /home/z/my-project/src/data/rizalQuotes.json — 16 well-known José Rizal quotes (one extra) covering all 6 requested categories: language, education, freedom, youth, patriotism, novel. 8 entries include the original Spanish in an `original` field; the rest are `null`. All entries carry an English `text`, a `source`, an optional Tagalog translation, and a `category`. Validated with `node -e` (count 16, 8 Spanish originals).
+- Created /home/z/my-project/src/components/game/AchievementToast.tsx — 'use client' component that subscribes to `gameEvents.on('achievement:unlock', ...)`, stacks multiple toasts vertically (gap-2), auto-dismisses each after 5 s, offers a manual ✕ close, and renders a "View All →" link that calls `useUIStore.openPanel('achievements')`. Dark parchment card (bg-stone-950/95), golden border (border-amber-400/60), 2 px gradient top accent bar, circular amber-glow icon (text-4xl), amber "ACHIEVEMENT UNLOCKED" label + white name + white/60 description + amber "+X XP" badge. Four ✦ sparkles animate around the toast via `animate-achievement-sparkle`. Card animates with `animate-achievement-toast-in`. Fixed at top-20 left-1/2 -translate-x-1/2 z-[60]; pointer-events-none on container, pointer-events-auto on cards.
+- Created /home/z/my-project/src/components/game/DiscoveryLogPanel.tsx — 'use client' panel that auto-records every `'noor:discovery'` window CustomEvent, dedupes by id, persists to localStorage under `'noor-discovery-log'`, and shows entries newest-first. Includes a search Input, type-filter chips (All/Buildings/Zones/NPCs/Landmarks), color-coded icons per type (🏛 amber, 🌿 emerald, 👤 sky, ⭐ rose), per-entry relative timestamp + tile coords, an Export-to-JSON button, and a Clear button wrapped in a shadcn AlertDialog confirmation. Toggles via `'noor:toggle-discovery-log'` event and Escape-closes (capture-phase). Hidden when `useUIStore.activePanel !== null` to avoid stacking. Exports two helpers: `toggleDiscoveryLogPanel()` and `recordDiscovery({...})`.
+- Created /home/z/my-project/src/components/game/AboutChapterPanel.tsx — 'use client' panel rendered when `useUIStore.activePanel === 'about'`. Static JSX (no data file). Sections: Novel intro (with Rizal pull-quote blockquote), San Diego setting, 1887 historical context (Spanish rule since 1565, ilustrado class, frailocracia), 2×2 character mini-card grid (Ibarra, Dámaso, Tiago, Mang Tenyo), Themes bullet list, Historical Note blockquote. Uses Georgia serif body, amber ✦ section headings, `custom-scroll-amber` scroll area, `panel-ornamental-header` styling. Position absolute top-16 left-4 z-50 w-[460px] max-w-[calc(100vw-2rem)] max-h-[80vh]. Fixed apostrophe handling — converted `\u2019` escapes inside JSX text to actual U+2019 characters (escape sequences don't apply in JSX text content).
+- Appended two keyframe blocks to /home/z/my-project/src/app/globals.css (no overwrite): `achievement-toast-in` (drop-in-from-above with overshoot, 0.5 s cubic-bezier(0.34, 1.56, 0.64, 1) forwards) and `achievement-sparkle` (scale + rotate + opacity pulse, 1 s ease-in-out infinite). Both as `@keyframes` + matching `.animate-*` utility classes, appended after the existing `.animate-fact-slide-in` rule.
+- Verified: `bun run lint` passes with zero errors / warnings. `node -e` confirms rizalQuotes.json is valid JSON (16 entries, 8 Spanish originals). Dev server log shows no compile errors.
+
+Stage Summary:
+- 4 new files created (rizalQuotes.json, AchievementToast.tsx, DiscoveryLogPanel.tsx, AboutChapterPanel.tsx)
+- 2 CSS keyframe animations added to globals.css (achievement-toast-in, achievement-sparkle)
+- All files compile under TypeScript strict mode and pass ESLint
+- No new npm dependencies introduced; uses only existing shadcn/ui components (Input, Badge, AlertDialog family)
+- AchievementToast integrates via `gameEvents.on('achievement:unlock')` — no UIManager change needed (uses selector hook into openPanel)
+- DiscoveryLogPanel exports `toggleDiscoveryLogPanel()` + `recordDiscovery()` helpers for Toolbar/engine integration
+- AboutChapterPanel uses existing `'about'` PanelId — only needs `togglePanel('about')` calls from a toolbar button / keyboard shortcut
+- Integrator action items (NOT performed by this agent per task rules):
+  * page.tsx: import + render <AchievementToast />, <DiscoveryLogPanel />, <AboutChapterPanel /> alongside the other panels
+  * Toolbar.tsx: add a Discovery Log button (calls toggleDiscoveryLogPanel from DiscoveryLogPanel) and an About button (calls togglePanel('about'))
+  * UIManager.tsx GlobalKeyboardShortcuts: add a case for 'd' → toggleDiscoveryLogPanel() and 'b' (or other) → togglePanel('about')
+
+---
+Task ID: Round-7-main
+Agent: main-agent
+Task: QA assessment, bug fixes, styling enhancements, and major new feature additions for Project Noor (Round 7)
+
+Work Log:
+- Reviewed /home/z/my-project/worklog.md to understand prior development state (Round 6 complete, v0.3 stable with Field Notes, Save Indicator, atmospheric effects)
+- Ran agent-browser QA at desktop (1440x900) and mobile (414x896) viewports
+- VLM-assisted snapshot analysis identified issues:
+  * Toolbar "Field Notes" button showing hardcoded text "you" instead of actual notes count
+  * Settings panel version stuck at v0.2 (intro shows v0.3) — version mismatch
+  * Settings panel keyboard shortcuts incomplete — only 6 shown (C/J/M/S/H/Esc), missing A/G/L/N/B/D/T/Space/WASD/arrows
+  * Codex tab labels concatenating count with label text (e.g. "All2") — count not visually distinct
+  * No achievement unlock toast (achievement:unlock events fire but no visual popup)
+  * No "About this Chapter" panel for historical context
+  * No daily Rizal quote system
+  * No Discovery Log (auto-record of visited places/NPCs)
+
+**Bug Fixes:**
+
+1. **Toolbar "you" → live notes count** (Toolbar.tsx):
+   - Replaced hardcoded "you" text with reactive `notesCount` state
+   - Added lazy useState initializer that reads from localStorage 'noor-field-notes'
+   - Added useEffect listener for 'noor:field-notes-updated' custom event
+   - Updated FieldNotesPanel.tsx triggerSave() to dispatch 'noor:field-notes-updated' event with count whenever notes change
+   - Now the toolbar badge updates live as the player adds/removes notes
+
+2. **Settings panel v0.2 → v0.3 + complete shortcuts** (SettingsPanel.tsx):
+   - Complete rewrite with three clearly-styled sections: Audio, Game Data, Keyboard Shortcuts
+   - Version updated from v0.2 to v0.3
+   - Movement shortcuts subsection: WASD (8-dir), Arrow keys, Space (talk/advance)
+   - Panels shortcuts subsection: C, J, G, A, L, M, B, D, N, S, H, Esc (all 12 shortcuts)
+   - Each shortcut shown with styled <kbd> badge
+   - Reset Progress now also clears Field Notes, Discovery Log, and exploration stats from localStorage
+   - Added "Saves to both localStorage and your account on the server." note
+   - Sticky header with weaving-pattern top border
+   - Scrollable panel with custom-scroll-amber
+
+3. **Codex tab badges separated from labels** (CodexPanel.tsx):
+   - Rewrote tab buttons to use flex layout with separate count badge element
+   - Count badge: rounded-full pill shape, min-w-[18px], h-[16px], font-mono, with border
+   - Active tab with count > 0: bg-amber-400/30 text-amber-200 border-amber-300/40
+   - Active tab with count = 0: bg-stone-800/60 text-white/30
+   - Inactive tab with count > 0: bg-amber-950/50 text-amber-400/80
+   - Inactive tab with count = 0: bg-stone-800/40 text-white/20
+   - Now shows "0" for empty tabs (was hidden before) — more informative
+   - Added title tooltip: "{count} of {totalForTab} unlocked"
+
+**New Features:**
+
+4. **Achievement Toast notifications** (AchievementToast.tsx — new file, created by subagent):
+   - Listens to 'achievement:unlock' event on gameEvents bus
+   - Animated top-center toast with golden border, sparkle particles
+   - Shows achievement icon, name, description, XP reward, "VIEW ALL" link
+   - Auto-dismiss after 5 seconds, manual ✕ close button
+   - Multiple achievements stack vertically
+   - CSS animations: achievement-toast-in (cubic-bezier overshoot), achievement-sparkle
+   - Integrated into page.tsx
+
+5. **Discovery Log panel** (DiscoveryLogPanel.tsx — new file, created by subagent):
+   - Auto-records every place/zone/NPC/landmark the player discovers
+   - Listens to 'noor:discovery' custom window events
+   - Persists to localStorage 'noor-discovery-log'
+   - Deduplicates by id (only records first discovery)
+   - Search bar + type filter chips (All/Buildings/Zones/NPCs/Landmarks)
+   - Color-coded type icons: 🏛 building, 🌿 zone, 👤 npc, ⭐ landmark
+   - Export to JSON, Clear with confirmation
+   - Stats footer: "X discoveries · Y buildings · Z NPCs"
+   - Toggle via 'noor:toggle-discovery-log' event (same pattern as Field Notes)
+   - Exports toggleDiscoveryLogPanel() and recordDiscovery() helpers
+
+6. **About Chapter panel** (AboutChapterPanel.tsx — new file, created by subagent):
+   - Comprehensive historical context for Chapter 1
+   - Six sections: The Novel, The Setting: San Diego, The Time: 1887, Key Characters, Themes, Historical Note
+   - Uses 'about' PanelId (already in UIManager union type)
+   - Blockquotes with Rizal's own words
+   - Character mini-cards for Ibarra, Dámaso, Tiago, Mang Tenyo
+   - Bulleted lists for historical currents and themes
+   - Parchment-texture background, Georgia serif font, amber accents
+   - Integrated into page.tsx, toggleable via 'B' keyboard shortcut
+
+7. **Rizal Quote of the Day** (rizalQuotes.json + IntroScreen.tsx):
+   - Created rizalQuotes.json with 16 Rizal quotes across 6 categories (language, education, freedom, youth, patriotism, novel)
+   - 8 quotes include original Spanish text with English translation
+   - IntroScreen now shows a "Quote of the Day" card that rotates daily (deterministic by day-of-year)
+   - Card styling: parchment background, decorative open-quote glyph, category badge, source attribution
+   - Same user sees same quote all day; new quote each calendar day
+
+**Integration work:**
+
+8. **Toolbar.tsx** — Added Discovery Log button (🧭 Log, D shortcut) and About button (❦ About, B shortcut). Both buttons show live counters where applicable. Toolbar now has 10 buttons total.
+
+9. **UIManager.tsx** — Added 'd' (toggle Discovery Log) and 'b' (toggle About) keyboard shortcuts to GlobalKeyboardShortcuts handler.
+
+10. **page.tsx** — Imported and rendered AchievementToast, DiscoveryLogPanel, AboutChapterPanel. Updated footer shortcuts hint to "C/J/G/A/L/M/B/D/N/S".
+
+11. **Minimap.tsx** — Wired discovery detection to dispatch 'noor:discovery' events with full metadata (id, name, type, position, timestamp) when player walks within 3 tiles of a building. This populates the Discovery Log automatically.
+
+12. **gameStore.ts** — Added NPC discovery dispatch in dialogue:start handler. When a new NPC is encountered (deduped by speaker name), a 'noor:discovery' event fires with the NPC's name and dialogue context.
+
+13. **Race condition fix** — DiscoveryLogPanel now dispatches 'noor:discovery-updated' event with the new count AFTER persisting to localStorage. Toolbar listens to this event (not the raw 'noor:discovery' event) to update its badge reactively without timing issues.
+
+**CSS additions (globals.css):**
+- @keyframes achievement-toast-in: 0% → 60% overshoot → 100% settle, with -translate-x-1/2
+- .animate-achievement-toast-in: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards
+- @keyframes achievement-sparkle: scale + rotate + opacity particle
+- .animate-achievement-sparkle: 1s ease-in-out infinite
+
+**QA verification (agent-browser):**
+- ✅ Toolbar "you" bug fixed — now shows live "0" count for Field Notes
+- ✅ Toolbar Discovery Log button shows "1" after Mang Tenyo encounter (verified after reload)
+- ✅ Settings panel shows v0.3 and all 12 keyboard shortcuts in 3 sections
+- ✅ Codex tab badges now show as separate pill-shaped badges with "0" for empty tabs
+- ✅ About Chapter panel renders with 6 sections of historical context
+- ✅ Discovery Log panel auto-records NPC encounters (Mang Tenyo shown with "just now" timestamp)
+- ✅ Rizal Quote of the Day shows on intro screen ("I have no other aspiration than to see my country free and happy..." — Letter to Ferdinand Blumentritt, 1887, PATRIOTISM)
+- ✅ Mobile responsive at 414x896 — all 10 toolbar buttons wrap correctly
+- ✅ All lint checks pass (0 errors)
+- ✅ Dev server running cleanly (200 OK on all routes)
+
+Stage Summary:
+- **3 bugs fixed**: Toolbar "you" text, Settings version mismatch + incomplete shortcuts, Codex tab badge styling
+- **4 new features added**: Achievement Toast, Discovery Log, About Chapter panel, Rizal Quote of the Day
+- **4 new files created**: AchievementToast.tsx, DiscoveryLogPanel.tsx, AboutChapterPanel.tsx, rizalQuotes.json
+- **6 existing files modified**: Toolbar.tsx, SettingsPanel.tsx, CodexPanel.tsx, IntroScreen.tsx, UIManager.tsx, page.tsx, Minimap.tsx, gameStore.ts, FieldNotesPanel.tsx, globals.css
+- **2 new keyboard shortcuts**: D (Discovery Log), B (About Chapter)
+- **Build version remains v0.3** (no version bump — this was a feature+bugfix round)
+- Project stable with zero lint errors, zero runtime errors, QA verified via agent-browser at desktop and mobile viewports
+
+Unresolved issues or risks:
+- The AchievementToast component is mounted and listening, but hasn't been visually verified firing in a real browser session (would require triggering an achievement unlock, which needs real keyboard input for movement-based achievements)
+- The Discovery Log NPC recording uses position {x:0, y:0} since the dialogue:start event doesn't include player position — could be improved by reading from save data
+- Future chapters (2-11) still not implemented — only Chapter 1 exists
+- The Rizal Quote of the Day rotates daily but doesn't yet have a "share" or "favorite" feature
+
+Priority recommendations for next phase:
+- Implement Chapter 2 storyline and map (Ibarra's return, the school project, the excavation)
+- Add a "Chapter Select" or "Recap" feature for returning players
+- Consider adding more Rizal quotes and a "Quote Library" panel
+- Add visual indicators on the minimap for undiscovered locations (silhouettes/question marks)
+- Consider adding a "Relationship Tracker" showing how much the player has interacted with each NPC
+- Add ambient sound effects (footsteps, market chatter, church bells) to the soundManager
+- Add a "Photo Mode" or screenshot capture feature for sharing exploration moments

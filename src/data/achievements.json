@@ -153,5 +153,55 @@
     "xpReward": 5,
     "hidden": true,
     "check": "secret:konami"
+  },
+  {
+    "id": "ach.deep-listener",
+    "name": "Deep Listener",
+    "description": "Talk to Mang Tenyo again after overhearing the gossip. The second conversation reveals deeper truths.",
+    "icon": "🎧",
+    "category": "social",
+    "xpReward": 10,
+    "hidden": false,
+    "check": "dialogue:end:mang-tenyo-after-gossip"
+  },
+  {
+    "id": "ach.trophy-hunter",
+    "name": "Trophy Hunter",
+    "description": "Open the Achievements panel. A true collector seeks to understand what they're collecting.",
+    "icon": "🏆",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:achievements"
+  },
+  {
+    "id": "ach.story-keeper",
+    "name": "Story Keeper",
+    "description": "Open the Story Log. Every event, no matter how small, is part of the larger narrative.",
+    "icon": "📜",
+    "category": "scholarship",
+    "xpReward": 5,
+    "hidden": false,
+    "check": "panel:opened:story-log"
+  },
+  {
+    "id": "ach.quiz-master",
+    "name": "Quiz Master",
+    "description": "Score 100% on the Chapter 1 quiz. Knowledge is the true power in San Diego.",
+    "icon": "🧠",
+    "category": "milestone",
+    "xpReward": 25,
+    "hidden": false,
+    "check": "quiz:perfect:ch1"
+  },
+  {
+    "id": "ach.fountain-visitor",
+    "name": "Fountain Visitor",
+    "description": "Walk near the plaza fountain. Even in 1887, water draws people together.",
+    "icon": "⛲",
+    "category": "exploration",
+    "xpReward": 5,
+    "hidden": true,
+    "check": "player:near:fountain"
   }
 ]

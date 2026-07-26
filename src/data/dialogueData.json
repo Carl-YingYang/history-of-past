@@ -17,6 +17,11 @@
           "translation": "Come along — but best not to mention the name Ibarra too loudly today."
         },
         {
+          "speaker": "Mang Tenyo",
+          "text": "Kagabi, may dinner sa bahay ni Capitán Tiago para sa pagbabalik ni Ibarra galing Europa. Ang sabi, pumunta si Padre Dámaso at... nagpakita ng hindi magandang ugali.",
+          "translation": "Last night, there was a dinner at Capitán Tiago's house for Ibarra's return from Europe. They say Padre Dámaso attended and... showed very bad behavior."
+        },
+        {
           "speaker": "Narrator",
           "text": "Mang Tenyo gives you a knowing look. Whatever happened with the Ibarra family, it's clearly still fresh in people's minds. Your cover as a visiting scholar's aide begins now."
         }
@@ -50,8 +55,13 @@
           "translation": "Weren't they close before? Padre Dámaso and Ibarra's father?"
         },
         {
+          "speaker": "Aling Nena",
+          "text": "Oo nga, Don Rafael at Padre Dámaso — magkaibigan daw sila noon. Pero pagkatapos ng kamatayan ni Don Rafael, bigla nagbago ang ugali ng Padre. Kataka-taka.",
+          "translation": "Yes, Don Rafael and Padre Dámaso — they were friends, they say. But after Don Rafael's death, the Padre suddenly changed his attitude. Strange."
+        },
+        {
           "speaker": "Narrator",
-          "text": "The gossip fades as you step away. You now understand why Mang Tenyo warned you — Ibarra's return has stirred up old tensions between the friars and the Filipino community."
+          "text": "The gossip fades as you step away. You now understand why Mang Tenyo warned you — Ibarra's return has stirred up old tensions between the friars and the Filipino community. The Spanish friars clearly see educated Filipinos as a threat to their power."
         }
       ],
       "unlocksObjective": "obj.ch1.overhear_gossip"
@@ -64,17 +74,21 @@
       "lines": [
         {
           "speaker": "Narrator",
-          "text": "The next morning, the plaza is quieter. A light breeze carries the scent of fresh bread from the market stalls.",
+          "text": "The next morning, the plaza is quieter. A light breeze carries the scent of fresh bread from the market stalls. The fountain's water glints in the early light.",
           "isTimeTransition": true
         },
         {
           "speaker": "Narrator",
-          "text": "A young man in a fine coat crosses the plaza, greeting the vendors with an ease that doesn't quite match the tension you overheard about last night.",
+          "text": "A young man in a fine coat crosses the plaza, greeting the vendors with an ease that doesn't quite match the tension you overheard about last night. He pauses near the fountain.",
           "isIbarraSighting": true
         },
         {
           "speaker": "Narrator",
           "text": "That must be Crisóstomo Ibarra. After seven years in Europe, he looks like someone who has seen the world beyond these streets — and perhaps carries ideas that the friars would rather he didn't."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You've now witnessed the key players of this story: the returning ilustrado, the hostile friar, and the anxious host. Chapter 1 is complete. Time to test what you've learned."
         }
       ],
       "unlocksObjective": "obj.ch1.see_ibarra"
@@ -87,13 +101,36 @@
       "lines": [
         {
           "speaker": "Mang Tenyo",
-          "text": "Mabuti nandito ka rin. Ang plaza, kumakalat na ang tsismis tungkol sa reception kagabi. Mag-ingat ka.",
-          "translation": "Good you're here too. The plaza, gossip about last night's reception is spreading. Be careful."
+          "text": "Mabuti nandito ka rin. Kumakalat na ang tsismis tungkol sa reception kagabi. Ang sabi, insulto daw ang ginawa ni Padre Dámaso sa harap ng lahat.",
+          "translation": "Good you're here. Gossip about last night's reception is spreading. They say Padre Dámaso insulted Ibarra in front of everyone."
         },
         {
           "speaker": "Mang Tenyo",
-          "text": "Pumunta ka sa market area — may mga kusinera doon na nag-uusap. Baka makakuha ka ng impormasyon.",
-          "translation": "Go to the market area — there are kitchen staff talking there. You might learn something."
+          "text": "Pumunta ka sa market area — may mga kusinera doon na nag-uusap. Baka makakuha ka ng impormasyon kung ano talaga ang nangyari.",
+          "translation": "Go to the market area — kitchen staff are talking there. You might learn what really happened."
+        }
+      ],
+      "unlocksObjective": null
+    },
+    "mang-tenyo-after-gossip": {
+      "id": "mang-tenyo-after-gossip",
+      "npcId": "mang-tenyo",
+      "trigger": "npc-interact",
+      "questObjectiveId": null,
+      "lines": [
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Narinig mo na ang tsismis? Mag-ingat ka pa rin. Ang mga Prayle, may malaking poder dito — hindi lang espiritu, kundi pati pulitika at ekonomiya.",
+          "translation": "You heard the gossip? Be careful still. The Friars have great power here — not just spiritual, but also political and economic."
+        },
+        {
+          "speaker": "Mang Tenyo",
+          "text": "Ang mga ilustrado na nag-aral sa Europa, tulad ni Ibarra, ang nagdadala ng ideya na nakakabahala sa mga Prayle. Kaya galit sila.",
+          "translation": "The ilustrados who studied in Europe, like Ibarra, bring ideas that worry the Friars. That's why they're angry."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Mang Tenyo's words echo what you've learned from the gossip. The friars see educated Filipinos as a threat — and Ibarra's return from Europe has made that tension visible."
         }
       ],
       "unlocksObjective": null
@@ -110,7 +147,7 @@
         },
         {
           "speaker": "Narrator",
-          "text": "The air smells different here — earth and woodsmoke, no car exhaust. The buildings are low, the streets unpaved. And somehow, you feel like you've read about this place before..."
+          "text": "The air smells different here — earth and woodsmoke, no car exhaust. The buildings are low, the streets unpaved. A fountain bubbles in the center of the plaza. And somehow, you feel like you've read about this place before..."
         }
       ],
       "unlocksObjective": null

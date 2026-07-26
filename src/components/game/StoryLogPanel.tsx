@@ -209,12 +209,12 @@ export default function StoryLogPanel() {
       {/* Panel */}
       {isOpen && (
         <div
-          className="absolute top-16 left-[172px] z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col"
+          className="absolute top-16 left-[172px] z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in flex flex-col"
           role="dialog"
           aria-label="Story Log"
         >
           {/* Header */}
-          <div className="p-3 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 to-transparent rounded-t-xl shrink-0">
+          <div className="p-3 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 to-transparent rounded-t-xl shrink-0 panel-ornamental-header">
             <div>
               <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
                 <span className="text-base">📜</span> Story Log
@@ -225,7 +225,7 @@ export default function StoryLogPanel() {
             </div>
             <button
               onClick={() => togglePanel('storylog')}
-              className="w-7 h-7 rounded-md hover:bg-stone-800 text-white/60 hover:text-white text-sm flex items-center justify-center"
+              className="close-btn-styled w-7 h-7 rounded-md bg-stone-800/40 text-white/60 text-sm flex items-center justify-center"
               aria-label="Close Story Log"
             >
               ✕

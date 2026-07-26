@@ -433,9 +433,14 @@ class GameEngine {
           this._startDialogue('mang-tenyo-first');
           return;
         }
-        // Mang Tenyo can be talked to again but won't repeat the quest dialogue
+        // Mang Tenyo can be talked to again — different dialogue based on progress
         if (npcId === 'mang-tenyo' && saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
-          this._startDialogue('mang-tenyo-repeat');
+          // If gossip objective completed, give more insightful dialogue
+          if (saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+            this._startDialogue('mang-tenyo-after-gossip');
+          } else {
+            this._startDialogue('mang-tenyo-repeat');
+          }
           return;
         }
       }
@@ -930,8 +935,14 @@ class GameEngine {
     // Render map layers
     this._renderMap(ctx);
 
+    // Render fountain/well feature in plaza center
+    this._renderFountain(ctx);
+
     // Render tree/vegetation decorations
     this._renderTrees(ctx);
+
+    // Render map decorations (benches, cart, flagpole, flower boxes)
+    this._renderMapDecorations(ctx);
 
     // Render building details (walls, roofs, windows, doors)
     this._renderBuildingDetails(ctx);
@@ -956,6 +967,10 @@ class GameEngine {
 
     // Render ambient particles (dust motes)
     this._renderParticles(ctx);
+
+    // Render atmospheric effects (mist, birds)
+    this._renderMist(ctx);
+    this._renderBirds(ctx);
 
     // Render burst particles (celebration effect when objective completes)
     this._renderBurstParticles(ctx);
@@ -1597,6 +1612,490 @@ class GameEngine {
     ctx.fill();
   }
 
+  // ==================== FOUNTAIN / WELL ====================
+
+  private _renderFountain(ctx: CanvasRenderingContext2D): void {
+    // Fountain positioned at plaza center (rows 6-7, cols 8-10)
+    const ts = this.tileSize;
+    const centerX = (9 * ts + ts / 2) - this.cameraX;
+    const centerY = (7 * ts + ts / 2) - this.cameraY;
+
+    // Fountain shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(centerX + 4, centerY + 12, 36, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outer stone basin (large oval)
+    ctx.strokeStyle = '#8B7355';
+    ctx.lineWidth = 3;
+    ctx.fillStyle = '#A89B82';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, 34, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner stone rim
+    ctx.strokeStyle = '#6E5E44';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#4A8BA8';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, 26, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Water surface — animated shimmer
+    const shimmerPhase = this.gameTime * 2;
+    ctx.fillStyle = '#3D7B99';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, 24, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Animated water ripple rings
+    for (let ring = 0; ring < 3; ring++) {
+      const ringPhase = shimmerPhase + ring * 1.5;
+      const ringRadius = 6 + ring * 7 + Math.sin(ringPhase) * 3;
+      const ringAlpha = 0.12 + Math.sin(ringPhase * 0.7) * 0.06;
+      ctx.strokeStyle = `rgba(140,200,240,${ringAlpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY + Math.sin(ringPhase) * 1.5, ringRadius, ringRadius * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Water sparkle highlights (animated)
+    for (let i = 0; i < 5; i++) {
+      const sparkleAngle = shimmerPhase * 0.8 + i * 1.2;
+      const sparkleDist = 10 + Math.sin(sparkleAngle) * 8;
+      const sparkleX = centerX + Math.cos(sparkleAngle) * sparkleDist;
+      const sparkleY = centerY + Math.sin(sparkleAngle) * sparkleDist * 0.6;
+      const sparkleAlpha = 0.3 + Math.sin(shimmerPhase * 3 + i) * 0.2;
+      ctx.fillStyle = `rgba(200,240,255,${sparkleAlpha})`;
+      ctx.beginPath();
+      ctx.arc(sparkleX, sparkleY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Central pillar/column
+    ctx.fillStyle = '#9E8E72';
+    ctx.fillRect(centerX - 4, centerY - 30, 8, 28);
+    // Pillar cap
+    ctx.fillStyle = '#8B7355';
+    ctx.fillRect(centerX - 7, centerY - 32, 14, 5);
+
+    // Water spout from pillar — animated dripping
+    const spoutPhase = Math.sin(this.gameTime * 4);
+    const spoutY = centerY - 28 + Math.abs(spoutPhase) * 6;
+    ctx.fillStyle = `rgba(100,180,220,${0.4 + spoutPhase * 0.15})`;
+    ctx.beginPath();
+    ctx.ellipse(centerX, spoutY, 5 + Math.sin(this.gameTime * 3) * 1.5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Splash particles at water surface
+    if (spoutPhase > 0.7) {
+      for (let s = 0; s < 3; s++) {
+        const splashX = centerX + Math.cos(this.gameTime * 5 + s * 2) * 8;
+        const splashY = centerY + Math.sin(this.gameTime * 5 + s * 2) * 4;
+        ctx.fillStyle = 'rgba(180,220,240,0.3)';
+        ctx.beginPath();
+        ctx.arc(splashX, splashY, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Basin stone detail — small blocks around rim
+    ctx.fillStyle = '#8B7355';
+    for (let a = 0; a < 8; a++) {
+      const angle = (a / 8) * Math.PI * 2;
+      const bx = centerX + Math.cos(angle) * 34;
+      const by = centerY + Math.sin(angle) * 22;
+      ctx.beginPath();
+      ctx.arc(bx, by, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ==================== MAP DECORATIONS ====================
+
+  // Decoration positions for various props around the map
+  private static DECORATIONS: { type: string; row: number; col: number; variant?: number }[] = [
+    // Wooden benches near fountain (rows 8-9, near center)
+    { type: 'bench', row: 8, col: 5, variant: 0 },
+    { type: 'bench', row: 8, col: 12, variant: 1 },
+    { type: 'bench', row: 5, col: 9, variant: 0 },
+    // Cart near market
+    { type: 'cart', row: 10, col: 2, variant: 0 },
+    // Flagpole near church
+    { type: 'flagpole', row: 3, col: 5, variant: 0 },
+    // Flower boxes near building entrances
+    { type: 'flowers', row: 4, col: 4, variant: 0 },
+    { type: 'flowers', row: 4, col: 14, variant: 1 },
+    // Barrel cluster near market
+    { type: 'barrels', row: 12, col: 5, variant: 0 },
+    // Lamp post in plaza
+    { type: 'lamp', row: 7, col: 5, variant: 0 },
+    { type: 'lamp', row: 7, col: 12, variant: 1 },
+    // Well cover near church
+    { type: 'wellcover', row: 3, col: 7, variant: 0 },
+  ];
+
+  private _renderMapDecorations(ctx: CanvasRenderingContext2D): void {
+    const ts = this.tileSize;
+    for (const deco of GameEngine.DECORATIONS) {
+      const dx = deco.col * ts - this.cameraX + ts / 2;
+      const dy = deco.row * ts - this.cameraY + ts / 2;
+
+      // Only render if on screen
+      if (dx < -60 || dx > this.viewWidth + 60 || dy < -60 || dy > this.viewHeight + 60) continue;
+
+      switch (deco.type) {
+        case 'bench': this._renderBench(ctx, dx, dy, deco.variant || 0); break;
+        case 'cart': this._renderCart(ctx, dx, dy); break;
+        case 'flagpole': this._renderFlagpole(ctx, dx, dy); break;
+        case 'flowers': this._renderFlowerBox(ctx, dx, dy, deco.variant || 0); break;
+        case 'barrels': this._renderBarrels(ctx, dx, dy); break;
+        case 'lamp': this._renderLamp(ctx, dx, dy, deco.variant || 0); break;
+        case 'wellcover': this._renderWellCover(ctx, dx, dy); break;
+      }
+    }
+  }
+
+  private _renderBench(ctx: CanvasRenderingContext2D, x: number, y: number, variant: number): void {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 8, 20, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bench seat (wood plank)
+    const woodColor = variant === 0 ? '#8B6914' : '#9B7923';
+    ctx.fillStyle = woodColor;
+    ctx.fillRect(x - 18, y - 4, 36, 6);
+    // Seat highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(x - 18, y - 4, 36, 2);
+
+    // Bench legs (iron/wood supports)
+    ctx.fillStyle = '#5C3A1E';
+    ctx.fillRect(x - 16, y + 2, 4, 10);
+    ctx.fillRect(x + 12, y + 2, 4, 10);
+    // Cross beam between legs
+    ctx.fillRect(x - 16, y + 6, 32, 2);
+  }
+
+  private _renderCart(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(x + 4, y + 10, 22, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cart body (wood box)
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x - 16, y - 10, 32, 16);
+    // Cart rim
+    ctx.strokeStyle = '#5C3A1E';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x - 16, y - 10, 32, 16);
+    // Cart interior visible produce
+    ctx.fillStyle = '#DAA520';
+    ctx.beginPath();
+    ctx.arc(x - 4, y - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#CD853F';
+    ctx.beginPath();
+    ctx.arc(x + 6, y - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#228B22';
+    ctx.beginPath();
+    ctx.arc(x - 8, y - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wheel (on the right side)
+    ctx.strokeStyle = '#4A2A10';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + 18, y + 4, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    // Wheel spokes
+    ctx.strokeStyle = '#5C3A1E';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + this.gameTime * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x + 18, y + 4);
+      ctx.lineTo(x + 18 + Math.cos(angle) * 7, y + 4 + Math.sin(angle) * 7);
+      ctx.stroke();
+    }
+    // Wheel hub
+    ctx.fillStyle = '#5C3A1E';
+    ctx.beginPath();
+    ctx.arc(x + 18, y + 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private _renderFlagpole(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    // Pole shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(x + 3, y + 4, 4, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pole shaft
+    ctx.fillStyle = '#C0C0C0';
+    ctx.fillRect(x - 2, y - 40, 4, 44);
+
+    // Pole base
+    ctx.fillStyle = '#8B7355';
+    ctx.fillRect(x - 6, y, 12, 4);
+
+    // Flag at top — animated waving
+    const waveOffset = Math.sin(this.gameTime * 3) * 3;
+    ctx.fillStyle = '#CE1126'; // Philippine flag red
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y - 40);
+    ctx.lineTo(x + 2 + 18 + waveOffset, y - 38 + waveOffset);
+    ctx.lineTo(x + 2 + 16 + waveOffset * 0.7, y - 30 + waveOffset * 0.5);
+    ctx.lineTo(x + 2, y - 32);
+    ctx.closePath();
+    ctx.fill();
+
+    // Flag blue stripe
+    ctx.fillStyle = '#0038A8';
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y - 32);
+    ctx.lineTo(x + 2 + 16 + waveOffset * 0.7, y - 30 + waveOffset * 0.5);
+    ctx.lineTo(x + 2 + 14 + waveOffset * 0.5, y - 24 + waveOffset * 0.3);
+    ctx.lineTo(x + 2, y - 24);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sun emblem on flag
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(x + 10 + waveOffset * 0.5, y - 33, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private _renderFlowerBox(ctx: CanvasRenderingContext2D, x: number, y: number, variant: number): void {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillRect(x - 10 + 2, y + 2, 20, 6);
+
+    // Wooden box
+    ctx.fillStyle = '#8B6914';
+    ctx.fillRect(x - 10, y - 4, 20, 8);
+    ctx.strokeStyle = '#5C3A1E';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 10, y - 4, 20, 8);
+
+    // Flowers growing from box
+    const flowerColors = variant === 0
+      ? ['#FF6B6B', '#FFE066', '#FF6B6B', '#CC99FF', '#FF6B6B']
+      : ['#FF9999', '#FFB347', '#FF9999', '#77DD77', '#FF9999'];
+    for (let i = 0; i < 5; i++) {
+      const fx = x - 8 + i * 4;
+      const fy = y - 6 - (3 + Math.sin(this.gameTime * 2 + i) * 1);
+      ctx.fillStyle = flowerColors[i];
+      ctx.beginPath();
+      ctx.arc(fx, fy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Stem
+      ctx.strokeStyle = '#228B22';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy + 2);
+      ctx.lineTo(fx, y - 4);
+      ctx.stroke();
+    }
+  }
+
+  private _renderBarrels(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 6, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Barrel 1
+    ctx.fillStyle = '#A0522D';
+    ctx.beginPath();
+    ctx.ellipse(x - 4, y - 2, 8, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#6B4422';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(x - 4, y - 2, 8, 12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Barrel bands
+    ctx.strokeStyle = '#8B8682';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x - 4, y - 8, 7, 3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x - 4, y + 4, 7, 3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Barrel 2 (smaller, slightly behind)
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.ellipse(x + 8, y + 2, 6, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5C3A1E';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x + 8, y + 2, 6, 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  private _renderLamp(ctx: CanvasRenderingContext2D, x: number, y: number, variant: number): void {
+    // Lamp shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 4, 4, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lamp pole
+    ctx.fillStyle = '#4A4A4A';
+    ctx.fillRect(x - 2, y - 28, 4, 30);
+
+    // Lamp base plate
+    ctx.fillStyle = '#6E5E44';
+    ctx.fillRect(x - 5, y + 2, 10, 2);
+
+    // Lamp housing (top)
+    ctx.fillStyle = '#5C5C5C';
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y - 24);
+    ctx.lineTo(x + 6, y - 24);
+    ctx.lineTo(x + 4, y - 20);
+    ctx.lineTo(x - 4, y - 20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lamp light (warm glow)
+    const glowPulse = 0.6 + Math.sin(this.gameTime * 2 + variant) * 0.15;
+    if (this.timeOfDay === 'afternoon') {
+      // Afternoon: dim warm light
+      ctx.fillStyle = `rgba(255,200,100,${glowPulse * 0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 22, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Morning: brighter light needed
+      ctx.fillStyle = `rgba(255,220,140,${glowPulse * 0.5})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 22, 12, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Light cone down
+      ctx.fillStyle = `rgba(255,220,140,${glowPulse * 0.15})`;
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y - 20);
+      ctx.lineTo(x + 8, y - 20);
+      ctx.lineTo(x + 16, y + 4);
+      ctx.lineTo(x - 16, y + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Lamp flame
+    ctx.fillStyle = '#FFE4B5';
+    ctx.beginPath();
+    ctx.arc(x, y - 22, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private _renderWellCover(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 6, 10, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Well rim (circular stone)
+    ctx.strokeStyle = '#8B7355';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#A89B82';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 10, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Well wooden cover (half-cover)
+    ctx.fillStyle = '#8B6914';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 8, 4, 0, Math.PI, 0);
+    ctx.fill();
+
+    // Rope hanging from cover
+    ctx.strokeStyle = '#8B7355';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y - 2);
+    ctx.lineTo(x + 4, y - 8);
+    ctx.stroke();
+  }
+
+  // ==================== ATMOSPHERIC EFFECTS ====================
+
+  private _renderMist(ctx: CanvasRenderingContext2D): void {
+    // Subtle mist patches that drift slowly across the map
+    const mistCount = 3;
+    for (let i = 0; i < mistCount; i++) {
+      // Mist position cycles slowly across the map
+      const baseX = (this.gameTime * 15 + i * 400) % (this.viewWidth + 200) - 100;
+      const baseY = 150 + i * 100 + Math.sin(this.gameTime * 0.3 + i) * 30;
+      const mistWidth = 120 + Math.sin(this.gameTime * 0.5 + i * 2) * 30;
+      const mistHeight = 40 + Math.sin(this.gameTime * 0.4 + i) * 10;
+      const mistAlpha = 0.03 + Math.sin(this.gameTime * 0.6 + i) * 0.02;
+
+      ctx.fillStyle = `rgba(200,220,240,${mistAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(baseX, baseY, mistWidth, mistHeight, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Second layer for depth
+      ctx.fillStyle = `rgba(180,200,220,${mistAlpha * 0.6})`;
+      ctx.beginPath();
+      ctx.ellipse(baseX + 20, baseY + 8, mistWidth * 0.7, mistHeight * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  private _renderBirds(ctx: CanvasRenderingContext2D): void {
+    // Occasional bird silhouettes that fly across the sky
+    const birdCount = 2;
+    for (let i = 0; i < birdCount; i++) {
+      // Birds cycle from left to right across the screen
+      const cycleTime = 25 + i * 10;
+      const birdX = ((this.gameTime + i * 12) % cycleTime) / cycleTime * this.viewWidth;
+      const birdY = 40 + i * 30 + Math.sin(this.gameTime * 1.5 + i * 5) * 20;
+      
+      // Wing animation
+      const wingPhase = Math.sin(this.gameTime * 8 + i * 3);
+      const wingSpread = 6 + wingPhase * 4;
+
+      // Bird body
+      ctx.fillStyle = 'rgba(40,40,40,0.5)';
+      ctx.beginPath();
+      ctx.arc(birdX, birdY, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wings (animated flapping)
+      ctx.strokeStyle = 'rgba(40,40,40,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // Left wing
+      ctx.moveTo(birdX - 1, birdY);
+      ctx.quadraticCurveTo(birdX - wingSpread, birdY - wingSpread * 0.5, birdX - wingSpread - 2, birdY + wingPhase * 2);
+      // Right wing
+      ctx.moveTo(birdX + 1, birdY);
+      ctx.quadraticCurveTo(birdX + wingSpread, birdY - wingSpread * 0.5, birdX + wingSpread + 2, birdY + wingPhase * 2);
+      ctx.stroke();
+    }
+  }
+
   // ==================== BUILDING LABELS ====================
 
   private _renderBuildingLabels(ctx: CanvasRenderingContext2D): void {
@@ -1743,20 +2242,46 @@ class GameEngine {
     if (!entity.isPlayer) {
       const displayName = characterData.characters[entity.characterKey as keyof typeof characterData.characters]?.displayName || entity.characterKey;
       
-      // Name background panel
+      // Calculate name Y position, avoiding overlap with building labels
+      let nameY = screenY - 75;
+      
+      // Check if this entity is inside/near a building label area — if so, push name further up
+      for (const bl of mapData.buildingLabels) {
+        const blWorldX = (bl.col + bl.width / 2) * this.tileSize;
+        const blWorldY = bl.row * this.tileSize - 46;
+        const blScreenX = blWorldX - this.cameraX;
+        const blScreenY = blWorldY - this.cameraY;
+        const blPanelH = bl.sublabel ? 36 : 22;
+        // If the entity name position overlaps with the building label panel
+        const nameOverlapX = Math.abs(screenX - blScreenX) < 100;
+        const nameOverlapY = nameY >= blScreenY - 2 && nameY <= blScreenY + blPanelH + 20;
+        if (nameOverlapX && nameOverlapY) {
+          // Push name label further above the building label
+          nameY = blScreenY - 24;
+        }
+      }
+      
+      // Name background panel with rounded corners
       ctx.font = '11px "Geist", sans-serif';
       const nameWidth = ctx.measureText(displayName).width;
       const nameX = screenX;
-      const nameY = screenY - 75;
       
-      // Small label panel
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(nameX - nameWidth / 2 - 6, nameY - 10, nameWidth + 12, 16);
+      // Rounded rect background panel
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.roundRect(nameX - nameWidth / 2 - 8, nameY - 12, nameWidth + 16, 18, 4);
+      ctx.fill();
+      
+      // Subtle accent line at top
+      ctx.fillStyle = entity.isPlayer ? 'rgba(255,200,80,0.5)' : 'rgba(180,180,180,0.3)';
+      ctx.fillRect(nameX - nameWidth / 2 - 8, nameY - 12, nameWidth + 16, 1.5);
       
       // Name text
       ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'center';
-      ctx.fillText(displayName, nameX, nameY);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(displayName, nameX, nameY - 2);
+      ctx.textBaseline = 'alphabetic';
     }
   }
 
@@ -1799,21 +2324,27 @@ class GameEngine {
         ctx.strokeText('!', screenX, screenY - 65 + bounceY);
         ctx.fillText('!', screenX, screenY - 65 + bounceY);
         
-        // "Press Space" hint panel
+        // "Press Space" hint panel with rounded corners
         ctx.font = '9px "Geist", sans-serif';
         const hintText = '[Space]';
         const hintWidth = ctx.measureText(hintText).width;
         const hintY = screenY - 50 + bounceY;
         
-        // Hint panel background
+        // Rounded hint panel background
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(screenX - hintWidth / 2 - 4, hintY - 8, hintWidth + 8, 14);
+        ctx.beginPath();
+        ctx.roundRect(screenX - hintWidth / 2 - 6, hintY - 9, hintWidth + 12, 16, 3);
+        ctx.fill();
+        
+        // Accent line at bottom
+        ctx.fillStyle = `rgba(255,215,0,${pulse * 0.4})`;
+        ctx.fillRect(screenX - hintWidth / 2 - 6, hintY + 5, hintWidth + 12, 1);
         
         ctx.fillStyle = '#FFFFFF';
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
-        ctx.strokeText(hintText, screenX, hintY);
-        ctx.fillText(hintText, screenX, hintY);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(hintText, screenX, hintY - 1);
+        ctx.textBaseline = 'alphabetic';
       }
     }
   }
@@ -1821,15 +2352,53 @@ class GameEngine {
   // ==================== TRIGGER HINTS ====================
 
   private _renderTriggerHints(ctx: CanvasRenderingContext2D): void {
-    // Subtle visual hint for the gossip area
+    // Subtle visual hint for the gossip area — golden shimmer with sparkle particles
     const gossipZone = this.triggerZones.find(z => z.id === 'market-gossip');
     if (gossipZone && !gossipZone.triggered && saveManager.isObjectiveCompleted(gossipZone.requiresObjective || '')) {
       const x = gossipZone.col * this.tileSize - this.cameraX;
       const y = gossipZone.row * this.tileSize - this.cameraY;
-      // Pulsing golden shimmer
-      const shimmer = Math.sin(this.gameTime * 2) * 0.05 + 0.12;
+      const w = gossipZone.width * this.tileSize;
+      const h = gossipZone.height * this.tileSize;
+      
+      // Pulsing golden shimmer (very subtle)
+      const shimmer = Math.sin(this.gameTime * 2) * 0.04 + 0.08;
       ctx.fillStyle = `rgba(255,215,0,${shimmer})`;
-      ctx.fillRect(x, y, gossipZone.width * this.tileSize, gossipZone.height * this.tileSize);
+      ctx.fillRect(x, y, w, h);
+      
+      // Sparkle particles within the zone
+      for (let i = 0; i < 6; i++) {
+        const sparkX = x + tileHash(gossipZone.row, gossipZone.col, i * 40 + 500) * w;
+        const sparkY = y + tileHash(gossipZone.row, gossipZone.col, i * 40 + 600) * h;
+        const sparkPhase = Math.sin(this.gameTime * 3 + i * 1.5);
+        const sparkAlpha = Math.max(0, sparkPhase * 0.15);
+        if (sparkAlpha > 0) {
+          ctx.fillStyle = `rgba(255,215,0,${sparkAlpha})`;
+          ctx.beginPath();
+          ctx.arc(sparkX, sparkY, 2 + sparkPhase * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      // Subtle dotted border around the zone
+      ctx.strokeStyle = `rgba(255,215,0,${shimmer * 2})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 8]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+    }
+    
+    // Subtle hint for Ibarra sighting zone
+    const ibarraZone = this.triggerZones.find(z => z.id === 'ibarra-sighting');
+    if (ibarraZone && !ibarraZone.triggered && saveManager.isObjectiveCompleted(ibarraZone.requiresObjective || '')) {
+      const x = ibarraZone.col * this.tileSize - this.cameraX;
+      const y = ibarraZone.row * this.tileSize - this.cameraY;
+      const w = ibarraZone.width * this.tileSize;
+      const h = ibarraZone.height * this.tileSize;
+      
+      // Silvery moonlight shimmer (since this happens at morning/dawn)
+      const shimmer = Math.sin(this.gameTime * 2) * 0.04 + 0.06;
+      ctx.fillStyle = `rgba(180,200,240,${shimmer})`;
+      ctx.fillRect(x, y, w, h);
     }
   }
 

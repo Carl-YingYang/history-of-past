@@ -34,5 +34,29 @@
       { "id": "d", "text": "Ibarra refused to attend mass", "correct": false }
     ],
     "correctExplanation": "Padre Dámaso represented the Spanish friar class that held immense power in colonial Philippines. The return of an educated Filipino with reformist ideas threatened that authority — even though Dámaso had once been close to Ibarra's father, Don Rafael."
+  },
+  {
+    "id": "quiz.ch1.q4",
+    "chapterId": "ch1",
+    "question": "What does the title 'Noli Me Tangere' mean in Latin?",
+    "options": [
+      { "id": "a", "text": "Do not touch me", "correct": true },
+      { "id": "b", "text": "Touch me gently", "correct": false },
+      { "id": "c", "text": "I will not be silenced", "correct": false },
+      { "id": "d", "text": "The untouchable truth", "correct": false }
+    ],
+    "correctExplanation": "Noli Me Tangere is Latin for 'Touch me not' or 'Do not touch me' — words spoken by Jesus to Mary Magdalene after the Resurrection. Rizal used this title to suggest that the social cancers he described in the novel should not be ignored or swept aside."
+  },
+  {
+    "id": "quiz.ch1.q5",
+    "chapterId": "ch1",
+    "question": "The ilustrados were Filipino students who studied in Europe. What did they bring back that threatened Spanish colonial authority?",
+    "options": [
+      { "id": "a", "text": "Weapons and military tactics", "correct": false },
+      { "id": "b", "text": "Liberal ideas about equality and reform", "correct": true },
+      { "id": "c", "text": "Religious doctrines from Protestant churches", "correct": false },
+      { "id": "d", "text": "Economic trade agreements with European powers", "correct": false }
+    ],
+    "correctExplanation": "The ilustrados ('enlightened ones') returned with ideas about individual liberty, representative government, and secular education — concepts that directly challenged the Spanish friars' authority and the colonial system of oppression. This is why educated Filipinos like Ibarra were viewed as threats by the colonial establishment."
   }
 ]

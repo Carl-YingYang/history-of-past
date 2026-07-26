@@ -84,6 +84,7 @@ export default function DialogueBox() {
   const [displayedTranslation, setDisplayedTranslation] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(true);
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
 
   const isNarrator = currentLine?.speaker === 'Narrator';
@@ -194,12 +195,18 @@ export default function DialogueBox() {
       aria-label="Dialogue — click to advance"
     >
       <div
-        className={`rounded-xl shadow-2xl border-2 backdrop-blur-md transition-all ${
+        className={`relative rounded-xl shadow-2xl border-2 backdrop-blur-md transition-all corner-flourish parchment-texture ${
           isNarrator
             ? 'bg-gradient-to-br from-amber-950/95 to-stone-950/95 border-amber-400/50 text-amber-100'
             : 'bg-stone-950/95 border-stone-600/50 text-white'
         }`}
       >
+        {/* Corner flourish decorations (all 4 corners) */}
+        <div className="absolute top-2 left-4 text-[10px] text-amber-400/60 select-none">✦</div>
+        <div className="absolute top-2 right-4 text-[10px] text-amber-400/60 select-none">✦</div>
+        <div className="absolute bottom-2 left-4 text-[10px] text-amber-400/60 select-none">✦</div>
+        <div className="absolute bottom-2 right-4 text-[10px] text-amber-400/60 select-none">✦</div>
+
         <div className="flex gap-3 p-4">
           {/* Speaker portrait with gradient background and decorative ring */}
           <div className="shrink-0 flex flex-col items-center gap-1">
@@ -247,13 +254,31 @@ export default function DialogueBox() {
             {/* Dialogue text with typewriter effect */}
             <div className="text-base leading-relaxed mb-1 min-h-[3em]" style={{ fontFamily: '"Geist", Georgia, serif' }}>
               {displayedText}
-              {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-0.5 animate-pulse align-middle" />}
+              {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-0.5 animate-cursor-blink align-middle" />}
             </div>
 
-            {/* Translation hint (if present) */}
+            {/* Translation section with toggle */}
             {currentLine.translation && (
-              <div className="text-sm text-white/55 italic mt-2 min-h-[1.5em] border-l-2 border-amber-400/40 pl-2 leading-relaxed">
-                {displayedTranslation && <>📝 {displayedTranslation}</>}
+              <div className="flex items-start gap-1 mt-2 min-h-[1.5em]">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowTranslation(!showTranslation);
+                  }}
+                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border transition-colors hover:bg-amber-950/40 mt-0.5"
+                  style={{
+                    borderColor: showTranslation ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.2)',
+                    color: showTranslation ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.4)',
+                  }}
+                  aria-label={showTranslation ? 'Hide translation' : 'Show translation'}
+                >
+                  {showTranslation ? '🇵🇭 EN' : '🇵🇭'}
+                </button>
+                {showTranslation && displayedTranslation && (
+                  <div className="text-sm text-white/55 italic border-l-2 border-amber-400/40 pl-2 leading-relaxed">
+                    📝 {displayedTranslation}
+                  </div>
+                )}
               </div>
             )}
 
@@ -265,7 +290,7 @@ export default function DialogueBox() {
                     key={i}
                     className={`w-1.5 h-1.5 rounded-full transition-all ${
                       i < currentLineIndex ? 'bg-amber-400/60'
-                        : i === currentLineIndex ? 'bg-amber-400 scale-125 shadow shadow-amber-400/50'
+                        : i === currentLineIndex ? 'bg-amber-400 scale-125 animate-dot-glow'
                         : 'bg-white/20'
                     }`}
                   />

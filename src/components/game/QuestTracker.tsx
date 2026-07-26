@@ -1,13 +1,38 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import quests from '@/data/quests.json';
 import { Progress } from '@/components/ui/progress';
 
+// Objective icon mapping based on objective type
+const OBJECTIVE_ICONS: Record<string, string> = {
+  'obj.ch1.follow_tenyo': '👣',       // footsteps — follow
+  'obj.ch1.overhear_gossip': '👂',    // ear — gossip/listen
+  'obj.ch1.see_ibarra': '👁️',        // eye — sighting
+};
+
+function getObjectiveIcon(objId: string): string {
+  return OBJECTIVE_ICONS[objId] || '○';
+}
+
 export default function QuestTracker() {
   const { completedObjectives, chapterComplete, chapterPhase } = useGameStore();
+  const [celebratingId, setCelebratingId] = useState<string | null>(null);
+  const prevCompletedRef = useRef(completedObjectives);
 
   const currentQuest = quests.find(q => q.chapterId === 'ch1');
+
+  // Celebration animation — detect newly completed objectives (must be before any early return)
+  useEffect(() => {
+    const prev = prevCompletedRef.current;
+    const newlyCompleted = completedObjectives.find(id => !prev.includes(id));
+    if (newlyCompleted) {
+      setCelebratingId(newlyCompleted);
+      setTimeout(() => setCelebratingId(null), 1200);
+    }
+    prevCompletedRef.current = completedObjectives;
+  }, [completedObjectives]);
 
   if (!currentQuest || chapterComplete) return null;
 
@@ -29,7 +54,7 @@ export default function QuestTracker() {
 
   return (
     <div className="absolute top-16 right-4 z-20 max-w-xs w-72 md:w-80">
-      <div className="rounded-xl bg-stone-950/92 backdrop-blur-md border border-amber-400/30 p-3 shadow-2xl shadow-black/40">
+      <div className="rounded-xl bg-stone-950/92 backdrop-blur-md border border-amber-400/30 p-3 shadow-2xl shadow-black/40 parchment-texture">
         {/* Header */}
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-amber-400/20">
           <div className="min-w-0 flex-1">
@@ -38,7 +63,7 @@ export default function QuestTracker() {
               <span className="text-white/30 text-[9px] uppercase tracking-wider">·</span>
               <span className="text-amber-400/50 text-[9px] uppercase tracking-wider">{phaseLabel}</span>
             </div>
-            <div className="text-white text-sm font-semibold truncate" title={currentQuest.title}>
+            <div className="text-white text-sm font-semibold truncate" title={currentQuest.title} style={{ fontFamily: 'Georgia, serif' }}>
               {currentQuest.title}
             </div>
           </div>
@@ -50,24 +75,31 @@ export default function QuestTracker() {
         {/* Progress bar */}
         <div className="mb-3">
           <Progress value={progress} className="h-1.5 bg-stone-800" />
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-amber-400/50 text-[9px]">{Math.round(progress)}% complete</span>
+            <span className="text-white/30 text-[9px]">{completedCount} of {totalCount} objectives</span>
+          </div>
         </div>
 
-        {/* Objectives */}
+        {/* Objectives with icons */}
         <div className="space-y-1.5">
           {currentQuest.objectives.map((obj, idx) => {
             const isCompleted = completedObjectives.includes(obj.id);
             const isCurrent = !isCompleted && completedObjectives.length === idx;
+            const isCelebrating = celebratingId === obj.id;
+            const objIcon = getObjectiveIcon(obj.id);
             return (
               <div
                 key={obj.id}
-                className={`flex items-start gap-2 text-xs p-1.5 rounded transition-all ${
+                className={`relative flex items-start gap-2 text-xs p-1.5 rounded transition-all ${
                   isCurrent ? 'bg-amber-400/10 border border-amber-400/30 shadow-inner shadow-amber-900/20' : ''
-                }`}
+                } ${isCelebrating ? 'animate-celebration-glow' : ''}`}
               >
+                {/* Objective icon */}
                 <span className={`mt-0.5 shrink-0 w-4 text-center ${
                   isCompleted ? 'text-emerald-400' : isCurrent ? 'text-amber-400 animate-pulse' : 'text-white/30'
                 }`}>
-                  {isCompleted ? '✓' : isCurrent ? '▶' : '○'}
+                  {isCompleted ? '✓' : objIcon}
                 </span>
                 <span className={`leading-snug ${
                   isCompleted
@@ -78,6 +110,10 @@ export default function QuestTracker() {
                 }`}>
                   {obj.description}
                 </span>
+                {/* Celebration sparkle on newly completed */}
+                {isCelebrating && (
+                  <span className="absolute -top-1 -right-1 animate-sparkle text-amber-400 text-sm">✨</span>
+                )}
               </div>
             );
           })}
@@ -88,7 +124,7 @@ export default function QuestTracker() {
           <div className="text-amber-400/40 text-[9px] uppercase tracking-widest mb-1 font-semibold">
             💡 Learning Goal
           </div>
-          <div className="text-white/55 text-[10px] italic leading-relaxed">
+          <div className="text-white/55 text-[10px] italic leading-relaxed" style={{ fontFamily: 'Georgia, serif' }}>
             {currentQuest.learningObjective}
           </div>
         </div>

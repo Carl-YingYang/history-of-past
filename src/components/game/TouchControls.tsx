@@ -5,15 +5,15 @@ import { getEngineControls } from './GameCanvas';
 
 /**
  * On-screen D-pad for mobile/touch devices.
- * Also serves as an alternative input method for accessibility.
- * Hidden automatically while a dialogue is active (the player can't move then anyway),
- * and while a panel overlay is open.
+ * Enhanced with circular styled buttons, inner arrow icons, ripple effect,
+ * shadow/glow, and a more prominent interact button.
  *
  * State sync: reads body data attributes via useState initializer on mount,
  * then updates via MutationObserver callback (external subscription).
  */
 export default function TouchControls() {
   const [activeDir, setActiveDir] = useState<string | null>(null);
+  const [rippleDir, setRippleDir] = useState<string | null>(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [hidden, setHidden] = useState(() => {
     if (typeof document === 'undefined') return false;
@@ -50,6 +50,8 @@ export default function TouchControls() {
 
   const handleDirectionDown = (dir: 'up' | 'down' | 'left' | 'right') => {
     setActiveDir(dir);
+    setRippleDir(dir);
+    setTimeout(() => setRippleDir(null), 500);
     const controls = getEngineControls();
     if (controls) controls.setMoveDirection(dir);
   };
@@ -60,13 +62,19 @@ export default function TouchControls() {
     if (controls) controls.setMoveDirection(null);
   };
 
-  const dirButton = (dir: 'up' | 'down' | 'left' | 'right', label: string, icon: string) => (
+  // Styled circular D-pad button with inner arrow icon and ripple
+  const dirButton = (dir: 'up' | 'down' | 'left' | 'right', arrow: string) => (
     <button
-      className={`w-11 h-11 rounded-lg flex items-center justify-center text-lg font-bold transition-all select-none touch-none ${
+      className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all select-none touch-none shadow-lg ${
         activeDir === dir
-          ? 'bg-amber-500 text-white scale-95 shadow-inner shadow-amber-900/40'
-          : 'bg-stone-900/85 text-amber-400 border border-amber-400/30 hover:bg-stone-800/85'
+          ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white scale-95 shadow-amber-500/30 shadow-inner'
+          : 'bg-stone-900/90 text-amber-400 border border-amber-400/30 hover:bg-stone-800/90 shadow-amber-900/20'
       }`}
+      style={{
+        boxShadow: activeDir === dir
+          ? '0 0 12px rgba(251,191,36,0.3), 0 2px 8px rgba(0,0,0,0.4)'
+          : '0 0 8px rgba(251,191,36,0.1), 0 2px 6px rgba(0,0,0,0.3)',
+      }}
       onPointerDown={(e) => {
         e.preventDefault();
         handleDirectionDown(dir);
@@ -79,7 +87,12 @@ export default function TouchControls() {
       onPointerCancel={() => handleDirectionUp()}
       aria-label={`Move ${dir}`}
     >
-      {icon}
+      {/* Inner arrow icon */}
+      <span className="text-lg font-bold leading-none">{arrow}</span>
+      {/* Ripple effect */}
+      {rippleDir === dir && (
+        <span className="absolute inset-0 rounded-full animate-ripple bg-amber-400/30" />
+      )}
     </button>
   );
 
@@ -89,17 +102,17 @@ export default function TouchControls() {
         hidden ? 'opacity-0 pointer-events-none' : isTouchDevice ? 'opacity-100' : 'opacity-70 hover:opacity-100'
       }`}
     >
-      {/* D-Pad */}
-      <div className="flex flex-col items-center gap-1">
-        {dirButton('up', 'Up', '▲')}
-        <div className="flex gap-1">
-          {dirButton('left', 'Left', '◀')}
-          <div className="w-11 h-11 flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-amber-400/40 ring-1 ring-amber-400/20" />
+      {/* D-Pad — circular buttons with inner arrow icons */}
+      <div className="flex flex-col items-center gap-1.5">
+        {dirButton('up', '↑')}
+        <div className="flex gap-1.5">
+          {dirButton('left', '←')}
+          <div className="w-12 h-12 flex items-center justify-center">
+            <div className="w-3 h-3 rounded-full bg-amber-400/30 ring-2 ring-amber-400/20 shadow-sm" style={{ boxShadow: '0 0 6px rgba(251,191,36,0.2)' }} />
           </div>
-          {dirButton('right', 'Right', '▶')}
+          {dirButton('right', '→')}
         </div>
-        {dirButton('down', 'Down', '▼')}
+        {dirButton('down', '↓')}
       </div>
     </div>
   );

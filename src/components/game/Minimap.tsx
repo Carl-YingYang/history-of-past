@@ -182,7 +182,7 @@ export default function Minimap() {
 
       {/* Minimap panel */}
       {isOpen && (
-        <div className="absolute top-16 right-16 z-50 rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-16 right-16 z-50 rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 p-3 animate-panel-slide-in">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function Minimap() {
             </div>
             <button
               onClick={() => togglePanel('minimap')}
-              className="w-7 h-7 rounded-md hover:bg-stone-800 text-white/60 hover:text-white text-sm flex items-center justify-center"
+              className="close-btn-styled w-7 h-7 rounded-md bg-stone-800/40 text-white/60 text-sm flex items-center justify-center"
               aria-label="Close map"
             >
               ✕

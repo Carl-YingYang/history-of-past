@@ -88,9 +88,9 @@ export default function HelpPanel() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[calc(100vw-2rem)] max-h-[85vh] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[calc(100vw-2rem)] max-h-[85vh] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-panel-slide-in overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-stone-950 to-stone-950">
+          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-stone-950 to-stone-950 panel-ornamental-header">
             <div>
               <h3 className="text-amber-400 font-bold text-base flex items-center gap-2">
                 <span className="text-lg">❓</span> How to Play
@@ -99,7 +99,7 @@ export default function HelpPanel() {
             </div>
             <button
               onClick={() => togglePanel('help')}
-              className="w-8 h-8 rounded-md hover:bg-stone-800 text-white/60 hover:text-white flex items-center justify-center"
+              className="close-btn-styled w-8 h-8 rounded-md bg-stone-800/40 text-white/60 flex items-center justify-center"
               aria-label="Close help"
             >
               ✕

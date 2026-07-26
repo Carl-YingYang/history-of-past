@@ -120,3 +120,205 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Project Noor: Custom Keyframe Animations ── */
+
+/* Header shimmer — light sweeping across */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 4s ease-in-out infinite;
+}
+
+/* Sparkle — brief golden flash */
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.animate-sparkle {
+  animation: sparkle 0.6s ease-out forwards;
+}
+
+/* XP-bar sparkle burst — repeated sparkle for XP changes */
+@keyframes sparkle-burst {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  40% { opacity: 1; transform: scale(1.4) rotate(15deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
+}
+.animate-sparkle-burst {
+  animation: sparkle-burst 0.8s ease-out forwards;
+}
+
+/* Celebration glow — objective completion pulse */
+@keyframes celebration-glow {
+  0% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+  30% { box-shadow: 0 0 18px 8px rgba(251,191,36,0.45); }
+  60% { box-shadow: 0 0 10px 4px rgba(251,191,36,0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+}
+.animate-celebration-glow {
+  animation: celebration-glow 1.2s ease-out forwards;
+}
+
+/* Ripple — touch/press feedback */
+@keyframes ripple-expand {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.animate-ripple {
+  animation: ripple-expand 0.5s ease-out forwards;
+}
+
+/* Progress dot glow */
+@keyframes dot-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(251,191,36,0.4); }
+  50% { box-shadow: 0 0 12px rgba(251,191,36,0.8), 0 0 6px rgba(251,191,36,0.6); }
+}
+.animate-dot-glow {
+  animation: dot-glow 1.5s ease-in-out infinite;
+}
+
+/* Pulsing interact ring */
+@keyframes interact-pulse {
+  0% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 0.4; }
+}
+.animate-interact-pulse {
+  animation: interact-pulse 1.5s ease-in-out infinite;
+}
+
+/* Vignette fade-in for intro */
+@keyframes vignette-fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-vignette-fade {
+  animation: vignette-fade 2s ease-out forwards;
+}
+
+/* Subtitle sequential fade-in */
+@keyframes subtitle-fade-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-subtitle-fade {
+  animation: subtitle-fade-in 1.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Particle drift — gentle floating */
+@keyframes particle-drift {
+  0% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { opacity: 0.7; }
+  50% { transform: translateY(-20px) translateX(10px); opacity: 0.5; }
+  75% { opacity: 0.4; }
+  100% { transform: translateY(-40px) translateX(-5px); opacity: 0; }
+}
+.animate-particle-drift {
+  animation: particle-drift 5s ease-in-out infinite;
+}
+
+/* Panel slide-in from top */
+@keyframes panel-slide-in {
+  0% { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-panel-slide-in {
+  animation: panel-slide-in 0.25s ease-out forwards;
+}
+
+/* Panel slide-out */
+@keyframes panel-slide-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(0.97); }
+}
+.animate-panel-slide-out {
+  animation: panel-slide-out 0.2s ease-in forwards;
+}
+
+/* Typewriter cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-cursor-blink {
+  animation: cursor-blink 0.5s step-end infinite;
+}
+
+/* Filipino weaving pattern — repeating geometric pattern */
+.filipino-weaving-border {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 4px,
+      rgba(251,191,36,0.15) 4px,
+      rgba(251,191,36,0.15) 6px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 4px,
+      rgba(251,191,36,0.10) 4px,
+      rgba(251,191,36,0.10) 6px
+    );
+}
+
+/* Parchment texture overlay */
+.parchment-texture {
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(139,115,85,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(139,115,85,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(139,115,85,0.05) 0%, transparent 50%);
+}
+
+/* Corner flourish decorative elements */
+.corner-flourish::before,
+.corner-flourish::after {
+  content: '✦';
+  position: absolute;
+  font-size: 10px;
+  color: rgba(251,191,36,0.6);
+}
+.corner-flourish::before {
+  top: 6px;
+  left: 8px;
+}
+.corner-flourish::after {
+  bottom: 6px;
+  right: 8px;
+}
+
+/* Ornamental panel header top border */
+.panel-ornamental-header {
+  position: relative;
+}
+.panel-ornamental-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(251,191,36,0.6) 20%,
+    rgba(251,191,36,0.9) 50%,
+    rgba(251,191,36,0.6) 80%,
+    transparent 100%
+  );
+}
+
+/* Close button hover effect */
+.close-btn-styled {
+  transition: all 0.15s ease;
+}
+.close-btn-styled:hover {
+  background: rgba(251,191,36,0.15);
+  transform: scale(1.1);
+  color: rgba(251,191,36,0.9);
+}

@@ -146,6 +146,7 @@ export function GlobalKeyboardShortcuts() {
 
 /**
  * Modal backdrop component - dims the game world when a panel is open.
+ * Enhanced with stronger backdrop blur and smooth fade transition.
  * Clicking the backdrop closes the active panel.
  */
 export function ModalBackdrop() {
@@ -155,7 +156,7 @@ export function ModalBackdrop() {
 
   return (
     <div
-      className="absolute inset-0 z-40 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-200"
+      className="absolute inset-0 z-40 bg-black/70 backdrop-blur-sm transition-all duration-200"
       onClick={closePanel}
       aria-hidden="true"
     />

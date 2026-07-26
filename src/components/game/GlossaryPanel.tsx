@@ -185,9 +185,9 @@ export default function GlossaryPanel() {
 
       {/* Panel */}
       {isOpen && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col max-h-[85vh]">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-panel-slide-in flex flex-col max-h-[85vh]">
           {/* Header */}
-          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-stone-950 to-stone-950 rounded-t-xl shrink-0">
+          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-stone-950 to-stone-950 rounded-t-xl shrink-0 panel-ornamental-header">
             <div>
               <h3 className="text-amber-400 font-bold text-base flex items-center gap-2">
                 <span className="text-lg">📖</span> Filipino Glossary
@@ -198,7 +198,7 @@ export default function GlossaryPanel() {
             </div>
             <button
               onClick={() => togglePanel('glossary')}
-              className="w-8 h-8 rounded-md hover:bg-stone-800 text-white/60 hover:text-white flex items-center justify-center transition-colors"
+              className="close-btn-styled w-8 h-8 rounded-md bg-stone-800/40 text-white/60 flex items-center justify-center"
               aria-label="Close Glossary"
             >
               ✕

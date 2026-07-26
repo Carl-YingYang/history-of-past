@@ -191,9 +191,9 @@ export default function AchievementsPanel() {
 
       {/* Panel */}
       {isOpen && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[640px] max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden flex flex-col">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[640px] max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/40 animate-panel-slide-in overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/50 via-stone-950 to-stone-950">
+          <div className="p-4 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-r from-amber-950/50 via-stone-950 to-stone-950 panel-ornamental-header">
             <div className="flex-1 min-w-0">
               <h3 className="text-amber-400 font-bold text-base flex items-center gap-2">
                 <span className="text-lg">🏆</span> Achievements
@@ -211,7 +211,7 @@ export default function AchievementsPanel() {
             </div>
             <button
               onClick={() => togglePanel('achievements')}
-              className="w-8 h-8 rounded-md hover:bg-stone-800 text-white/60 hover:text-white flex items-center justify-center shrink-0"
+              className="close-btn-styled w-8 h-8 rounded-md bg-stone-800/40 text-white/60 flex items-center justify-center shrink-0"
               aria-label="Close Achievements"
             >
               ✕

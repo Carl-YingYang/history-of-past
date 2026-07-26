@@ -39,19 +39,24 @@ export default function InteractButton() {
 
   return (
     <button
-      className={`absolute bottom-4 right-4 z-20 w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 hover:from-amber-400 hover:to-amber-600 border-2 border-amber-300/60 shadow-xl shadow-amber-900/40 flex flex-col items-center justify-center transition-all active:scale-95 touch-none hover:scale-105 ${
+      className={`absolute bottom-4 right-4 z-20 w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 hover:from-amber-400 hover:to-amber-600 border-2 border-amber-300/60 shadow-xl shadow-amber-900/40 flex flex-col items-center justify-center transition-all active:scale-95 touch-none hover:scale-105 ${
         hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
+      style={{
+        boxShadow: '0 0 16px rgba(251,191,36,0.3), 0 4px 12px rgba(0,0,0,0.4)',
+      }}
       onPointerDown={(e) => {
         e.preventDefault();
         handleInteract();
       }}
       aria-label="Interact with NPC (Space)"
     >
-      <span className="text-white text-xl leading-none">💬</span>
+      <span className="text-white text-2xl leading-none">💬</span>
       <span className="text-white/90 text-[9px] font-bold tracking-wide mt-0.5">TALK</span>
-      {/* Pulsing ring */}
-      <span className="absolute inset-0 rounded-full ring-2 ring-amber-300/30 animate-ping" />
+      {/* Pulsing ring — more prominent */}
+      <span className="absolute inset-0 rounded-full ring-2 ring-amber-300/30 animate-interact-pulse" />
+      {/* Outer subtle glow ring */}
+      <span className="absolute inset-[-4px] rounded-full border border-amber-400/20 animate-pulse" />
     </button>
   );
 }

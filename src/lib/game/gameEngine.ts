@@ -53,7 +53,29 @@ interface Particle {
   size: number;
   life: number;
   maxLife: number;
+  color?: string;       // Optional color override (for celebration bursts)
+  gravity?: number;     // Optional gravity (for celebration bursts)
 }
+
+interface BurstParticle {
+  x: number;       // world coordinates
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+  gravity: number;
+}
+
+// Map from objective ID → world position where it triggers
+// Used by the waypoint arrow to point toward the next objective.
+const OBJECTIVE_LOCATIONS: Record<string, { row: number; col: number; label: string }> = {
+  'obj.ch1.follow_tenyo':    { row: 14, col: 8,  label: 'Mang Tenyo' },
+  'obj.ch1.overhear_gossip': { row: 9,  col: 4,  label: 'Market' },
+  'obj.ch1.see_ibarra':      { row: 7,  col: 9,  label: 'Plaza' },
+};
 
 // Tree decoration positions (row, col) for vegetation around the plaza
 const TREE_POSITIONS: { row: number; col: number; variant: number }[] = [
@@ -123,6 +145,9 @@ class GameEngine {
   private particles: Particle[] = [];
   private particleSpawnTimer: number = 0;
   private gameTime: number = 0; // Running game time for animations
+
+  // Celebration burst particles (golden burst when an objective completes)
+  private burstParticles: BurstParticle[] = [];
 
   // Pre-computed building groups for efficient rendering
   private buildingGroups: Map<number, { minRow: number; minCol: number; maxRow: number; maxCol: number }[]> = new Map();
@@ -250,6 +275,19 @@ class GameEngine {
     // Bind input handlers
     this._bindInput();
 
+    // Listen for objective completion events to spawn celebration bursts
+    gameEvents.on('quest:objectiveComplete', (objectiveId: unknown) => {
+      const id = objectiveId as string;
+      const loc = OBJECTIVE_LOCATIONS[id];
+      if (loc) {
+        // Spawn burst at the objective's location in world coords
+        this._spawnCelebrationBurst(
+          loc.col * this.tileSize + this.tileSize / 2,
+          loc.row * this.tileSize + this.tileSize / 2
+        );
+      }
+    });
+
     // Start auto-save
     saveManager.startAutoSave();
 
@@ -262,6 +300,69 @@ class GameEngine {
     // Start game loop
     this.lastTimestamp = performance.now();
     this._gameLoop(this.lastTimestamp);
+  }
+
+  /**
+   * Spawn a golden celebration burst at the given world position.
+   * Used when an objective is completed.
+   */
+  private _spawnCelebrationBurst(worldX: number, worldY: number): void {
+    const colors = ['#FFD700', '#FFA500', '#FFEC8B', '#FFEE00', '#FFC125'];
+    const count = 28;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+      const speed = 60 + Math.random() * 80;
+      this.burstParticles.push({
+        x: worldX,
+        y: worldY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 30, // Slight upward bias
+        life: 0,
+        maxLife: 1.0 + Math.random() * 0.6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 2 + Math.random() * 3,
+        gravity: 80,
+      });
+    }
+  }
+
+  private _updateBurstParticles(dt: number): void {
+    for (let i = this.burstParticles.length - 1; i >= 0; i--) {
+      const p = this.burstParticles[i];
+      p.life += dt;
+      p.vy += p.gravity * dt;     // gravity pulls down
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      // Air resistance
+      p.vx *= 0.96;
+      p.vy *= 0.96;
+      if (p.life >= p.maxLife) {
+        this.burstParticles.splice(i, 1);
+      }
+    }
+  }
+
+  private _renderBurstParticles(ctx: CanvasRenderingContext2D): void {
+    for (const p of this.burstParticles) {
+      const screenX = p.x - this.cameraX;
+      const screenY = p.y - this.cameraY;
+      if (screenX < -20 || screenX > this.viewWidth + 20 || screenY < -20 || screenY > this.viewHeight + 20) continue;
+      const lifeRatio = p.life / p.maxLife;
+      const alpha = Math.max(0, 1 - lifeRatio);
+      // Glow
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, p.size * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Core
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   private resizeCanvas(): void {
@@ -605,6 +706,9 @@ class GameEngine {
     // Update particles
     this._updateParticles(dt);
 
+    // Update burst particles (celebration effect)
+    this._updateBurstParticles(dt);
+
     // Update game state in SaveManager
     saveManager.updateGameState({
       playerPosition: {
@@ -821,11 +925,121 @@ class GameEngine {
     // Render ambient particles (dust motes)
     this._renderParticles(ctx);
 
+    // Render burst particles (celebration effect when objective completes)
+    this._renderBurstParticles(ctx);
+
+    // Render waypoint arrow pointing to next objective
+    this._renderWaypointArrow(ctx);
+
     // Render time-of-day lighting overlay
     this._renderTimeOfDayOverlay(ctx);
 
     // Render vignette effect (dark edges)
     this._renderVignette(ctx);
+  }
+
+  // ==================== WAYPOINT ARROW ====================
+
+  /**
+   * Render a golden arrow at the screen edge pointing toward the next incomplete objective.
+   * Only shown when no dialogue is active and the player isn't standing in the objective zone.
+   */
+  private _renderWaypointArrow(ctx: CanvasRenderingContext2D): void {
+    if (!this.player || this.dialogueActive) return;
+    if (this.chapterPhase === 'intro' || this.chapterPhase === 'complete') return;
+
+    // Find the next incomplete objective
+    const objectivesOrder = ['obj.ch1.follow_tenyo', 'obj.ch1.overhear_gossip', 'obj.ch1.see_ibarra'];
+    const nextObjId = objectivesOrder.find(id => !saveManager.isObjectiveCompleted(id));
+    if (!nextObjId) return;
+
+    const loc = OBJECTIVE_LOCATIONS[nextObjId];
+    if (!loc) return;
+
+    const targetX = loc.col * this.tileSize + this.tileSize / 2;
+    const targetY = loc.row * this.tileSize + this.tileSize / 2;
+
+    // Vector from player to target
+    const dx = targetX - this.player.x;
+    const dy = targetY - this.player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Don't show arrow if very close
+    if (dist < this.tileSize * 2.5) return;
+
+    // Compute target position on screen (may be off-screen)
+    const screenTargetX = targetX - this.cameraX;
+    const screenTargetY = targetY - this.cameraY;
+
+    const cx = this.viewWidth / 2;
+    const cy = this.viewHeight / 2;
+
+    // If the target is on screen, don't show the edge arrow (the indicator is enough)
+    const onScreen = screenTargetX > 40 && screenTargetX < this.viewWidth - 40 &&
+                     screenTargetY > 80 && screenTargetY < this.viewHeight - 80;
+    if (onScreen) return;
+
+    // Direction from center of screen to target
+    const angle = Math.atan2(dy, dx);
+
+    // Place arrow at a fixed radius from screen center, clamped to a margin inside the screen
+    const margin = 80;
+    const maxRadiusX = this.viewWidth / 2 - margin;
+    const maxRadiusY = this.viewHeight / 2 - margin;
+    // Project the direction onto the screen-edge ellipse
+    // Solve for t such that (t*cos(angle), t*sin(angle)) lies on the ellipse (maxRX, maxRY)
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const t = 1 / Math.sqrt((cosA * cosA) / (maxRadiusX * maxRadiusX) + (sinA * sinA) / (maxRadiusY * maxRadiusY));
+    const arrowX = cx + cosA * t;
+    const arrowY = cy + sinA * t;
+
+    // Pulsing effect
+    const pulse = Math.sin(this.gameTime * 4) * 0.15 + 0.85;
+
+    ctx.save();
+    ctx.translate(arrowX, arrowY);
+    ctx.rotate(angle);
+
+    // Outer glow
+    ctx.fillStyle = `rgba(255,215,0,${0.15 * pulse})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 28, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Arrow shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-8, -12);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-8, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Arrow body
+    ctx.fillStyle = `rgba(255,215,0,${pulse})`;
+    ctx.strokeStyle = 'rgba(180,120,0,1)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(15, 0);
+    ctx.lineTo(-10, -10);
+    ctx.lineTo(-6, 0);
+    ctx.lineTo(-10, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Distance label below arrow
+    const distTiles = Math.round(dist / this.tileSize);
+    ctx.font = 'bold 10px "Geist", sans-serif';
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(arrowX - 22, arrowY + 14, 44, 14);
+    ctx.fillStyle = '#FFD700';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${distTiles}m →`, arrowX, arrowY + 24);
   }
 
   // ==================== SKY / BACKGROUND ====================
@@ -1356,7 +1570,8 @@ class GameEngine {
   private _renderBuildingLabels(ctx: CanvasRenderingContext2D): void {
     for (const label of mapData.buildingLabels) {
       const centerX = (label.col + label.width / 2) * this.tileSize - this.cameraX;
-      const topY = label.row * this.tileSize - this.cameraY - 30;
+      // Position labels well above the building (room for roof + cross + awning)
+      const topY = label.row * this.tileSize - this.cameraY - 46;
 
       // Measure text dimensions for panel sizing
       ctx.font = 'bold 13px "Geist", sans-serif';
@@ -1364,47 +1579,59 @@ class GameEngine {
       ctx.font = '10px "Geist", sans-serif';
       const subTextWidth = label.sublabel ? ctx.measureText(label.sublabel).width : 0;
       const maxWidth = Math.max(mainTextWidth, subTextWidth);
-      
+
       // Signage panel background
-      const panelW = maxWidth + 20;
-      const panelH = label.sublabel ? 36 : 24;
+      const panelW = maxWidth + 24;
+      const panelH = label.sublabel ? 36 : 22;
       const panelX = centerX - panelW / 2;
-      const panelY = topY - 4;
-      
+      const panelY = topY - 2;
+
+      // Connecting line from panel to building roof
+      ctx.strokeStyle = 'rgba(139,115,85,0.45)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 2]);
+      ctx.beginPath();
+      ctx.moveTo(centerX, panelY + panelH);
+      ctx.lineTo(centerX, label.row * this.tileSize - this.cameraY - 4);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
       // Panel shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(panelX + 2, panelY + 2, panelW, panelH);
-      
+
       // Panel background (warm parchment color)
       ctx.fillStyle = '#F5E6C8';
       ctx.fillRect(panelX, panelY, panelW, panelH);
-      
+
       // Panel border
       ctx.strokeStyle = '#8B7355';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(panelX, panelY, panelW, panelH);
-      
+
       // Panel inner border (decorative double border)
       ctx.strokeStyle = 'rgba(139,115,85,0.3)';
       ctx.lineWidth = 0.5;
       ctx.strokeRect(panelX + 3, panelY + 3, panelW - 6, panelH - 6);
-      
+
       // Glow effect for important labels
       ctx.fillStyle = 'rgba(255,215,0,0.06)';
       ctx.fillRect(panelX - 4, panelY - 4, panelW + 8, panelH + 8);
-      
+
       // Main label text
       ctx.font = 'bold 13px "Geist", sans-serif';
       ctx.fillStyle = '#3A2A1A';
       ctx.textAlign = 'center';
-      ctx.fillText(label.label, centerX, topY + 10);
-      
-      // Sublabel
+      ctx.textBaseline = 'middle';
       if (label.sublabel) {
+        ctx.fillText(label.label, centerX, topY + 8);
         ctx.font = '10px "Geist", sans-serif';
         ctx.fillStyle = '#6B5A4A';
-        ctx.fillText(label.sublabel, centerX, topY + 24);
+        ctx.fillText(label.sublabel, centerX, topY + 22);
+      } else {
+        ctx.fillText(label.label, centerX, topY + 9);
       }
+      ctx.textBaseline = 'alphabetic';
       
       // Small decorative corner marks
       ctx.fillStyle = '#8B7355';

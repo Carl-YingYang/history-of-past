@@ -38,10 +38,10 @@
         "Walk": { "frames": 6, "frameRate": 8 }
       },
       "size": { "width": 72, "height": 72 },
-      "displayName": "Vendor 1",
+      "displayName": "Aling Nena",
       "placeholder": true,
       "placeholderColor": "#D2691E",
-      "placeholderLabel": "Kitchen staff gossip NPC"
+      "placeholderLabel": "Market vendor (gossip source 1)"
     },
     "kitchen-staff-2": {
       "spritePath": "/sprites/placeholder-npc",
@@ -50,10 +50,10 @@
         "Walk": { "frames": 6, "frameRate": 8 }
       },
       "size": { "width": 72, "height": 72 },
-      "displayName": "Vendor 2",
+      "displayName": "Mang Andres",
       "placeholder": true,
       "placeholderColor": "#CD853F",
-      "placeholderLabel": "Kitchen staff gossip NPC"
+      "placeholderLabel": "Market vendor (gossip source 2)"
     }
   }
 }

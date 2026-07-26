@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useGameStore } from '@/stores/gameStore';
+import { useUIStore } from './UIManager';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,9 @@ import {
 
 export default function SettingsPanel() {
   const { resetGame } = useGameStore();
-  const [isOpen, setIsOpen] = useState(false);
+  const { activePanel, togglePanel } = useUIStore();
+  const isOpen = activePanel === 'settings';
+
   // Initialize from localStorage lazily to avoid effect-based setState
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -46,7 +49,6 @@ export default function SettingsPanel() {
     // Also clear server-side save by sending a reset request
     fetch('/api/save', { method: 'DELETE' }).catch(() => {});
     localStorage.removeItem('noor-save');
-    setIsOpen(false);
     // Reload the page to fully reset game state
     setTimeout(() => window.location.reload(), 500);
   };
@@ -55,22 +57,29 @@ export default function SettingsPanel() {
     <>
       {/* Settings gear button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="absolute top-4 right-[280px] z-20 rounded-lg bg-stone-900/90 border border-amber-400/30 p-2 shadow-lg hover:bg-stone-800/90 transition-colors"
-        title="Settings"
+        onClick={() => togglePanel('settings')}
+        className={`absolute top-4 right-4 z-20 w-10 h-10 rounded-lg border flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
+          isOpen
+            ? 'bg-amber-900/80 border-amber-400/60'
+            : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90'
+        }`}
+        title="Settings (S)"
         aria-label="Open settings"
       >
-        <div className="text-amber-400 font-bold text-xs">⚙️</div>
+        <span className="text-amber-400 text-base">⚙️</span>
       </button>
 
       {/* Settings Panel */}
       {isOpen && (
-        <div className="absolute top-16 right-[280px] z-30 w-72 rounded-xl bg-stone-900/95 border border-amber-400/30 shadow-2xl">
-          <div className="p-3 border-b border-amber-400/20 flex items-center justify-between">
-            <h3 className="text-amber-400 font-bold text-sm">⚙️ Settings</h3>
+        <div className="absolute top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl bg-stone-950/97 border border-amber-400/40 shadow-2xl shadow-amber-950/30 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-3 border-b border-amber-400/20 flex items-center justify-between bg-gradient-to-l from-amber-950/40 to-transparent rounded-t-xl">
+            <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
+              <span className="text-base">⚙️</span> Settings
+            </h3>
             <button
-              onClick={() => setIsOpen(false)}
-              className="text-white/50 hover:text-white text-xs"
+              onClick={() => togglePanel('settings')}
+              className="w-7 h-7 rounded-md hover:bg-stone-800 text-white/60 hover:text-white text-sm flex items-center justify-center"
+              aria-label="Close settings"
             >
               ✕
             </button>
@@ -78,10 +87,12 @@ export default function SettingsPanel() {
 
           <div className="p-4 space-y-4">
             {/* Sound Effects Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-white text-sm font-medium">🔊 Sound Effects</div>
-                <div className="text-white/40 text-xs">UI clicks and notifications</div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-white text-sm font-medium flex items-center gap-2">
+                  <span>🔊</span> Sound Effects
+                </div>
+                <div className="text-white/40 text-xs mt-0.5">UI clicks and notifications</div>
               </div>
               <Switch
                 checked={soundEnabled}
@@ -90,10 +101,12 @@ export default function SettingsPanel() {
             </div>
 
             {/* Background Music Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-white text-sm font-medium">🎵 Background Music</div>
-                <div className="text-white/40 text-xs">Atmospheric music</div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-white text-sm font-medium flex items-center gap-2">
+                  <span>🎵</span> Background Music
+                </div>
+                <div className="text-white/40 text-xs mt-0.5">Atmospheric music</div>
               </div>
               <Switch
                 checked={musicEnabled}
@@ -138,8 +151,28 @@ export default function SettingsPanel() {
 
             {/* About */}
             <div className="border-t border-amber-400/20 pt-3 text-center">
-              <div className="text-amber-400/60 text-xs">Project Noor v0.1</div>
-              <div className="text-white/30 text-xs mt-1">Educational RPG · Noli Me Tangere</div>
+              <div className="text-amber-400/60 text-xs font-semibold">Project Noor v0.2</div>
+              <div className="text-white/30 text-[10px] mt-1">
+                Educational RPG · Noli Me Tangere
+              </div>
+              <div className="text-white/20 text-[10px] mt-1">
+                Built with Next.js · Canvas · Prisma
+              </div>
+            </div>
+
+            {/* Keyboard shortcuts reference */}
+            <div className="border-t border-amber-400/20 pt-3">
+              <div className="text-amber-400/60 text-[10px] uppercase tracking-widest mb-2 font-semibold">
+                Keyboard Shortcuts
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-white/60">
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">C</kbd> Codex</div>
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">J</kbd> Journal</div>
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">M</kbd> Map</div>
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">S</kbd> Settings</div>
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">H</kbd> Help</div>
+                <div><kbd className="px-1 py-0 bg-stone-800 rounded text-amber-400">Esc</kbd> Close</div>
+              </div>
             </div>
           </div>
         </div>

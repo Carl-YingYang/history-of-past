@@ -4,7 +4,12 @@ import { db } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const saveData = await request.json();
-    
+
+    // lastSaveTime is stored as Int (seconds since epoch) to fit SQLite's Int range.
+    // The client sends milliseconds — convert to seconds.
+    const lastSaveTimeMs = saveData.lastSaveTime ?? Date.now();
+    const lastSaveTime = Math.floor(Number(lastSaveTimeMs) / 1000);
+
     // Upsert the save data
     await db.gameSave.upsert({
       where: { playerId: saveData.playerId },
@@ -17,7 +22,7 @@ export async function POST(request: NextRequest) {
         xp: saveData.xp,
         chapterMedals: JSON.stringify(saveData.chapterMedals),
         gameState: JSON.stringify(saveData.gameState),
-        lastSaveTime: saveData.lastSaveTime,
+        lastSaveTime,
       },
       create: {
         playerId: saveData.playerId,
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
         xp: saveData.xp,
         chapterMedals: JSON.stringify(saveData.chapterMedals),
         gameState: JSON.stringify(saveData.gameState),
-        lastSaveTime: saveData.lastSaveTime,
+        lastSaveTime,
       },
     });
 
@@ -53,8 +58,8 @@ export async function GET() {
     }
 
     const save = saves[0];
-    
-    // Deserialize JSON fields
+
+    // Deserialize JSON fields. Convert seconds back to milliseconds for client.
     const saveData = {
       playerId: save.playerId,
       currentChapter: save.currentChapter,
@@ -65,7 +70,7 @@ export async function GET() {
       xp: save.xp,
       chapterMedals: JSON.parse(save.chapterMedals),
       gameState: JSON.parse(save.gameState),
-      lastSaveTime: save.lastSaveTime,
+      lastSaveTime: save.lastSaveTime * 1000,
     };
 
     return NextResponse.json(saveData);

@@ -270,3 +270,146 @@ Stage Summary:
 - Achievement system beyond chapter medals
 - Multiplayer/social features for sharing progress
 - Localization (full Filipino language support)
+
+---
+Task ID: 6
+Agent: cron-review-agent (round 2)
+Task: Comprehensive QA + bug fixes + new features + styling polish
+
+Work Log:
+- Read /home/z/my-project/worklog.md to review prior state (Tasks 1–5)
+- Reviewed dev.log: clean, all 200 responses, no compile errors
+- QA tested game with agent-browser + VLM (glm-5v-turbo) analysis of screenshots
+- Identified critical bugs:
+  1. Z-index layering bug: DialogueBox (z-30) overlapped Codex/Journal/Settings panels (z-30) — opening any panel during dialogue caused visual collision
+  2. Touch controls (Move Down button) were covered by DialogueBox click-catcher at bottom of screen — couldn't move while dialogue was active
+  3. Building labels positioned on building roofline (overlap with roof/cross/awning)
+  4. Prisma save error: "Inconsistent column data: Conversion failed: Value <ms-timestamp> does not fit in an INT column" — POST /api/save returned 500 intermittently
+  5. Multiple panels could be open simultaneously (Codex + Journal + Settings) — cluttered UI
+  6. No modal backdrop — panels looked "pasted on" rather than modal
+  7. "Vendor 1" / "Vendor 2" labels felt generic — broke immersion
+- Designed and implemented UIManager — centralized panel state with single-modal behavior:
+  - At most ONE overlay panel open at a time (opening one closes others)
+  - Modal backdrop dims game world when panel is open (z-40 backdrop, z-50 panel)
+  - Body data-noor-panel-active attribute mirrors state for non-React systems
+- Created GlobalKeyboardShortcuts component:
+  - C: toggle Codex, J: toggle Journal, M: toggle Map, S: toggle Settings, H/?: toggle Help
+  - Esc: close any open panel
+  - Disabled while dialogue is active (preserves Space/Enter for advancing dialogue)
+  - Disabled while typing in input/textarea
+- Refactored all 4 existing panels (Codex, Journal, Settings, Minimap) to use UIManager:
+  - Cleaner styling with amber-950/40 header gradients
+  - Better empty states with icons and helpful text
+  - Tabs (Codex), better legend (Minimap), keyboard shortcuts reference (Settings)
+  - Improved entry cards with line-clamp summaries, related-entry chips
+  - Smooth slide-in-from-top animation on open
+- Created HelpPanel — contextual tutorial overlay (press H or click "?"):
+  - Shows current goal based on chapter phase (changes dynamically as player progresses)
+  - Full controls list with kbd-styled keys
+  - Tips section with 5 helpful hints about dialogue, codex, journal, map, XP
+  - José Rizal quote at bottom for thematic flavor
+- Refactored DialogueBox:
+  - Now hides itself when any overlay panel is open (fixes z-index collision)
+  - Added speaker avatar (procedurally drawn colored circle with emoji icon)
+  - Added per-speaker color theme (Mang Tenyo=orange, Aling Nena=brown, etc.)
+  - Added "Skip text" button visible during typewriter effect
+  - Reduced width and moved to bottom-20 to avoid overlapping HUD bar at bottom-4
+  - Added body data-noor-dialogue-active attribute for cross-system sync
+- Created IntroScreen — title-card overlay on first load:
+  - Atmospheric radial gradient background with floating dust particles
+  - Title "Project Noor" in Georgia serif with golden glow text-shadow
+  - Subtitle, decorative ornaments, narrative intro paragraph
+  - "Begin Journey" button (or "Continue Journey" if save data exists)
+  - Auto-fades out on click or Enter/Space
+  - "Press Enter to begin" hint appears after 4 seconds
+- Updated HUD with chapter progress indicator:
+  - Top-center pill showing "Chapter 1 / 11" with 11 progress dots (current = amber, completed = emerald, future = stone)
+  - Compact bottom-center HUD bar with XP progress, time of day, medal (when earned)
+  - Controls hint moved to bottom-right (was conflicting with dialogue at bottom-center)
+- Refactored TouchControls and InteractButton:
+  - Now sync via MutationObserver on body data-noor-dialogue-active and data-noor-panel-active attributes
+  - Auto-hide (opacity-0, pointer-events-none) while dialogue or panel is active
+  - Cleaner D-pad styling with smaller 11x11 buttons
+  - Pulsing ring on InteractButton
+- Updated page.tsx to mount GlobalKeyboardShortcuts, ModalBackdrop, IntroScreen, HelpPanel
+- Improved QuestTracker with phase label, reward preview, learning goal section
+- Updated characters.json: "Vendor 1" → "Aling Nena", "Vendor 2" → "Mang Andres" (more immersive Filipino names)
+- Updated dialogueData.json speaker names to match
+- Updated DialogueBox SPEAKER_STYLES map for new speaker names with proper emoji avatars
+- Fixed building label positioning in gameEngine.ts:
+  - Moved labels from -30px above building to -46px (clears roof cap + church cross)
+  - Added dashed connecting line from label panel to building roof
+  - Better vertical centering with textBaseline: 'middle'
+  - Reduced panel height for non-sublabel labels (22px instead of 24px)
+- Added objective waypoint arrow to gameEngine:
+  - Golden pulsing arrow at screen edge pointing to next incomplete objective
+  - Only shows when target is off-screen and player is >2.5 tiles away
+  - Includes distance label ("5m →") in meters (tiles)
+  - Arrow positioned on screen-edge ellipse for natural placement
+- Added particle burst effect on objective completion:
+  - 28 golden particles burst from objective location
+  - Particles have gravity, air resistance, fade-out
+  - Glow + core rendering for sparkle effect
+  - Triggered via gameEvents.on('quest:objectiveComplete')
+- Fixed critical Prisma save bug:
+  - Changed schema lastSaveTime from BigInt to Int
+  - API now converts ms-timestamp to seconds (fits in Int until 2038)
+  - GET endpoint converts back to ms for client
+  - Ran db:push to apply schema change
+  - POST /api/save now returns 200 reliably (was returning 500 intermittently)
+- Verified all fixes via agent-browser QA:
+  - Intro screen displays correctly with title and Begin/Continue button
+  - Clicking Continue fades intro and reveals game
+  - Dialogue advances on click, has avatar, has Skip button
+  - Opening Codex hides dialogue and shows modal backdrop
+  - Pressing J while Codex open switches to Journal (Codex closes)
+  - Pressing M while Journal open switches to Map (Journal closes)
+  - Pressing Escape closes any open panel
+  - Pressing H opens Help panel with contextual goal + controls + tips
+  - Touch controls work for movement
+  - Save API returns 200 consistently
+- Lint passes cleanly (0 errors)
+- Dev log shows no errors, all 200 responses
+
+Stage Summary:
+- Fixed 4 critical bugs: z-index layering, touch control blocking, building label position, Prisma save BigInt overflow
+- Added 7 new features: UIManager (single-modal), keyboard shortcuts, IntroScreen, HelpPanel, NPC dialogue avatars, objective waypoint arrow, particle burst on objective completion
+- Improved styling across all panels: smoother animations, better empty states, consistent design language
+- Renamed "Vendor 1/2" to "Aling Nena/Mang Andres" for immersion
+- All UI panels now use centralized state management via useUIStore (Zustand)
+- Game now has a proper title screen first-impression experience
+- Save system is now reliable (no more 500 errors from BigInt overflow)
+
+## Current Project Status
+- Project Noor Chapter 1 is fully built, polished, and production-ready
+- All 9 original deliverables from build prompt are complete
+- 14+ major features now in place: touch controls, sound, journal, expanded codex, minimap, typewriter dialogue, settings panel, UIManager, keyboard shortcuts, intro screen, help panel, NPC avatars, waypoint arrow, particle bursts
+- Save system works reliably with localStorage + server-side Prisma persistence
+- All UI panels follow single-modal pattern with backdrop dimming
+- Game is playable on desktop (keyboard + mouse) and mobile (touch)
+- All lint checks pass; no runtime errors in dev log
+
+## Current Goals (this round, completed)
+- Identified and fixed critical z-index layering bug between DialogueBox and overlay panels
+- Fixed touch controls being blocked by DialogueBox click-catcher
+- Fixed Prisma save error from BigInt/Int type mismatch
+- Added centralized UI state management with single-modal behavior
+- Added keyboard shortcuts for all panels (C/J/M/S/H/Esc)
+- Added atmospheric intro screen with title card and Begin Journey button
+- Added Help panel with contextual goal + controls + tips
+- Added NPC dialogue avatars and skip button
+- Added objective waypoint arrow and particle burst on objective completion
+- Improved building label positioning
+- Renamed generic "Vendor 1/2" to immersive "Aling Nena/Mang Andres"
+
+## Unresolved Issues & Next Steps
+- Waypoint arrow only shows when target is off-screen; could add subtle on-screen indicator too
+- Intro screen still shows "Continue Journey" if any localStorage save exists — could add "New Game" option
+- Sound effects need real user testing for volume/quality
+- Background music could be more sophisticated (currently simple oscillator melody)
+- Chapters 2–11 not yet built (architecture is data-driven and ready)
+- Player character customization not yet implemented
+- Achievement system beyond chapter medals not yet implemented
+- Localization (full Filipino language support) not yet implemented
+- VLM suggested improving atmospheric depth (parallax, foreground elements, weather effects) — could be a future polish round
+- Art style consistency between flat environment tiles and detailed character sprites could be addressed in future art pass

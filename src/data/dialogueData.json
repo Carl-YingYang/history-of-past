@@ -30,22 +30,22 @@
       "questObjectiveId": "obj.ch1.overhear_gossip",
       "lines": [
         {
-          "speaker": "Vendor 1",
+          "speaker": "Aling Nena",
           "text": "Nakita mo ba? Bumalik na si Ginoong Ibarra galing Europa — pitong taon, ha!",
           "translation": "Did you see? Mr. Ibarra has returned from Europe — seven years, huh!"
         },
         {
-          "speaker": "Vendor 2",
+          "speaker": "Mang Andres",
           "text": "Oo, pero nakita mo rin ba ang mukha ni Padre Dámaso kagabi? Parang gustong sabunutan ang bata sa harap ng lahat.",
           "translation": "Yes, but did you also see Padre Dámaso's face last night? Like he wanted to attack the young man right in front of everyone."
         },
         {
-          "speaker": "Vendor 1",
+          "speaker": "Aling Nena",
           "text": "Kawawa naman si Capitán Tiago — nag-host pa ng magandang dinner, tapos ginulo ni Padre Dámaso.",
           "translation": "Poor Capitán Tiago — he even hosted a nice dinner, and then Padre Dámaso ruined it."
         },
         {
-          "speaker": "Vendor 2",
+          "speaker": "Mang Andres",
           "text": "Hindi ba malapit sila dati? Ang Padre Dámaso at ang ama ni Ibarra?",
           "translation": "Weren't they close before? Padre Dámaso and Ibarra's father?"
         },

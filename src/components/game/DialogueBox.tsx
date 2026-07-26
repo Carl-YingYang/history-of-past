@@ -2,8 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/stores/gameStore';
+import { useUIStore } from './UIManager';
 import { gameEvents } from '@/lib/game/eventBus';
 import { soundManager } from '@/lib/game/soundManager';
+
+// Speaker color/avatar configuration
+const SPEAKER_STYLES: Record<string, { color: string; emoji: string; bg: string }> = {
+  'Mang Tenyo':          { color: '#D2691E', emoji: '👴', bg: 'bg-amber-900/60' },
+  'Aling Nena':          { color: '#CD853F', emoji: '👩‍🍳', bg: 'bg-orange-900/60' },
+  'Mang Andres':         { color: '#A0522D', emoji: '🧑‍🍳', bg: 'bg-stone-800/60' },
+  'Narrator':            { color: '#9CA3AF', emoji: '📜', bg: 'bg-stone-900/60' },
+  'Crisóstomo Ibarra':   { color: '#FFD700', emoji: '🎩', bg: 'bg-yellow-900/40' },
+};
+
+function getSpeakerStyle(speaker: string) {
+  return SPEAKER_STYLES[speaker] || { color: '#8B7355', emoji: '🗣️', bg: 'bg-stone-800/60' };
+}
 
 export default function DialogueBox() {
   const {
@@ -13,6 +27,7 @@ export default function DialogueBox() {
     totalLines,
     dialogueId,
   } = useGameStore();
+  const { activePanel } = useUIStore();
 
   const [displayedText, setDisplayedText] = useState('');
   const [displayedTranslation, setDisplayedTranslation] = useState('');
@@ -22,6 +37,18 @@ export default function DialogueBox() {
 
   const isNarrator = currentLine?.speaker === 'Narrator';
   const isLastLine = currentLineIndex >= totalLines - 1;
+
+  // Tag body so keyboard shortcuts pause while dialogue is open
+  useEffect(() => {
+    if (dialogueActive) {
+      document.body.setAttribute('data-noor-dialogue-active', 'true');
+    } else {
+      document.body.removeAttribute('data-noor-dialogue-active');
+    }
+    return () => {
+      document.body.removeAttribute('data-noor-dialogue-active');
+    };
+  }, [dialogueActive]);
 
   // Typewriter effect
   useEffect(() => {
@@ -103,59 +130,99 @@ export default function DialogueBox() {
     gameEvents.emit('dialogue:advance');
   };
 
-  if (!dialogueActive || !currentLine) return null;
+  // Hide dialogue box entirely if an overlay panel is open (Codex/Journal/etc.)
+  if (!dialogueActive || !currentLine || activePanel !== null) return null;
+
+  const speakerStyle = getSpeakerStyle(currentLine.speaker);
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-30" onClick={handleAdvance}>
-      <div className={`rounded-xl p-4 shadow-2xl border-2 max-w-3xl mx-auto transition-all backdrop-blur-sm ${
-        isNarrator
-          ? 'bg-amber-950/95 border-amber-400/50 text-amber-100'
-          : 'bg-stone-950/95 border-stone-500/50 text-white'
-      }`}>
-        {/* Speaker name */}
-        {!isNarrator && (
-          <div className="mb-2 flex items-center gap-2">
-            <span className={`text-sm font-bold px-3 py-1 rounded-full shadow-md ${
-              currentLine.speaker.includes('Tenyo')
-                ? 'bg-amber-700 text-amber-100'
-                : currentLine.speaker.includes('Vendor')
-                  ? 'bg-stone-600 text-stone-100'
-                  : 'bg-emerald-700 text-emerald-100'
-            }`}>
-              {currentLine.speaker}
-            </span>
-            {/* Decorative line */}
-            <div className="flex-1 h-px bg-gradient-to-r from-amber-400/30 to-transparent" />
+    <div
+      className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-[min(680px,calc(100vw-2rem))]"
+      onClick={handleAdvance}
+      role="button"
+      aria-label="Dialogue — click to advance"
+    >
+      <div
+        className={`rounded-xl shadow-2xl border-2 backdrop-blur-md transition-all ${
+          isNarrator
+            ? 'bg-gradient-to-br from-amber-950/95 to-stone-950/95 border-amber-400/50 text-amber-100'
+            : 'bg-stone-950/95 border-stone-600/50 text-white'
+        }`}
+      >
+        <div className="flex gap-3 p-4">
+          {/* Speaker avatar */}
+          <div
+            className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 shadow-inner"
+            style={{
+              backgroundColor: speakerStyle.color + '30',
+              borderColor: speakerStyle.color,
+              boxShadow: `0 0 14px ${speakerStyle.color}40 inset, 0 2px 6px rgba(0,0,0,0.4)`,
+            }}
+          >
+            {isNarrator ? '📜' : speakerStyle.emoji}
           </div>
-        )}
 
-        {/* Dialogue text with typewriter effect */}
-        <div className="text-base leading-relaxed mb-1 min-h-[3em]" style={{ fontFamily: '"Geist", Georgia, serif' }}>
-          {displayedText}
-          {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-0.5 animate-pulse" />}
-        </div>
+          <div className="flex-1 min-w-0">
+            {/* Speaker name */}
+            {!isNarrator && (
+              <div className="mb-1.5 flex items-center gap-2">
+                <span
+                  className="text-xs font-bold px-2.5 py-0.5 rounded-full shadow-md text-white"
+                  style={{ backgroundColor: speakerStyle.color }}
+                >
+                  {currentLine.speaker}
+                </span>
+                {/* Decorative line */}
+                <div className="flex-1 h-px bg-gradient-to-r from-amber-400/40 to-transparent" />
+              </div>
+            )}
 
-        {/* Translation hint (if present) */}
-        {currentLine.translation && (
-          <div className="text-sm text-white/50 italic mt-2 min-h-[1.5em] border-l-2 border-amber-400/30 pl-2">
-            {displayedTranslation && <>📝 {displayedTranslation}</>}
+            {/* Dialogue text with typewriter effect */}
+            <div className="text-base leading-relaxed mb-1 min-h-[3em]" style={{ fontFamily: '"Geist", Georgia, serif' }}>
+              {displayedText}
+              {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-0.5 animate-pulse align-middle" />}
+            </div>
+
+            {/* Translation hint (if present) */}
+            {currentLine.translation && (
+              <div className="text-sm text-white/55 italic mt-2 min-h-[1.5em] border-l-2 border-amber-400/40 pl-2 leading-relaxed">
+                {displayedTranslation && <>📝 {displayedTranslation}</>}
+              </div>
+            )}
+
+            {/* Progress indicator and hint */}
+            <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
+              <div className="flex gap-1">
+                {Array.from({ length: totalLines }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full transition-all ${
+                      i < currentLineIndex ? 'bg-amber-400/60'
+                        : i === currentLineIndex ? 'bg-amber-400 scale-125 shadow shadow-amber-400/50'
+                        : 'bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                {isTyping && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAdvance();
+                    }}
+                    className="text-[10px] text-amber-400/70 hover:text-amber-300 px-2 py-0.5 rounded border border-amber-400/30 hover:border-amber-400/60 hover:bg-amber-950/40 transition-colors"
+                    aria-label="Skip typing"
+                  >
+                    ⏭ Skip text
+                  </button>
+                )}
+                <span className="text-[10px] text-white/50 animate-pulse font-medium">
+                  {isTyping ? '[Click to skip]' : isLastLine ? '[Click to close]' : '[Click to continue]'}
+                </span>
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* Progress indicator and hint */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
-          <div className="flex gap-1">
-            {Array.from({ length: totalLines }).map((_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full transition-all ${
-                i < currentLineIndex ? 'bg-amber-400/50'
-                  : i === currentLineIndex ? 'bg-amber-400 scale-125'
-                  : 'bg-white/20'
-              }`} />
-            ))}
-          </div>
-          <span className="text-xs text-white/40 animate-pulse">
-            {isTyping ? '[Click to skip]' : isLastLine ? '[Click to close]' : '[Click to continue]'}
-          </span>
         </div>
       </div>
     </div>

@@ -1448,3 +1448,184 @@ Priority recommendations for next phase:
 - Consider adding a "Relationship Tracker" showing how much the player has interacted with each NPC
 - Add ambient sound effects (footsteps, market chatter, church bells) to the soundManager
 - Add a "Photo Mode" or screenshot capture feature for sharing exploration moments
+
+---
+Task ID: 3-a
+Agent: quote-library-agent
+Task: Create Rizal Quote Library Panel
+
+Work Log:
+- Read worklog.md for prior context — understood existing panel architecture (UIManager, AboutChapterPanel, DiscoveryLogPanel patterns)
+- Read rizalQuotes.json — 16 quotes with id, text, source, tagalog, category, original fields
+- Read UIManager.tsx — understood PanelId union type, GlobalKeyboardShortcuts, ModalBackdrop patterns
+- Read AboutChapterPanel.tsx — understood panel styling (bg-stone-950/97, panel-ornamental-header, animate-panel-slide-in, custom-scroll-amber, corner-flourish)
+- Read DiscoveryLogPanel.tsx — understood localStorage patterns, search/filter patterns, toggle helper export pattern
+- Read globals.css — verified CSS classes exist: panel-ornamental-header, custom-scroll-amber, corner-flourish, parchment-texture, animate-panel-slide-in, close-btn-styled
+
+Created: /home/z/my-project/src/components/game/RizalQuoteLibrary.tsx
+- Full 'use client' component with useUIStore panel system (panel id: 'quotes')
+- Header: "💡 Rizal Quote Library ✦" with subtitle "Words of wisdom from José Rizal"
+- Sticky header with ornamental styling (panel-ornamental-header class) and close button
+- Category filter tabs: All, Language, Education, Freedom, Youth, Patriotism, Novel with counts
+- Search bar: filters quotes by text, source, original Spanish, and tagalog
+- Quote cards with:
+  - English text (italic, Georgia serif font)
+  - Original Spanish text (if exists) — shown in smaller amber text with "orig." prefix
+  - Source attribution line
+  - Category badge (rounded pill with per-category color scheme)
+  - Favorite toggle (heart ❤️/🤍) — saves to localStorage 'noor-favorite-quotes' as array of indices
+  - Share button (📋 copies text to clipboard)
+  - Heart bounce animation on toggle
+- Stats footer: "X quotes · Y favorites · Z categories"
+- Empty state: When no quotes match search/filter
+- Category pill colors matching spec: Language amber, Education emerald, Freedom sky, Youth pink, Patriotism red, Novel purple
+- Panel position: absolute top-16 left-4 z-50, width 460px, max-w-[calc(100vw-2rem)]
+- Dark parchment background (bg-stone-950/95), golden border accents
+- Custom scrollbar (custom-scroll-amber)
+- corner-flourish class on quote cards
+- Exported toggleRizalQuoteLibrary() helper function
+- Dispatches 'noor:quotes-updated' custom event with { favoritesCount } on favorite toggle
+
+Modified: /home/z/my-project/src/components/game/UIManager.tsx
+- Added 'quotes' to PanelId union type: now includes 'quotes' alongside existing panels
+- Added 'q' keyboard shortcut in GlobalKeyboardShortcuts switch statement
+- Shortcut toggles 'quotes' panel via store.togglePanel('quotes')
+
+Lint: bun run lint — zero errors, clean pass
+Dev server: running normally, no compilation errors
+
+Note: Did NOT modify page.tsx — that will be done in the integration step (per task requirements)
+
+---
+Task ID: 3-b
+Agent: code-agent
+Task: Create NPC Relationship Tracker Panel
+
+Work Log:
+- Created /home/z/my-project/src/components/game/NPCRelationshipPanel.tsx
+  - Full component with 'use client' directive, uses useUIStore panel system (panel id: 'npcs')
+  - NPC_CONFIG defines 5 NPCs: Mang Tenyo, Aling Nena, Mang Andres, Crisóstomo Ibarra, Narrator
+  - Each NPC has emoji, role, gradient (matching DialogueBox SPEAKER_STYLES), color, accent, thresholds
+  - Portrait section: circular gradient background with emoji overlay, name badge, role subtitle
+  - Warmth meter: 5 hearts (🤍/❤️) using thresholds [0,1,2,3,5], animate-sparkle on newest filled heart
+  - Interaction stats: "Talked X times · Last: [relative time]"
+  - Topics discussed: small tags showing dialogueId converted to readable labels
+  - Status indicator: Not yet encountered / Acquainted / Familiar / Trusted with color-coded pills
+  - Summary footer: X NPCs encountered · Y total conversations · Z topics discovered
+  - Interaction tracking: listens to 'dialogue:start' on gameEvents bus, updates localStorage 'noor-npc-interactions'
+  - Dispatches 'noor:npc-interactions-updated' custom event
+  - Cross-references 'noor-stats' (npcsTalkedTo) and 'noor-discovery-log' for status determination
+  - Handles 'kitchen-staff' NPC id mapping to both Aling Nena and Mang Andres
+  - Exported toggleNPCRelationshipPanel() helper function
+  - Panel layout: absolute top-16 left-4 z-50, width 480px, max-w-[calc(100vw-2rem)], max-h-[80vh]
+  - Dark parchment background, golden border accents, custom-scroll-amber scrollbar
+  - Sticky header with close button, ornamental header style
+
+- Edited /home/z/my-project/src/components/game/UIManager.tsx
+  - Added 'npcs' to PanelId union type
+  - Added keyboard shortcut 'T' to toggle NPC Relationship panel in GlobalKeyboardShortcuts
+
+- Ran `bun run lint` — zero errors confirmed
+
+Stage Summary:
+- NPCRelationshipPanel fully implemented following existing panel patterns (AboutChapterPanel, DiscoveryLogPanel)
+- UIManager updated with 'npcs' panel id and 'T' keyboard shortcut
+- All TypeScript types correct, lint passes cleanly
+- page.tsx NOT modified (per instructions — integration step will handle that)
+
+---
+Task ID: Round-8
+Agent: main-agent
+Task: QA assessment, styling enhancements, and major new feature additions for Project Noor (Round 8)
+
+Work Log:
+- Reviewed /home/z/my-project/worklog.md to understand prior development state (Round 7 complete, v0.3 stable)
+- Ran agent-browser QA at desktop (1440x900) and mobile (414x896) viewports
+- Verified zero console errors, zero lint errors, all panels functional
+- Confirmed all existing features working: intro screen, dialogue, codex, glossary, achievements, story log, minimap, settings, about chapter, discovery log, field notes, save indicator, cultural fact toast
+- No bugs found during QA testing
+
+**New Features Added:**
+
+1. **Rizal Quote Library Panel** (RizalQuoteLibrary.tsx — new file):
+   - Browse all 16 Rizal quotes with full search and category filtering
+   - 7 category tabs: All, Language, Education, Freedom, Youth, Patriotism, Novel (with per-category counts)
+   - Search bar filtering by text, source, original Spanish, and Tagalog
+   - Quote cards with: English text (italic Georgia serif), original Spanish (if exists), source attribution, color-coded category pills
+   - Favorites system: localStorage 'noor-favorite-quotes', ❤️/🤍 toggle with bounce animation, live count in toolbar
+   - Share/copy button: copies quote text to clipboard
+   - Stats footer: "X quotes · Y favorites · Z categories"
+   - Keyboard shortcut: Q → togglePanel('quotes')
+   - Dispatches 'noor:quotes-updated' custom event with { favoritesCount }
+
+2. **NPC Relationship Tracker Panel** (NPCRelationshipPanel.tsx — new file):
+   - 5 NPC entries: Mang Tenyo 👴, Aling Nena 👩‍🍳, Mang Andres 🧑‍🍳, Crisóstomo Ibarra 🎩, Narrator 📜
+   - Circular gradient portraits matching DialogueBox SPEAKER_STYLES
+   - Warmth meter: 5 hearts (🤍/❤️) based on thresholds [0,1,2,3,5]
+   - Status badges: Not Encountered / Acquainted / Familiar / Trusted (color-coded)
+   - Interaction stats: "Talked X times · Last: [relative time]"
+   - Topics discussed: dialogueId → readable label format
+   - Kitchen-staff NPC maps to both Aling Nena and Mang Andres
+   - Tracks interactions via gameEvents.on('dialogue:start') → localStorage 'noor-npc-interactions'
+   - Summary footer: "X NPCs encountered · Y conversations · Z topics"
+   - Keyboard shortcut: T → togglePanel('npcs')
+   - Dispatches 'noor:npc-interactions-updated' custom event
+
+**Integration work:**
+
+3. **UIManager.tsx** — Updated PanelId union to include 'quotes' | 'npcs', added Q and T keyboard shortcuts
+
+4. **page.tsx** — Imported and rendered RizalQuoteLibrary and NPCRelationshipPanel alongside other panels
+
+5. **Toolbar.tsx** — Major visual and functional enhancements:
+   - Added 2 new buttons: 💡 Quotes (with favorites counter) and 👥 People
+   - Total 14 toolbar buttons now (12 main + Discovery Log + Field Notes)
+   - Enhanced button styling: gradient backgrounds on active, hover transitions with duration-200, active:scale-95 feedback
+   - Active button glow: bg-gradient-to-br from-amber-900/90 to-amber-950/80 with ring-1 ring-amber-400/30
+   - Hover effects: gradient backgrounds, text color transitions, icon scale animations
+   - Favorites count reactive via 'noor:quotes-updated' event listener
+   - Footer keyboard shortcut display updated to include Q/T
+
+6. **globals.css** — 8 new CSS animations + enhanced scrollbar styles:
+   - @keyframes toolbar-glow: subtle pulsing amber glow for active toolbar buttons
+   - @keyframes heart-bounce: scale bounce animation for favorite toggle
+   - @keyframes warmth-shimmer: brightness/shadow shimmer for NPC warmth hearts
+   - @keyframes progress-ring-fill: circular fill animation for SVG progress
+   - @keyframes panel-spring-in: spring overshoot panel entrance animation
+   - @keyframes fade-in-up: generic entrance animation
+   - .stagger-children: child stagger with 0.08s delays (up to 12 children)
+   - @keyframes typewriter-glow: subtle text shadow pulse during typing
+   - .custom-scroll-gold: thin 6px scrollbar with golden gradient (for Quote Library)
+   - .animate-toolbar-glow, .animate-heart-bounce, .animate-warmth-shimmer, .animate-panel-spring-in, .animate-fade-in-up, .animate-typewriter-glow utility classes
+
+**QA verification (agent-browser):**
+- ✅ All 14 toolbar buttons visible and functional (desktop 1440x900)
+- ✅ Rizal Quote Library panel opens with 16 quotes and all 7 category filters
+- ✅ NPC Relationship panel opens with 5 NPC entries and warmth meters
+- ✅ Mobile responsive at 414x896 — toolbar buttons wrap correctly
+- ✅ Zero console errors, zero lint errors
+- ✅ Dev server running cleanly (200 OK on all routes, all saves)
+- ✅ Save system working correctly (auto-save, manual save both functional)
+
+Stage Summary:
+- **0 bugs found**: Project was completely stable before and after changes
+- **2 new features added**: Rizal Quote Library panel, NPC Relationship Tracker panel
+- **2 new files created**: RizalQuoteLibrary.tsx, NPCRelationshipPanel.tsx
+- **4 existing files modified**: UIManager.tsx, page.tsx, Toolbar.tsx, globals.css
+- **2 new keyboard shortcuts**: Q (Quote Library), T (People/NPCs)
+- **Build version updated to v0.4** (new features added)
+- Project stable with zero lint errors, zero runtime errors, QA verified via agent-browser at desktop and mobile viewports
+
+Unresolved issues or risks:
+- The NPC panel 'dialogue:start' event listener may need adjustment — currently the gameEvents.emit('dialogue:start', ...) passes a data object with { dialogueId, line, lineIndex, totalLines }, and the NPC panel's handler needs to correctly extract the speaker name and dialogueId from this payload format. The handler currently handles both string and object patterns.
+- The AchievementToast component hasn't been visually verified firing in a real browser session (would require triggering an achievement unlock via movement)
+- Future chapters (2-11) still not implemented — only Chapter 1 exists
+- No ambient sound effects yet (soundManager is in place but no audio assets loaded)
+
+Priority recommendations for next phase:
+- Implement Chapter 2 storyline and map (Ibarra's return, the school project, the excavation)
+- Add ambient sound effects (footsteps, market chatter, church bells) to the soundManager
+- Add a "Chapter Select" or "Recap" feature for returning players
+- Consider adding more NPC dialogue trees for a more living world
+- Add visual indicators on the minimap for undiscovered locations (silhouettes/question marks)
+- Add a "Relationship Depth" system that unlocks special dialogue lines for trusted NPCs

@@ -83,6 +83,8 @@ export default function SettingsPanel() {
     { key: 'L', desc: 'Story Log' },
     { key: 'M', desc: 'Map' },
     { key: 'B', desc: 'About Chapter' },
+    { key: 'Q', desc: 'Quote Library' },
+    { key: 'T', desc: 'People / NPCs' },
     { key: 'D', desc: 'Discovery Log' },
     { key: 'N', desc: 'Field Notes' },
     { key: 'S', desc: 'Settings' },
@@ -232,7 +234,7 @@ export default function SettingsPanel() {
         {/* ── About ── */}
         <section className="border-t border-amber-400/20 pt-3">
           <div className="text-center">
-            <div className="text-amber-400/80 text-sm font-bold" style={{ fontFamily: 'Georgia, serif' }}>Project Noor v0.3</div>
+            <div className="text-amber-400/80 text-sm font-bold" style={{ fontFamily: 'Georgia, serif' }}>Project Noor v0.4</div>
             <div className="text-white/40 text-[10px] mt-1 italic">
               Educational RPG · Noli Me Tangere
             </div>

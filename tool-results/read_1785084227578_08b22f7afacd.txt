@@ -1,0 +1,2002 @@
+     1→// GameEngine - Core game loop, Canvas rendering, input handling, and scene management
+     2→// Pokémon-style top-down 2D RPG engine for Project Noor
+     3→// Enhanced rendering with atmospheric effects, detailed tiles, and visual polish
+     4→
+     5→import { gameEvents } from './eventBus';
+     6→import { spriteLoader } from './spriteLoader';
+     7→import { saveManager } from './saveManager';
+     8→import mapData from '@/data/mapData.json';
+     9→import dialogueData from '@/data/dialogueData.json';
+    10→import characterData from '@/data/characters.json';
+    11→
+    12→// Direction constants
+    13→const DIRECTIONS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'] as const;
+    14→type Direction = typeof DIRECTIONS[number];
+    15→
+    16→interface Entity {
+    17→  id: string;
+    18→  x: number;
+    19→  y: number;
+    20→  direction: Direction;
+    21→  characterKey: string;
+    22→  isMoving: boolean;
+    23→  animationFrame: number;
+    24→  animationTimer: number;
+    25→  speed: number;
+    26→  visible: boolean;
+    27→  isPlayer: boolean;
+    28→  dialogueTriggered: boolean;
+    29→  appearsAfterObjective?: string;
+    30→}
+    31→
+    32→interface TriggerZone {
+    33→  id: string;
+    34→  type: string;
+    35→  npcId?: string;
+    36→  row: number;
+    37→  col: number;
+    38→  width: number;
+    39→  height: number;
+    40→  radius: number;
+    41→  requiresObjective?: string;
+    42→  triggersTimeTransition?: boolean;
+    43→  dialogueId?: string;
+    44→  triggered: boolean;
+    45→}
+    46→
+    47→interface Particle {
+    48→  x: number;
+    49→  y: number;
+    50→  vx: number;
+    51→  vy: number;
+    52→  alpha: number;
+    53→  size: number;
+    54→  life: number;
+    55→  maxLife: number;
+    56→  color?: string;       // Optional color override (for celebration bursts)
+    57→  gravity?: number;     // Optional gravity (for celebration bursts)
+    58→}
+    59→
+    60→interface Firefly {
+    61→  x: number;            // World coordinates
+    62→  y: number;
+    63→  baseX: number;        // Anchor point for sinusoidal drift
+    64→  baseY: number;
+    65→  phase: number;        // Phase offset for blinking
+    66→  blinkSpeed: number;   // How fast the firefly blinks
+    67→  driftPhase: number;   // Phase offset for drift motion
+    68→  brightness: number;   // Current 0..1 brightness
+    69→}
+    70→
+    71→interface DriftLeaf {
+    72→  x: number;
+    73→  y: number;
+    74→  vx: number;
+    75→  vy: number;
+    76→  rotation: number;
+    77→  rotationSpeed: number;
+    78→  size: number;
+    79→  color: string;
+    80→  alpha: number;
+    81→  life: number;
+    82→  maxLife: number;
+    83→}
+    84→
+    85→interface BurstParticle {
+    86→  x: number;       // world coordinates
+    87→  y: number;
+    88→  vx: number;
+    89→  vy: number;
+    90→  life: number;
+    91→  maxLife: number;
+    92→  color: string;
+    93→  size: number;
+    94→  gravity: number;
+    95→}
+    96→
+    97→// Map from objective ID → world position where it triggers
+    98→// Used by the waypoint arrow to point toward the next objective.
+    99→const OBJECTIVE_LOCATIONS: Record<string, { row: number; col: number; label: string }> = {
+   100→  'obj.ch1.follow_tenyo':    { row: 14, col: 8,  label: 'Mang Tenyo' },
+   101→  'obj.ch1.overhear_gossip': { row: 9,  col: 4,  label: 'Market' },
+   102→  'obj.ch1.see_ibarra':      { row: 7,  col: 9,  label: 'Plaza' },
+   103→};
+   104→
+   105→// Tree decoration positions (row, col) for vegetation around the plaza
+   106→const TREE_POSITIONS: { row: number; col: number; variant: number }[] = [
+   107→  { row: 1, col: 1, variant: 0 },
+   108→  { row: 1, col: 8, variant: 1 },
+   109→  { row: 1, col: 18, variant: 2 },
+   110→  { row: 5, col: 0, variant: 1 },
+   111→  { row: 5, col: 12, variant: 0 },
+   112→  { row: 7, col: 0, variant: 2 },
+   113→  { row: 7, col: 12, variant: 1 },
+   114→  { row: 9, col: 0, variant: 0 },
+   115→  { row: 9, col: 12, variant: 2 },
+   116→  { row: 12, col: 0, variant: 1 },
+   117→  { row: 12, col: 12, variant: 0 },
+   118→  { row: 13, col: 8, variant: 2 },
+   119→  { row: 14, col: 0, variant: 1 },
+   120→  { row: 14, col: 18, variant: 0 },
+   121→  { row: 0, col: 5, variant: 2 },
+   122→  { row: 0, col: 14, variant: 1 },
+   123→  { row: 15, col: 5, variant: 0 },
+   124→  { row: 15, col: 14, variant: 2 },
+   125→];
+   126→
+   127→// Deterministic hash for tile decoration patterns
+   128→function tileHash(row: number, col: number, seed: number = 0): number {
+   129→  let h = seed + row * 374761393 + col * 668265263;
+   130→  h = (h ^ (h >> 13)) * 1274126177;
+   131→  h = h ^ (h >> 16);
+   132→  return (h & 0x7FFFFFFF) / 0x7FFFFFFF; // Returns 0..1
+   133→}
+   134→
+   135→class GameEngine {
+   136→  private canvas: HTMLCanvasElement | null = null;
+   137→  private ctx: CanvasRenderingContext2D | null = null;
+   138→  private animationFrameId: number | null = null;
+   139→  private lastTimestamp: number = 0;
+   140→  private tileSize: number = 48;
+   141→  private cameraX: number = 0;
+   142→  private cameraY: number = 0;
+   143→
+   144→  // Entities
+   145→  private entities: Map<string, Entity> = new Map();
+   146→  private player: Entity | null = null;
+   147→
+   148→  // Input state
+   149→  private keys: Set<string> = new Set();
+   150→
+   151→  // Game state
+   152→  private chapterPhase: string = 'intro';
+   153→  private introShown: boolean = false;
+   154→  private triggerZones: TriggerZone[] = [];
+   155→  private dialogueActive: boolean = false;
+   156→  private currentDialogueId: string | null = null;
+   157→  private currentDialogueLineIndex: number = 0;
+   158→  private pendingDialogue: string | null = null;
+   159→  private timeOfDay: 'afternoon' | 'morning' = 'afternoon';
+   160→  private ibarraAppeared: boolean = false;
+   161→
+   162→  // Canvas dimensions
+   163→  private viewWidth: number = 960;
+   164→  private viewHeight: number = 768;
+   165→
+   166→  // NPC interaction
+   167→  private interactCooldown: number = 0;
+   168→
+   169→  // Exploration stats — tracks tiles visited and NPCs talked to.
+   170→  // Persisted to localStorage under 'noor-stats' so the QuestTracker can show
+   171→  // a small "exploration" stat footer.
+   172→  private visitedTiles: Set<string> = new Set();
+   173→  private npcsTalkedTo: Set<string> = new Set();
+   174→  private statsFlushTimer: number = 0;
+   175→
+   176→  // Atmosphere: ambient particles (dust motes)
+   177→  private particles: Particle[] = [];
+   178→  private particleSpawnTimer: number = 0;
+   179→  private gameTime: number = 0; // Running game time for animations
+   180→
+   181→  // Atmosphere: fireflies (evening/afternoon glowing insects) - persistent, no lifecycle
+   182→  private fireflies: Firefly[] = [];
+   183→  private fireflySpawnTimer: number = 0;
+   184→
+   185→  // Atmosphere: drifting leaves (occasional foliage blowing across the scene)
+   186→  private driftLeaves: DriftLeaf[] = [];
+   187→  private leafSpawnTimer: number = 0;
+   188→
+   189→  // Celebration burst particles (golden burst when an objective completes)
+   190→  private burstParticles: BurstParticle[] = [];
+   191→
+   192→  // Pre-computed building groups for efficient rendering
+   193→  private buildingGroups: Map<number, { minRow: number; minCol: number; maxRow: number; maxCol: number }[]> = new Map();
+   194→
+   195→  constructor() {
+   196→    // Initialize trigger zones from map data
+   197→    this.triggerZones = mapData.triggerZones.map(z => ({ ...z, triggered: false }));
+   198→    
+   199→    // Pre-compute building groups (contiguous regions of same tile type)
+   200→    this._computeBuildingGroups();
+   201→  }
+   202→
+   203→  private _computeBuildingGroups(): void {
+   204→    // For each building tile type, find contiguous rectangular groups
+   205→    const buildingTypes = [5, 6]; // Church and Market building types
+   206→    for (const tileType of buildingTypes) {
+   207→      const visited: Set<string> = new Set();
+   208→      const groups: { minRow: number; minCol: number; maxRow: number; maxCol: number }[] = [];
+   209→      
+   210→      for (let row = 0; row < mapData.height; row++) {
+   211→        for (let col = 0; col < mapData.width; col++) {
+   212→          const key = `${row},${col}`;
+   213→          if (visited.has(key)) continue;
+   214→          if (mapData.layers.buildings[row]?.[col] !== tileType) continue;
+   215→          
+   216→          // Find bounding box of contiguous group
+   217→          let minRow = row, maxRow = row, minCol = col, maxCol = col;
+   218→          const toVisit: [number, number][] = [[row, col]];
+   219→          
+   220→          while (toVisit.length > 0) {
+   221→            const [r, c] = toVisit.pop()!;
+   222→            const k = `${r},${c}`;
+   223→            if (visited.has(k)) continue;
+   224→            if (mapData.layers.buildings[r]?.[c] !== tileType) continue;
+   225→            visited.add(k);
+   226→            minRow = Math.min(minRow, r);
+   227→            maxRow = Math.max(maxRow, r);
+   228→            minCol = Math.min(minCol, c);
+   229→            maxCol = Math.max(maxCol, c);
+   230→            toVisit.push([r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]);
+   231→          }
+   232→          
+   233→          groups.push({ minRow, minCol, maxRow, maxCol });
+   234→        }
+   235→      }
+   236→      
+   237→      this.buildingGroups.set(tileType, groups);
+   238→    }
+   239→  }
+   240→
+   241→  async init(canvas: HTMLCanvasElement): Promise<void> {
+   242→    this.canvas = canvas;
+   243→    this.ctx = canvas.getContext('2d')!;
+   244→    
+   245→    // Set canvas size
+   246→    this.resizeCanvas();
+   247→    window.addEventListener('resize', () => this.resizeCanvas());
+   248→
+   249→    // Load all required sprites
+   250→    const charsToLoad = ['student', 'ibara', 'mang-tenyo', 'kitchen-staff-1', 'kitchen-staff-2'];
+   251→    for (const charId of charsToLoad) {
+   252→      await spriteLoader.loadCharacter(charId);
+   253→    }
+   254→
+   255→    // Create player entity
+   256→    const spawn = mapData.playerSpawn;
+   257→    this.player = {
+   258→      id: 'player',
+   259→      x: spawn.col * this.tileSize + this.tileSize / 2,
+   260→      y: spawn.row * this.tileSize + this.tileSize / 2,
+   261→      direction: 'north',
+   262→      characterKey: 'student',
+   263→      isMoving: false,
+   264→      animationFrame: 0,
+   265→      animationTimer: 0,
+   266→      speed: 120,
+   267→      visible: true,
+   268→      isPlayer: true,
+   269→      dialogueTriggered: false,
+   270→    };
+   271→    this.entities.set('player', this.player);
+   272→
+   273→    // Create NPC entities
+   274→    const npcPositions = mapData.npcPositions as Record<string, { row: number; col: number; direction: string; appearsAfter?: string }>;
+   275→    for (const [npcId, pos] of Object.entries(npcPositions)) {
+   276→      const entity: Entity = {
+   277→        id: npcId,
+   278→        x: pos.col * this.tileSize + this.tileSize / 2,
+   279→        y: pos.row * this.tileSize + this.tileSize / 2,
+   280→        direction: pos.direction as Direction,
+   281→        characterKey: npcId,
+   282→        isMoving: false,
+   283→        animationFrame: 0,
+   284→        animationTimer: 0,
+   285→        speed: 0,
+   286→        visible: !pos.appearsAfter || saveManager.isObjectiveCompleted(pos.appearsAfter),
+   287→        isPlayer: false,
+   288→        dialogueTriggered: false,
+   289→        appearsAfterObjective: pos.appearsAfter,
+   290→      };
+   291→      this.entities.set(npcId, entity);
+   292→    }
+   293→
+   294→    // Load saved progress
+   295→    await saveManager.loadProgress();
+   296→    const gameState = saveManager.getGameState();
+   297→    this.chapterPhase = gameState.chapterPhase;
+   298→    this.timeOfDay = gameState.timeOfDay;
+   299→    
+   300→    if (this.chapterPhase !== 'intro') {
+   301→      this.introShown = true;
+   302→    }
+   303→
+   304→    // Update entity visibility based on completed objectives
+   305→    this._updateEntityVisibility();
+   306→
+   307→    // Mark already-triggered zones
+   308→    this.triggerZones.forEach(zone => {
+   309→      if (zone.requiresObjective && saveManager.isObjectiveCompleted(zone.requiresObjective)) {
+   310→        // The prerequisite is done, but this zone itself may not have been triggered yet
+   311→        // Only mark as triggered if the objective THIS zone completes is also done
+   312→      }
+   313→    });
+   314→
+   315→    // Bind input handlers
+   316→    this._bindInput();
+   317→
+   318→    // Listen for objective completion events to spawn celebration bursts
+   319→    gameEvents.on('quest:objectiveComplete', (objectiveId: unknown) => {
+   320→      const id = objectiveId as string;
+   321→      const loc = OBJECTIVE_LOCATIONS[id];
+   322→      if (loc) {
+   323→        // Spawn burst at the objective's location in world coords
+   324→        this._spawnCelebrationBurst(
+   325→          loc.col * this.tileSize + this.tileSize / 2,
+   326→          loc.row * this.tileSize + this.tileSize / 2
+   327→        );
+   328→      }
+   329→    });
+   330→
+   331→    // Start auto-save
+   332→    saveManager.startAutoSave();
+   333→
+   334→    // Emit game ready
+   335→    gameEvents.emit('game:ready');
+   336→
+   337→    // Initialize some particles
+   338→    this._initParticles();
+   339→
+   340→    // Initialize fireflies (persistent ambient atmosphere)
+   341→    this._initFireflies();
+   342→
+   343→    // Start game loop
+   344→    this.lastTimestamp = performance.now();
+   345→    this._gameLoop(this.lastTimestamp);
+   346→  }
+   347→
+   348→  /**
+   349→   * Spawn a golden celebration burst at the given world position.
+   350→   * Used when an objective is completed.
+   351→   */
+   352→  private _spawnCelebrationBurst(worldX: number, worldY: number): void {
+   353→    const colors = ['#FFD700', '#FFA500', '#FFEC8B', '#FFEE00', '#FFC125'];
+   354→    const count = 28;
+   355→    for (let i = 0; i < count; i++) {
+   356→      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+   357→      const speed = 60 + Math.random() * 80;
+   358→      this.burstParticles.push({
+   359→        x: worldX,
+   360→        y: worldY,
+   361→        vx: Math.cos(angle) * speed,
+   362→        vy: Math.sin(angle) * speed - 30, // Slight upward bias
+   363→        life: 0,
+   364→        maxLife: 1.0 + Math.random() * 0.6,
+   365→        color: colors[Math.floor(Math.random() * colors.length)],
+   366→        size: 2 + Math.random() * 3,
+   367→        gravity: 80,
+   368→      });
+   369→    }
+   370→  }
+   371→
+   372→  private _updateBurstParticles(dt: number): void {
+   373→    for (let i = this.burstParticles.length - 1; i >= 0; i--) {
+   374→      const p = this.burstParticles[i];
+   375→      p.life += dt;
+   376→      p.vy += p.gravity * dt;     // gravity pulls down
+   377→      p.x += p.vx * dt;
+   378→      p.y += p.vy * dt;
+   379→      // Air resistance
+   380→      p.vx *= 0.96;
+   381→      p.vy *= 0.96;
+   382→      if (p.life >= p.maxLife) {
+   383→        this.burstParticles.splice(i, 1);
+   384→      }
+   385→    }
+   386→  }
+   387→
+   388→  private _renderBurstParticles(ctx: CanvasRenderingContext2D): void {
+   389→    for (const p of this.burstParticles) {
+   390→      const screenX = p.x - this.cameraX;
+   391→      const screenY = p.y - this.cameraY;
+   392→      if (screenX < -20 || screenX > this.viewWidth + 20 || screenY < -20 || screenY > this.viewHeight + 20) continue;
+   393→      const lifeRatio = p.life / p.maxLife;
+   394→      const alpha = Math.max(0, 1 - lifeRatio);
+   395→      // Glow
+   396→      ctx.globalAlpha = alpha * 0.4;
+   397→      ctx.fillStyle = p.color;
+   398→      ctx.beginPath();
+   399→      ctx.arc(screenX, screenY, p.size * 2.5, 0, Math.PI * 2);
+   400→      ctx.fill();
+   401→      // Core
+   402→      ctx.globalAlpha = alpha;
+   403→      ctx.fillStyle = p.color;
+   404→      ctx.beginPath();
+   405→      ctx.arc(screenX, screenY, p.size, 0, Math.PI * 2);
+   406→      ctx.fill();
+   407→    }
+   408→    ctx.globalAlpha = 1;
+   409→  }
+   410→
+   411→  private resizeCanvas(): void {
+   412→    if (!this.canvas) return;
+   413→    const container = this.canvas.parentElement;
+   414→    if (container) {
+   415→      this.viewWidth = container.clientWidth;
+   416→      this.viewHeight = container.clientHeight;
+   417→    }
+   418→    this.canvas.width = this.viewWidth;
+   419→    this.canvas.height = this.viewHeight;
+   420→  }
+   421→
+   422→  private _bindInput(): void {
+   423→    window.addEventListener('keydown', (e) => {
+   424→      this.keys.add(e.key.toLowerCase());
+   425→      // Space/Enter for NPC interaction
+   426→      if (e.key === ' ' || e.key === 'Enter') {
+   427→        this._handleInteract();
+   428→      }
+   429→    });
+   430→    window.addEventListener('keyup', (e) => {
+   431→      this.keys.delete(e.key.toLowerCase());
+   432→    });
+   433→  }
+   434→
+   435→  // Public methods for touch/mobile controls
+   436→  setMoveDirection(direction: 'up' | 'down' | 'left' | 'right' | null): void {
+   437→    if (direction === null) {
+   438→      this.keys.delete('w');
+   439→      this.keys.delete('s');
+   440→      this.keys.delete('a');
+   441→      this.keys.delete('d');
+   442→      this.keys.delete('arrowup');
+   443→      this.keys.delete('arrowdown');
+   444→      this.keys.delete('arrowleft');
+   445→      this.keys.delete('arrowright');
+   446→    } else {
+   447→      switch (direction) {
+   448→        case 'up': this.keys.add('w'); this.keys.delete('s'); this.keys.delete('a'); this.keys.delete('d'); break;
+   449→        case 'down': this.keys.add('s'); this.keys.delete('w'); this.keys.delete('a'); this.keys.delete('d'); break;
+   450→        case 'left': this.keys.add('a'); this.keys.delete('d'); this.keys.delete('w'); this.keys.delete('s'); break;
+   451→        case 'right': this.keys.add('d'); this.keys.delete('a'); this.keys.delete('w'); this.keys.delete('s'); break;
+   452→      }
+   453→    }
+   454→  }
+   455→
+   456→  triggerInteract(): void {
+   457→    this._handleInteract();
+   458→  }
+   459→
+   460→  private _handleInteract(): void {
+   461→    if (this.dialogueActive) return;
+   462→    if (this.interactCooldown > 0) return;
+   463→    
+   464→    // Check if player is near an NPC they can talk to
+   465→    if (!this.player) return;
+   466→
+   467→    for (const [npcId, npc] of this.entities) {
+   468→      if (npc.isPlayer || !npc.visible) continue;
+   469→      
+   470→      const dist = this._distanceBetween(this.player, npc);
+   471→      if (dist < this.tileSize * 2) {
+   472→        this.interactCooldown = 500;
+   473→        // Track NPC interaction for exploration stats
+   474→        this.npcsTalkedTo.add(npcId);
+   475→        
+   476→        // Determine which dialogue to trigger
+   477→        if (npcId === 'mang-tenyo' && !saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
+   478→          this._startDialogue('mang-tenyo-first');
+   479→          return;
+   480→        }
+   481→        // Mang Tenyo can be talked to again — different dialogue based on progress
+   482→        if (npcId === 'mang-tenyo' && saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
+   483→          // If gossip objective completed, give more insightful dialogue
+   484→          if (saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+   485→            this._startDialogue('mang-tenyo-after-gossip');
+   486→          } else {
+   487→            this._startDialogue('mang-tenyo-repeat');
+   488→          }
+   489→          return;
+   490→        }
+   491→      }
+   492→    }
+   493→  }
+   494→
+   495→  private _distanceBetween(a: Entity, b: Entity): number {
+   496→    const dx = a.x - b.x;
+   497→    const dy = a.y - b.y;
+   498→    return Math.sqrt(dx * dx + dy * dy);
+   499→  }
+   500→
+   501→  private _startDialogue(dialogueId: string): void {
+   502→    const dialogue = dialogueData.dialogues[dialogueId as keyof typeof dialogueData.dialogues];
+   503→    if (!dialogue) {
+   504→      console.warn(`Dialogue not found: ${dialogueId}`);
+   505→      return;
+   506→    }
+   507→
+   508→    this.dialogueActive = true;
+   509→    this.currentDialogueId = dialogueId;
+   510→    this.currentDialogueLineIndex = 0;
+   511→
+   512→    gameEvents.emit('dialogue:start', {
+   513→      dialogueId,
+   514→      line: dialogue.lines[0],
+   515→      lineIndex: 0,
+   516→      totalLines: dialogue.lines.length,
+   517→    });
+   518→  }
+   519→
+   520→  advanceDialogue(): void {
+   521→    if (!this.currentDialogueId) return;
+   522→    
+   523→    const dialogue = dialogueData.dialogues[this.currentDialogueId as keyof typeof dialogueData.dialogues];
+   524→    if (!dialogue) return;
+   525→
+   526→    this.currentDialogueLineIndex++;
+   527→
+   528→    if (this.currentDialogueLineIndex >= dialogue.lines.length) {
+   529→      // Dialogue complete
+   530→      this._endDialogue(dialogue);
+   531→      return;
+   532→    }
+   533→
+   534→    const line = dialogue.lines[this.currentDialogueLineIndex];
+   535→    
+   536→    // Check for time transition
+   537→    if (line.isTimeTransition) {
+   538→      this.timeOfDay = 'morning';
+   539→      this.chapterPhase = 'ibarra-sighting';
+   540→      saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   541→      gameEvents.emit('time:transition', 'morning');
+   542→    }
+   543→
+   544→    // Check for Ibarra sighting
+   545→    if (line.isIbarraSighting) {
+   546→      this.ibarraAppeared = true;
+   547→      // Show Ibarra NPC
+   548→      const ibaraEntity = this.entities.get('ibara');
+   549→      if (ibaraEntity) {
+   550→        ibaraEntity.visible = true;
+   551→      }
+   552→    }
+   553→
+   554→    gameEvents.emit('dialogue:line', {
+   555→      dialogueId: this.currentDialogueId,
+   556→      line,
+   557→      lineIndex: this.currentDialogueLineIndex,
+   558→      totalLines: dialogue.lines.length,
+   559→    });
+   560→  }
+   561→
+   562→  private _endDialogue(dialogue: { unlocksObjective?: string | null; id: string }): void {
+   563→    this.dialogueActive = false;
+   564→    this.currentDialogueId = null;
+   565→    this.currentDialogueLineIndex = 0;
+   566→
+   567→    // Update chapter phase based on dialogue completion
+   568→    if (dialogue.id === 'intro-text') {
+   569→      this.chapterPhase = 'explore';
+   570→      saveManager.updateGameState({ chapterPhase: 'explore' });
+   571→    }
+   572→
+   573→    // Complete objective if dialogue unlocks one
+   574→    if (dialogue.unlocksObjective) {
+   575→      saveManager.completeObjective(dialogue.unlocksObjective);
+   576→      
+   577→      // Update entity visibility after objectives
+   578→      this._updateEntityVisibility();
+   579→
+   580→      // Update chapter phase based on quest progress
+   581→      if (dialogue.id === 'mang-tenyo-first') {
+   582→        this.chapterPhase = 'explore';
+   583→        saveManager.updateGameState({ chapterPhase: 'explore' });
+   584→      }
+   585→      if (dialogue.id === 'market-gossip') {
+   586→        this.chapterPhase = 'gossip';
+   587→        saveManager.updateGameState({ chapterPhase: 'gossip' });
+   588→      }
+   589→    }
+   590→
+   591→    // ===== Progressive Codex unlocks =====
+   592→    // Codex entries unlock as the player meets characters and overhears gossip,
+   593→    // so the Codex fills up DURING the chapter (not all at once at the end).
+   594→    // This gives the player a sense of progression and discovery.
+   595→    if (dialogue.id === 'mang-tenyo-first') {
+   596→      // After meeting Mang Tenyo: unlock himself + he mentions Ibarra
+   597→      saveManager.unlockCodexEntry('char.mang-tenyo');
+   598→      saveManager.unlockCodexEntry('char.ibarra');
+   599→      saveManager.addJournalEntry(
+   600→        'I arrived in San Diego. A cart driver named Mang Tenyo warned me not to mention the name "Ibarra" too loudly — something happened at last night\'s reception.',
+   601→        'ch1'
+   602→      );
+   603→    } else if (dialogue.id === 'market-gossip') {
+   604→      // After overhearing gossip: unlock the people mentioned
+   605→      saveManager.unlockCodexEntry('char.tiago');
+   606→      saveManager.unlockCodexEntry('char.damaso');
+   607→      saveManager.unlockCodexEntry('place.san-diego');
+   608→      saveManager.addJournalEntry(
+   609→        'At the market, Aling Nena and Mang Andres gossiped about Ibarra\'s homecoming reception. Padre Dámaso publicly insulted Ibarra — and he was once a close friend of Ibarra\'s late father. Capitán Tiago hosted the disastrous dinner.',
+   610→        'ch1'
+   611→      );
+   612→    } else if (dialogue.id === 'ibarra-sighting') {
+   613→      // After seeing Ibarra: unlock the broader historical context
+   614→      saveManager.unlockCodexEntry('historical.ilustrados');
+   615→      saveManager.unlockCodexEntry('historical.rizal');
+   616→      saveManager.unlockCodexEntry('historical.noli');
+   617→      saveManager.addJournalEntry(
+   618→        'I saw Crisóstomo Ibarra himself crossing the plaza at dawn. After seven years in Europe, he carries himself with an ease that the friars clearly fear. The gossip was right — his return has stirred up old tensions.',
+   619→        'ch1'
+   620→      );
+   621→    }
+   622→
+   623→    gameEvents.emit('dialogue:end', dialogue.id);
+   624→
+   625→    // Check if this was the gossip dialogue - enable Ibarra sighting zone
+   626→    if (dialogue.id === 'market-gossip') {
+   627→      // The market gossip zone should now be triggered
+   628→      this.triggerZones.forEach(z => {
+   629→        if (z.id === 'market-gossip') z.triggered = true;
+   630→      });
+   631→    }
+   632→
+   633→    // Check if chapter is complete after Ibarra sighting dialogue
+   634→    if (dialogue.id === 'ibarra-sighting') {
+   635→      this._triggerChapterComplete();
+   636→    }
+   637→  }
+   638→
+   639→  private _updateEntityVisibility(): void {
+   640→    for (const [npcId, entity] of this.entities) {
+   641→      if (entity.appearsAfterObjective) {
+   642→        entity.visible = saveManager.isObjectiveCompleted(entity.appearsAfterObjective);
+   643→      }
+   644→    }
+   645→    
+   646→    // Special: Ibarra appears after gossip objective AND time transition
+   647→    const ibara = this.entities.get('ibara');
+   648→    if (ibara && this.timeOfDay === 'morning' && saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+   649→      ibara.visible = true;
+   650→    }
+   651→  }
+   652→
+   653→  private _triggerChapterComplete(): void {
+   654→    // Run the end-of-chapter loop (Section 8)
+   655→    // 1. Quiz is triggered via event
+   656→    gameEvents.emit('quiz:start', 'ch1');
+   657→    // The quiz component handles the rest (XP, codex, journal, medal, save)
+   658→  }
+   659→
+   660→  completeChapterLoop(): void {
+   661→    // Called after quiz is completed
+   662→    // 2. Award XP
+   663→    saveManager.awardXp(60);
+   664→    // 3. Unlock codex entries
+   665→    saveManager.unlockCodexEntry('char.ibarra');
+   666→    saveManager.unlockCodexEntry('char.tiago');
+   667→    saveManager.unlockCodexEntry('char.damaso');
+   668→    // 4. Journal entry
+   669→    saveManager.addJournalEntry(
+   670→      "Mang Tenyo warned me not to mention the Ibarra name loudly. Something happened at last night's reception. I overheard the kitchen staff talking about Padre Dámaso's rudeness to Ibarra. Then I saw Ibarra himself crossing the plaza — a young man carrying ideas from Europe that the friars fear.",
+   671→      'ch1'
+   672→    );
+   673→    // 5. Chapter medal
+   674→    saveManager.awardChapterMedal('ch1', 'Listener');
+   675→    // 6. Complete quest
+   676→    saveManager.completeQuest('mq.ch1.arrival');
+   677→    saveManager.completeChapter('ch1');
+   678→    // 7. Save progress
+   679→    saveManager.saveProgress();
+   680→    
+   681→    this.chapterPhase = 'complete';
+   682→    gameEvents.emit('chapter:complete', 'ch1');
+   683→  }
+   684→
+   685→  private _gameLoop(timestamp: number): void {
+   686→    const deltaTime = (timestamp - this.lastTimestamp) / 1000;
+   687→    this.lastTimestamp = timestamp;
+   688→    this.gameTime += deltaTime;
+   689→
+   690→    this._update(deltaTime);
+   691→    this._render();
+   692→
+   693→    this.animationFrameId = requestAnimationFrame(this._gameLoop.bind(this));
+   694→  }
+   695→
+   696→  private _update(dt: number): void {
+   697→    if (!this.player) return;
+   698→    
+   699→    // Update interact cooldown
+   700→    if (this.interactCooldown > 0) {
+   701→      this.interactCooldown -= dt * 1000;
+   702→    }
+   703→
+   704→    // Don't allow movement during dialogue
+   705→    if (this.dialogueActive) return;
+   706→
+   707→    // Handle intro state
+   708→    if (this.chapterPhase === 'intro' && !this.introShown) {
+   709→      this.introShown = true;
+   710→      this._startDialogue('intro-text');
+   711→      return;
+   712→    }
+   713→
+   714→    // Player movement
+   715→    let moveX = 0;
+   716→    let moveY = 0;
+   717→
+   718→    if (this.keys.has('w') || this.keys.has('arrowup')) moveY = -1;
+   719→    if (this.keys.has('s') || this.keys.has('arrowdown')) moveY = 1;
+   720→    if (this.keys.has('a') || this.keys.has('arrowleft')) moveX = -1;
+   721→    if (this.keys.has('d') || this.keys.has('arrowright')) moveX = 1;
+   722→
+   723→    // Normalize diagonal movement
+   724→    if (moveX !== 0 && moveY !== 0) {
+   725→      const len = Math.sqrt(moveX * moveX + moveY * moveY);
+   726→      moveX /= len;
+   727→      moveY /= len;
+   728→    }
+   729→
+   730→    this.player.isMoving = moveX !== 0 || moveY !== 0;
+   731→
+   732→    if (this.player.isMoving) {
+   733→      // Determine direction from movement vector
+   734→      this.player.direction = this._vectorToDirection(moveX, moveY);
+   735→      
+   736→      const newX = this.player.x + moveX * this.player.speed * dt;
+   737→      const newY = this.player.y + moveY * this.player.speed * dt;
+   738→
+   739→      // Collision check
+   740→      if (!this._isBlocked(newX, newY)) {
+   741→        this.player.x = newX;
+   742→        this.player.y = newY;
+   743→      }
+   744→
+   745→      // Update animation
+   746→      this.player.animationTimer += dt;
+   747→      const animConfig = characterData.characters.student.animations.Walk;
+   748→      if (this.player.animationTimer >= 1 / animConfig.frameRate) {
+   749→        this.player.animationTimer = 0;
+   750→        this.player.animationFrame = (this.player.animationFrame + 1) % animConfig.frames;
+   751→      }
+   752→    } else {
+   753→      // Idle animation
+   754→      this.player.animationTimer += dt;
+   755→      const animConfig = characterData.characters.student.animations.Breathing_Idle;
+   756→      if (this.player.animationTimer >= 1 / animConfig.frameRate) {
+   757→        this.player.animationTimer = 0;
+   758→        this.player.animationFrame = (this.player.animationFrame + 1) % animConfig.frames;
+   759→      }
+   760→    }
+   761→
+   762→    // Update camera to follow player
+   763→    this.cameraX = this.player.x - this.viewWidth / 2;
+   764→    this.cameraY = this.player.y - this.viewHeight / 2;
+   765→
+   766→    // Clamp camera to map bounds
+   767→    const mapPixelWidth = mapData.width * this.tileSize;
+   768→    const mapPixelHeight = mapData.height * this.tileSize;
+   769→    this.cameraX = Math.max(0, Math.min(this.cameraX, mapPixelWidth - this.viewWidth));
+   770→    this.cameraY = Math.max(0, Math.min(this.cameraY, mapPixelHeight - this.viewHeight));
+   771→
+   772→    // NPC idle animations
+   773→    for (const [npcId, npc] of this.entities) {
+   774→      if (npc.isPlayer || !npc.visible) continue;
+   775→      npc.animationTimer += dt;
+   776→      const animConfig = characterData.characters[npc.characterKey as keyof typeof characterData.characters]?.animations?.Breathing_Idle;
+   777→      if (animConfig) {
+   778→        if (npc.animationTimer >= 1 / animConfig.frameRate) {
+   779→          npc.animationTimer = 0;
+   780→          npc.animationFrame = (npc.animationFrame + 1) % animConfig.frames;
+   781→        }
+   782→      }
+   783→    }
+   784→
+   785→    // Check trigger zones
+   786→    this._checkTriggerZones();
+   787→
+   788→    // Update particles
+   789→    this._updateParticles(dt);
+   790→
+   791→    // Update fireflies (ambient glowing insects)
+   792→    this._updateFireflies(dt);
+   793→
+   794→    // Update drifting leaves (occasional foliage)
+   795→    this._updateDriftLeaves(dt);
+   796→
+   797→    // Update burst particles (celebration effect)
+   798→    this._updateBurstParticles(dt);
+   799→
+   800→    // Update game state in SaveManager
+   801→    saveManager.updateGameState({
+   802→      playerPosition: {
+   803→        row: Math.floor(this.player.y / this.tileSize),
+   804→        col: Math.floor(this.player.x / this.tileSize),
+   805→      },
+   806→      playerDirection: this.player.direction,
+   807→      currentDialogue: this.currentDialogueId,
+   808→      timeOfDay: this.timeOfDay,
+   809→      chapterPhase: this.chapterPhase,
+   810→    });
+   811→
+   812→    // Track exploration stats — count unique tiles visited
+   813→    const tileRow = Math.floor(this.player.y / this.tileSize);
+   814→    const tileCol = Math.floor(this.player.x / this.tileSize);
+   815→    const tileKey = `${tileRow},${tileCol}`;
+   816→    this.visitedTiles.add(tileKey);
+   817→
+   818→    // Flush stats to localStorage every ~2s (debounced)
+   819→    this.statsFlushTimer += dt;
+   820→    if (this.statsFlushTimer > 2.0) {
+   821→      this.statsFlushTimer = 0;
+   822→      try {
+   823→        localStorage.setItem('noor-stats', JSON.stringify({
+   824→          tilesExplored: this.visitedTiles.size,
+   825→          npcsTalkedTo: this.npcsTalkedTo.size,
+   826→        }));
+   827→      } catch {
+   828→        // localStorage may be unavailable; ignore
+   829→      }
+   830→    }
+   831→  }
+   832→
+   833→  private _vectorToDirection(x: number, y: number): Direction {
+   834→    // Map movement vector to 8-direction name
+   835→    const angle = Math.atan2(y, x) * (180 / Math.PI);
+   836→    
+   837→    if (angle >= -22.5 && angle < 22.5) return 'east';
+   838→    if (angle >= 22.5 && angle < 67.5) return 'south-east';
+   839→    if (angle >= 67.5 && angle < 112.5) return 'south';
+   840→    if (angle >= 112.5 && angle < 157.5) return 'south-west';
+   841→    if (angle >= 157.5 || angle < -157.5) return 'west';
+   842→    if (angle >= -157.5 && angle < -112.5) return 'north-west';
+   843→    if (angle >= -112.5 && angle < -67.5) return 'north';
+   844→    if (angle >= -67.5 && angle < -22.5) return 'north-east';
+   845→    return 'south';
+   846→  }
+   847→
+   848→  private _isBlocked(x: number, y: number): boolean {
+   849→    // Check collision map
+   850→    const col = Math.floor(x / this.tileSize);
+   851→    const row = Math.floor(y / this.tileSize);
+   852→    
+   853→    if (row < 0 || row >= mapData.height || col < 0 || col >= mapData.width) return true;
+   854→    
+   855→    // Check player sprite footprint (check a small area around center)
+   856→    const checks = [
+   857→      { x: x - 16, y: y - 16 },
+   858→      { x: x + 16, y: y - 16 },
+   859→      { x: x - 16, y: y + 16 },
+   860→      { x: x + 16, y: y + 16 },
+   861→    ];
+   862→    
+   863→    for (const check of checks) {
+   864→      const cCol = Math.floor(check.x / this.tileSize);
+   865→      const cRow = Math.floor(check.y / this.tileSize);
+   866→      if (cRow < 0 || cRow >= mapData.height || cCol < 0 || cCol >= mapData.width) return true;
+   867→      if (mapData.layers.collision[cRow][cCol] === 1) return true;
+   868→    }
+   869→    
+   870→    return false;
+   871→  }
+   872→
+   873→  private _checkTriggerZones(): void {
+   874→    if (!this.player || this.dialogueActive) return;
+   875→    
+   876→    const playerRow = Math.floor(this.player.y / this.tileSize);
+   877→    const playerCol = Math.floor(this.player.x / this.tileSize);
+   878→
+   879→    for (const zone of this.triggerZones) {
+   880→      if (zone.triggered) continue;
+   881→
+   882→      // Check prerequisite objective
+   883→      if (zone.requiresObjective && !saveManager.isObjectiveCompleted(zone.requiresObjective)) continue;
+   884→
+   885→      // Check if player is in the zone
+   886→      const inZone = playerCol >= zone.col && playerCol < zone.col + zone.width &&
+   887→                     playerRow >= zone.row && playerRow < zone.row + zone.height;
+   888→
+   889→      // Or within radius of NPC
+   890→      let nearNpc = false;
+   891→      if (zone.radius > 0 && zone.npcId) {
+   892→        const npc = this.entities.get(zone.npcId);
+   893→        if (npc && npc.visible) {
+   894→          nearNpc = this._distanceBetween(this.player, npc) < this.tileSize * zone.radius;
+   895→        }
+   896→      }
+   897→
+   898→      if (inZone || nearNpc) {
+   899→        zone.triggered = true;
+   900→
+   901→        switch (zone.type) {
+   902→          case 'npc-interact':
+   903→            // NPC interaction zones just highlight the NPC, actual dialogue starts on interact
+   904→            break;
+   905→          case 'auto-trigger':
+   906→            // Generic auto-trigger: if zone has a dialogueId, start that dialogue
+   907→            if (zone.dialogueId) {
+   908→              // Special handling for Ibarra sighting (time transition)
+   909→              if (zone.id === 'ibarra-sighting') {
+   910→                this.timeOfDay = 'morning';
+   911→                this.chapterPhase = 'ibarra-sighting';
+   912→                saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   913→                this._updateEntityVisibility();
+   914→              }
+   915→              this._startDialogue(zone.dialogueId);
+   916→            } else {
+   917→              // Legacy hardcoded triggers as fallback
+   918→              if (zone.id === 'market-gossip') {
+   919→                this._startDialogue('market-gossip');
+   920→              } else if (zone.id === 'ibarra-sighting') {
+   921→                this.timeOfDay = 'morning';
+   922→                this.chapterPhase = 'ibarra-sighting';
+   923→                saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   924→                this._updateEntityVisibility();
+   925→                this._startDialogue('ibarra-sighting');
+   926→              }
+   927→            }
+   928→            break;
+   929→        }
+   930→      }
+   931→    }
+   932→  }
+   933→
+   934→  // ==================== PARTICLE SYSTEM ====================
+   935→
+   936→  private _initParticles(): void {
+   937→    // Seed some initial particles
+   938→    for (let i = 0; i < 15; i++) {
+   939→      this._spawnParticle();
+   940→    }
+   941→  }
+   942→
+   943→  private _spawnParticle(): void {
+   944→    if (!this.player) return;
+   945→    // Spawn particle near the camera view area
+   946→    const cx = this.cameraX + this.viewWidth / 2;
+   947→    const cy = this.cameraY + this.viewHeight / 2;
+   948→    this.particles.push({
+   949→      x: cx + (Math.random() - 0.5) * this.viewWidth * 0.8,
+   950→      y: cy + (Math.random() - 0.5) * this.viewHeight * 0.8,
+   951→      vx: (Math.random() - 0.5) * 8, // Slow drift
+   952→      vy: -Math.random() * 4 - 1, // Slight upward drift
+   953→      alpha: 0,
+   954→      size: Math.random() * 2.5 + 1,
+   955→      life: 0,
+   956→      maxLife: Math.random() * 6 + 4, // 4-10 seconds
+   957→    });
+   958→  }
+   959→
+   960→  private _updateParticles(dt: number): void {
+   961→    // Spawn new particles periodically
+   962→    this.particleSpawnTimer += dt;
+   963→    if (this.particleSpawnTimer > 0.3 && this.particles.length < 25) {
+   964→      this.particleSpawnTimer = 0;
+   965→      this._spawnParticle();
+   966→    }
+   967→
+   968→    // Update existing particles
+   969→    for (let i = this.particles.length - 1; i >= 0; i--) {
+   970→      const p = this.particles[i];
+   971→      p.life += dt;
+   972→      p.x += p.vx * dt;
+   973→      p.y += p.vy * dt;
+   974→      // Gentle oscillation
+   975→      p.x += Math.sin(this.gameTime * 0.5 + i) * 0.3;
+   976→
+   977→      // Fade in then fade out
+   978→      const lifeRatio = p.life / p.maxLife;
+   979→      if (lifeRatio < 0.2) {
+   980→        p.alpha = lifeRatio / 0.2 * 0.4; // Fade in
+   981→      } else if (lifeRatio > 0.7) {
+   982→        p.alpha = (1 - lifeRatio) / 0.3 * 0.4; // Fade out
+   983→      } else {
+   984→        p.alpha = 0.4; // Visible
+   985→      }
+   986→
+   987→      // Remove dead particles
+   988→      if (p.life >= p.maxLife) {
+   989→        this.particles.splice(i, 1);
+   990→      }
+   991→    }
+   992→  }
+   993→
+   994→  // ==================== FIREFLIES ====================
+   995→
+   996→  private _initFireflies(): void {
+   997→    // Pre-spawn fireflies scattered around the map (persistent)
+   998→    if (!this.player) return;
+   999→    const MAP_W = mapData.width * this.tileSize;
+  1000→    const MAP_H = mapData.height * this.tileSize;
+  1001→    for (let i = 0; i < 18; i++) {
+  1002→      const fx = Math.random() * MAP_W;
+  1003→      const fy = Math.random() * MAP_H;
+  1004→      this.fireflies.push({
+  1005→        x: fx,
+  1006→        y: fy,
+  1007→        baseX: fx,
+  1008→        baseY: fy,
+  1009→        phase: Math.random() * Math.PI * 2,
+  1010→        blinkSpeed: 0.8 + Math.random() * 1.6, // 0.8-2.4 rad/s
+  1011→        driftPhase: Math.random() * Math.PI * 2,
+  1012→        brightness: 0,
+  1013→      });
+  1014→    }
+  1015→  }
+  1016→
+  1017→  private _updateFireflies(dt: number): void {
+  1018→    // Note: gameTime is already updated in the main _update() loop
+  1019→
+  1020→    // Occasionally relocate fireflies that are too far from the player's view
+  1021→    // so we always have some nearby fireflies
+  1022→    this.fireflySpawnTimer += dt;
+  1023→    if (this.fireflySpawnTimer > 1.5 && this.player) {
+  1024→      this.fireflySpawnTimer = 0;
+  1025→      // Despawn fireflies that wandered too far
+  1026→      this.fireflies = this.fireflies.filter(f => {
+  1027→        const dx = f.x - this.player!.x;
+  1028→        const dy = f.y - this.player!.y;
+  1029→        return Math.sqrt(dx * dx + dy * dy) < this.viewWidth * 1.2;
+  1030→      });
+  1031→      // Spawn a few new ones near the player's view
+  1032→      while (this.fireflies.length < 18 && this.player) {
+  1033→        const angle = Math.random() * Math.PI * 2;
+  1034→        const radius = this.viewWidth * 0.4 + Math.random() * this.viewWidth * 0.3;
+  1035→        const fx = this.player.x + Math.cos(angle) * radius;
+  1036→        const fy = this.player.y + Math.sin(angle) * radius;
+  1037→        this.fireflies.push({
+  1038→          x: fx,
+  1039→          y: fy,
+  1040→          baseX: fx,
+  1041→          baseY: fy,
+  1042→          phase: Math.random() * Math.PI * 2,
+  1043→          blinkSpeed: 0.8 + Math.random() * 1.6,
+  1044→          driftPhase: Math.random() * Math.PI * 2,
+  1045→          brightness: 0,
+  1046→        });
+  1047→      }
+  1048→    }
+  1049→
+  1050→    // Update firefly positions and brightness
+  1051→    for (const f of this.fireflies) {
+  1052→      // Sinusoidal drift around the anchor point
+  1053→      const driftRadius = 18;
+  1054→      f.x = f.baseX + Math.cos(this.gameTime * 0.6 + f.driftPhase) * driftRadius;
+  1055→      f.y = f.baseY + Math.sin(this.gameTime * 0.4 + f.driftPhase * 1.3) * driftRadius * 0.7;
+  1056→
+  1057→      // Slowly migrate the anchor point (gentle wandering)
+  1058→      f.baseX += Math.sin(this.gameTime * 0.15 + f.driftPhase) * 0.15;
+  1059→      f.baseY += Math.cos(this.gameTime * 0.18 + f.phase) * 0.1;
+  1060→
+  1061→      // Blink brightness using a smooth wave (0..1)
+  1062→      // Use sin^4 for sharper on/off transitions
+  1063→      const raw = Math.sin(this.gameTime * f.blinkSpeed + f.phase);
+  1064→      const norm = (raw + 1) / 2; // 0..1
+  1065→      f.brightness = Math.pow(norm, 3); // Sharp blink curve
+  1066→    }
+  1067→  }
+  1068→
+  1069→  private _renderFireflies(ctx: CanvasRenderingContext2D): void {
+  1070→    // Fireflies only show during afternoon (golden hour) — they evoke a warm evening feel
+  1071→    if (this.timeOfDay !== 'afternoon') return;
+  1072→
+  1073→    ctx.save();
+  1074→    ctx.globalCompositeOperation = 'lighter'; // Additive blending for glow
+  1075→
+  1076→    for (const f of this.fireflies) {
+  1077→      const screenX = f.x - this.cameraX;
+  1078→      const screenY = f.y - this.cameraY;
+  1079→
+  1080→      // Skip off-screen fireflies
+  1081→      if (screenX < -30 || screenX > this.viewWidth + 30 || screenY < -30 || screenY > this.viewHeight + 30) continue;
+  1082→
+  1083→      const b = f.brightness;
+  1084→      if (b < 0.02) continue;
+  1085→
+  1086→      // Outer glow halo (large soft circle)
+  1087→      const glowRadius = 12;
+  1088→      const glowGrad = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, glowRadius);
+  1089→      glowGrad.addColorStop(0, `rgba(255, 240, 160, ${0.5 * b})`);
+  1090→      glowGrad.addColorStop(0.3, `rgba(255, 220, 100, ${0.25 * b})`);
+  1091→      glowGrad.addColorStop(1, 'rgba(255, 200, 80, 0)');
+  1092→      ctx.fillStyle = glowGrad;
+  1093→      ctx.beginPath();
+  1094→      ctx.arc(screenX, screenY, glowRadius, 0, Math.PI * 2);
+  1095→      ctx.fill();
+  1096→
+  1097→      // Core bright dot
+  1098→      ctx.fillStyle = `rgba(255, 255, 220, ${0.95 * b})`;
+  1099→      ctx.beginPath();
+  1100→      ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
+  1101→      ctx.fill();
+  1102→    }
+  1103→
+  1104→    ctx.restore();
+  1105→  }
+  1106→
+  1107→  // ==================== DRIFTING LEAVES ====================
+  1108→
+  1109→  private _updateDriftLeaves(dt: number): void {
+  1110→    // Occasionally spawn a new leaf
+  1111→    this.leafSpawnTimer += dt;
+  1112→    if (this.leafSpawnTimer > 2.5 + Math.random() * 3 && this.player && this.driftLeaves.length < 8) {
+  1113→      this.leafSpawnTimer = 0;
+  1114→      // Spawn from the right side (wind blowing from east to west)
+  1115→      const spawnX = this.player.x + this.viewWidth * 0.6 + Math.random() * 100;
+  1116→      const spawnY = this.player.y - this.viewHeight * 0.3 + Math.random() * this.viewHeight * 0.6;
+  1117→      const colors = ['#8B5A2B', '#A0522D', '#6B4423', '#C17840', '#9C6B3F'];
+  1118→      this.driftLeaves.push({
+  1119→        x: spawnX,
+  1120→        y: spawnY,
+  1121→        vx: -25 - Math.random() * 20, // Wind blows leftward
+  1122→        vy: 8 + Math.random() * 8,    // Gentle downward drift
+  1123→        rotation: Math.random() * Math.PI * 2,
+  1124→        rotationSpeed: (Math.random() - 0.5) * 3,
+  1125→        size: 5 + Math.random() * 4,
+  1126→        color: colors[Math.floor(Math.random() * colors.length)],
+  1127→        alpha: 0,
+  1128→        life: 0,
+  1129→        maxLife: 8 + Math.random() * 4,
+  1130→      });
+  1131→    }
+  1132→
+  1133→    // Update leaves
+  1134→    for (let i = this.driftLeaves.length - 1; i >= 0; i--) {
+  1135→      const leaf = this.driftLeaves[i];
+  1136→      leaf.life += dt;
+  1137→
+  1138→      // Leaf motion: drifts left and downward, with sinusoidal sway
+  1139→      leaf.x += leaf.vx * dt + Math.sin(this.gameTime * 1.5 + i) * 0.5;
+  1140→      leaf.y += leaf.vy * dt + Math.cos(this.gameTime * 1.2 + i * 0.7) * 0.3;
+  1141→      leaf.rotation += leaf.rotationSpeed * dt;
+  1142→
+  1143→      // Fade in/out
+  1144→      const lifeRatio = leaf.life / leaf.maxLife;
+  1145→      if (lifeRatio < 0.15) {
+  1146→        leaf.alpha = lifeRatio / 0.15 * 0.85;
+  1147→      } else if (lifeRatio > 0.7) {
+  1148→        leaf.alpha = (1 - lifeRatio) / 0.3 * 0.85;
+  1149→      } else {
+  1150→        leaf.alpha = 0.85;
+  1151→      }
+  1152→
+  1153→      // Remove dead leaves
+  1154→      if (leaf.life >= leaf.maxLife) {
+  1155→        this.driftLeaves.splice(i, 1);
+  1156→      }
+  1157→    }
+  1158→  }
+  1159→
+  1160→  private _renderDriftLeaves(ctx: CanvasRenderingContext2D): void {
+  1161→    for (const leaf of this.driftLeaves) {
+  1162→      const screenX = leaf.x - this.cameraX;
+  1163→      const screenY = leaf.y - this.cameraY;
+  1164→      if (screenX < -20 || screenX > this.viewWidth + 20 || screenY < -20 || screenY > this.viewHeight + 20) continue;
+  1165→
+  1166→      ctx.save();
+  1167→      ctx.translate(screenX, screenY);
+  1168→      ctx.rotate(leaf.rotation);
+  1169→      ctx.globalAlpha = leaf.alpha;
+  1170→
+  1171→      // Draw a simple leaf shape (almond/oval)
+  1172→      ctx.fillStyle = leaf.color;
+  1173→      ctx.beginPath();
+  1174→      // Ellipse-ish leaf shape
+  1175→      ctx.ellipse(0, 0, leaf.size, leaf.size * 0.45, 0, 0, Math.PI * 2);
+  1176→      ctx.fill();
+  1177→
+  1178→      // Leaf vein (thin darker line)
+  1179→      ctx.strokeStyle = 'rgba(40, 25, 10, 0.4)';
+  1180→      ctx.lineWidth = 0.6;
+  1181→      ctx.beginPath();
+  1182→      ctx.moveTo(-leaf.size, 0);
+  1183→      ctx.lineTo(leaf.size, 0);
+  1184→      ctx.stroke();
+  1185→
+  1186→      ctx.restore();
+  1187→    }
+  1188→  }
+  1189→
+  1190→  // ==================== RENDERING ====================
+  1191→
+  1192→  private _render(): void {
+  1193→    if (!this.ctx || !this.canvas) return;
+  1194→    const ctx = this.ctx;
+  1195→
+  1196→    // Clear canvas
+  1197→    ctx.clearRect(0, 0, this.viewWidth, this.viewHeight);
+  1198→
+  1199→    // Draw sky gradient based on time of day
+  1200→    this._renderSkyGradient(ctx);
+  1201→
+  1202→    // Render map layers
+  1203→    this._renderMap(ctx);
+  1204→
+  1205→    // Render fountain/well feature in plaza center
+  1206→    this._renderFountain(ctx);
+  1207→
+  1208→    // Render tree/vegetation decorations
+  1209→    this._renderTrees(ctx);
+  1210→
+  1211→    // Render map decorations (benches, cart, flagpole, flower boxes)
+  1212→    this._renderMapDecorations(ctx);
+  1213→
+  1214→    // Render building details (walls, roofs, windows, doors)
+  1215→    this._renderBuildingDetails(ctx);
+  1216→
+  1217→    // Render building labels (signage panels)
+  1218→    this._renderBuildingLabels(ctx);
+  1219→
+  1220→    // Render entities (sorted by Y for depth)
+  1221→    const sortedEntities = [...this.entities.values()]
+  1222→      .filter(e => e.visible)
+  1223→      .sort((a, b) => a.y - b.y);
+  1224→
+  1225→    for (const entity of sortedEntities) {
+  1226→      this._renderEntity(ctx, entity);
+  1227→    }
+  1228→
+  1229→    // Render NPC interaction indicators
+  1230→    this._renderInteractionIndicators(ctx);
+  1231→
+  1232→    // Render trigger zone hints (subtle visual cues)
+  1233→    this._renderTriggerHints(ctx);
+  1234→
+  1235→    // Render ambient particles (dust motes)
+  1236→    this._renderParticles(ctx);
+  1237→
+  1238→    // Render fireflies (glowing evening insects)
+  1239→    this._renderFireflies(ctx);
+  1240→
+  1241→    // Render drifting leaves
+  1242→    this._renderDriftLeaves(ctx);
+  1243→
+  1244→    // Render atmospheric effects (mist, birds)
+  1245→    this._renderMist(ctx);
+  1246→    this._renderBirds(ctx);
+  1247→
+  1248→    // Render burst particles (celebration effect when objective completes)
+  1249→    this._renderBurstParticles(ctx);
+  1250→
+  1251→    // Render waypoint arrow pointing to next objective
+  1252→    this._renderWaypointArrow(ctx);
+  1253→
+  1254→    // Render time-of-day lighting overlay
+  1255→    this._renderTimeOfDayOverlay(ctx);
+  1256→
+  1257→    // Render vignette effect (dark edges)
+  1258→    this._renderVignette(ctx);
+  1259→  }
+  1260→
+  1261→  // ==================== WAYPOINT ARROW ====================
+  1262→
+  1263→  /**
+  1264→   * Render a golden arrow at the screen edge pointing toward the next incomplete objective.
+  1265→   * Only shown when no dialogue is active and the player isn't standing in the objective zone.
+  1266→   */
+  1267→  private _renderWaypointArrow(ctx: CanvasRenderingContext2D): void {
+  1268→    if (!this.player || this.dialogueActive) return;
+  1269→    if (this.chapterPhase === 'intro' || this.chapterPhase === 'complete') return;
+  1270→
+  1271→    // Find the next incomplete objective
+  1272→    const objectivesOrder = ['obj.ch1.follow_tenyo', 'obj.ch1.overhear_gossip', 'obj.ch1.see_ibarra'];
+  1273→    const nextObjId = objectivesOrder.find(id => !saveManager.isObjectiveCompleted(id));
+  1274→    if (!nextObjId) return;
+  1275→
+  1276→    const loc = OBJECTIVE_LOCATIONS[nextObjId];
+  1277→    if (!loc) return;
+  1278→
+  1279→    const targetX = loc.col * this.tileSize + this.tileSize / 2;
+  1280→    const targetY = loc.row * this.tileSize + this.tileSize / 2;
+  1281→
+  1282→    // Vector from player to target
+  1283→    const dx = targetX - this.player.x;
+  1284→    const dy = targetY - this.player.y;
+  1285→    const dist = Math.sqrt(dx * dx + dy * dy);
+  1286→
+  1287→    // Don't show arrow if very close
+  1288→    if (dist < this.tileSize * 2.5) return;
+  1289→
+  1290→    // Compute target position on screen (may be off-screen)
+  1291→    const screenTargetX = targetX - this.cameraX;
+  1292→    const screenTargetY = targetY - this.cameraY;
+  1293→
+  1294→    const cx = this.viewWidth / 2;
+  1295→    const cy = this.viewHeight / 2;
+  1296→
+  1297→    // If the target is on screen, don't show the edge arrow (the indicator is enough)
+  1298→    const onScreen = screenTargetX > 40 && screenTargetX < this.viewWidth - 40 &&
+  1299→                     screenTargetY > 80 && screenTargetY < this.viewHeight - 80;
+  1300→    if (onScreen) return;
+  1301→
+  1302→    // Direction from center of screen to target
+  1303→    const angle = Math.atan2(dy, dx);
+  1304→
+  1305→    // Place arrow at a fixed radius from screen center, clamped to a margin inside the screen
+  1306→    const margin = 80;
+  1307→    const maxRadiusX = this.viewWidth / 2 - margin;
+  1308→    const maxRadiusY = this.viewHeight / 2 - margin;
+  1309→    // Project the direction onto the screen-edge ellipse
+  1310→    // Solve for t such that (t*cos(angle), t*sin(angle)) lies on the ellipse (maxRX, maxRY)
+  1311→    const cosA = Math.cos(angle);
+  1312→    const sinA = Math.sin(angle);
+  1313→    const t = 1 / Math.sqrt((cosA * cosA) / (maxRadiusX * maxRadiusX) + (sinA * sinA) / (maxRadiusY * maxRadiusY));
+  1314→    const arrowX = cx + cosA * t;
+  1315→    const arrowY = cy + sinA * t;
+  1316→
+  1317→    // Pulsing effect
+  1318→    const pulse = Math.sin(this.gameTime * 4) * 0.15 + 0.85;
+  1319→
+  1320→    ctx.save();
+  1321→    ctx.translate(arrowX, arrowY);
+  1322→    ctx.rotate(angle);
+  1323→
+  1324→    // Outer glow
+  1325→    ctx.fillStyle = `rgba(255,215,0,${0.15 * pulse})`;
+  1326→    ctx.beginPath();
+  1327→    ctx.arc(0, 0, 28, 0, Math.PI * 2);
+  1328→    ctx.fill();
+  1329→
+  1330→    // Arrow shadow
+  1331→    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  1332→    ctx.beginPath();
+  1333→    ctx.moveTo(18, 0);
+  1334→    ctx.lineTo(-8, -12);
+  1335→    ctx.lineTo(-4, 0);
+  1336→    ctx.lineTo(-8, 12);
+  1337→    ctx.closePath();
+  1338→    ctx.fill();
+  1339→
+  1340→    // Arrow body
+  1341→    ctx.fillStyle = `rgba(255,215,0,${pulse})`;
+  1342→    ctx.strokeStyle = 'rgba(180,120,0,1)';
+  1343→    ctx.lineWidth = 1.5;
+  1344→    ctx.beginPath();
+  1345→    ctx.moveTo(15, 0);
+  1346→    ctx.lineTo(-10, -10);
+  1347→    ctx.lineTo(-6, 0);
+  1348→    ctx.lineTo(-10, 10);
+  1349→    ctx.closePath();
+  1350→    ctx.fill();
+  1351→    ctx.stroke();
+  1352→
+  1353→    ctx.restore();
+  1354→
+  1355→    // Distance label below arrow
+  1356→    const distTiles = Math.round(dist / this.tileSize);
+  1357→    ctx.font = 'bold 10px "Geist", sans-serif';
+  1358→    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  1359→    ctx.fillRect(arrowX - 22, arrowY + 14, 44, 14);
+  1360→    ctx.fillStyle = '#FFD700';
+  1361→    ctx.textAlign = 'center';
+  1362→    ctx.fillText(`${distTiles}m →`, arrowX, arrowY + 24);
+  1363→  }
+  1364→
+  1365→  // ==================== SKY / BACKGROUND ====================
+  1366→
+  1367→  private _renderSkyGradient(ctx: CanvasRenderingContext2D): void {
+  1368→    // Create a gradient for the sky/background
+  1369→    const gradient = ctx.createLinearGradient(0, 0, 0, this.viewHeight);
+  1370→    
+  1371→    if (this.timeOfDay === 'afternoon') {
+  1372→      // Warm golden afternoon: deep sky blue at top, warm golden at bottom
+  1373→      gradient.addColorStop(0, '#6BB3D9');    // Deep afternoon sky
+  1374→      gradient.addColorStop(0.4, '#8FC8E8');  // Mid sky
+  1375→      gradient.addColorStop(0.7, '#C4E0E8');  // Lighter
+  1376→      gradient.addColorStop(1, '#E8D4A0');    // Warm golden horizon
+  1377→    } else {
+  1378→      // Cool blue-white morning: pale sky, slightly warm at horizon
+  1379→      gradient.addColorStop(0, '#B8D4E8');    // Cool morning sky
+  1380→      gradient.addColorStop(0.4, '#D0E4F0');  // Pale mid sky
+  1381→      gradient.addColorStop(0.7, '#E4E8EC');  // Very pale
+  1382→      gradient.addColorStop(1, '#F0E8D8');    // Slightly warm horizon
+  1383→    }
+  1384→    
+  1385→    ctx.fillStyle = gradient;
+  1386→    ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+  1387→  }
+  1388→
+  1389→  // ==================== MAP TILE RENDERING ====================
+  1390→
+  1391→  private _renderMap(ctx: CanvasRenderingContext2D): void {
+  1392→    // Only render visible tiles (camera culling)
+  1393→    const startCol = Math.floor(this.cameraX / this.tileSize);
+  1394→    const startRow = Math.floor(this.cameraY / this.tileSize);
+  1395→    const endCol = Math.min(mapData.width, startCol + Math.ceil(this.viewWidth / this.tileSize) + 1);
+  1396→    const endRow = Math.min(mapData.height, startRow + Math.ceil(this.viewHeight / this.tileSize) + 1);
+  1397→
+  1398→    // Draw ground layer with detailed patterns
+  1399→    for (let row = startRow; row < endRow; row++) {
+  1400→      for (let col = startCol; col < endCol; col++) {
+  1401→        if (row < 0 || col < 0) continue;
+  1402→        const tileType = mapData.layers.ground[row]?.[col];
+  1403→        if (tileType && tileType !== 0) {
+  1404→          const x = col * this.tileSize - this.cameraX;
+  1405→          const y = row * this.tileSize - this.cameraY;
+  1406→          
+  1407→          switch (tileType) {
+  1408→            case 1: // Dirt/stone (ochre/tan) - building interior floor
+  1409→              this._renderDirtFloor(ctx, x, y, row, col);
+  1410→              break;
+  1411→            case 2: // Grass (green) - outskirts/wild areas
+  1412→              this._renderGrass(ctx, x, y, row, col);
+  1413→              break;
+  1414→            case 3: // Plaza (tan/dirt) - walkable area
+  1415→              this._renderPlazaCobblestone(ctx, x, y, row, col);
+  1416→              break;
+  1417→            case 4: // Market stalls (brown)
+  1418→              this._renderMarketStalls(ctx, x, y, row, col);
+  1419→              break;
+  1420→            default:
+  1421→              const color = mapData.tileColors[String(tileType) as keyof typeof mapData.tileColors];
+  1422→              ctx.fillStyle = color;
+  1423→              ctx.fillRect(x, y, this.tileSize, this.tileSize);
+  1424→          }
+  1425→        }
+  1426→      }
+  1427→    }
+  1428→
+  1429→    // Draw buildings layer (flat base color - details rendered separately)
+  1430→    for (let row = startRow; row < endRow; row++) {
+  1431→      for (let col = startCol; col < endCol; col++) {
+  1432→        if (row < 0 || col < 0) continue;
+  1433→        const tileType = mapData.layers.buildings[row]?.[col];
+  1434→        if (tileType && tileType !== 0) {
+  1435→          const x = col * this.tileSize - this.cameraX;
+  1436→          const y = row * this.tileSize - this.cameraY;
+  1437→
+  1438→          // Base building fill
+  1439→          const color = mapData.tileColors[String(tileType) as keyof typeof mapData.tileColors];
+  1440→          ctx.fillStyle = color;
+  1441→          ctx.fillRect(x, y, this.tileSize, this.tileSize);
+  1442→        }
+  1443→      }
+  1444→    }
+  1445→  }
+  1446→
+  1447→  // ==================== DETAILED TILE RENDERERS ====================
+  1448→
+  1449→  private _renderGrass(ctx: CanvasRenderingContext2D, x: number, y: number, row: number, col: number): void {
+  1450→    const ts = this.tileSize;
+  1451→    const h = tileHash(row, col, 42);
+  1452→    
+  1453→    // Base grass color with slight variation per tile
+  1454→    const baseGreen = h < 0.5 ? '#7BAF6E' : '#6B9E5E';
+  1455→    ctx.fillStyle = baseGreen;
+  1456→    ctx.fillRect(x, y, ts, ts);
+  1457→    
+  1458→    // Second shade patches for depth variation
+  1459→    const h2 = tileHash(row, col, 99);
+  1460→    ctx.fillStyle = h2 < 0.3 ? '#5C8B4E' : h2 < 0.6 ? '#8BC47B' : '#6B9E5E';
+  1461→    // Random patch placement
+  1462→    const patchX = x + tileHash(row, col, 7) * (ts - 16);
+  1463→    const patchY = y + tileHash(row, col, 13) * (ts - 16);
+  1464→    ctx.fillRect(patchX, patchY, 16, 16);
+  1465→    
+  1466→    // Grass blade clusters (multiple small blades)
+  1467→    ctx.fillStyle = '#8FD47F';
+  1468→    const bladeCount = 3 + Math.floor(tileHash(row, col, 23) * 4);
+  1469→    for (let i = 0; i < bladeCount; i++) {
+  1470→      const bx = x + tileHash(row, col, i * 7 + 1) * (ts - 6);
+  1471→      const by = y + tileHash(row, col, i * 11 + 3) * (ts - 10);
+  1472→      const bladeH = 5 + tileHash(row, col, i * 3 + 5) * 7;
+  1473→      ctx.fillRect(bx, by - bladeH, 1.5, bladeH);
+  1474→      // Second blade slightly offset
+  1475→      ctx.fillRect(bx + 2, by - bladeH * 0.7, 1, bladeH * 0.7);
+  1476→    }
+  1477→    
+  1478→    // Darker grass blades for depth
+  1479→    ctx.fillStyle = '#4E7A3E';
+  1480→    for (let i = 0; i < 2; i++) {
+  1481→      const bx = x + tileHash(row, col, i * 17 + 50) * (ts - 6);
+  1482→      const by = y + tileHash(row, col, i * 19 + 60) * (ts - 8);
+  1483→      ctx.fillRect(bx, by - 5, 1.5, 5);
+  1484→    }
+  1485→    
+  1486→    // Occasional flowers (small colored dots)
+  1487→    const flowerChance = tileHash(row, col, 77);
+  1488→    if (flowerChance < 0.15) {
+  1489→      // Small wildflower
+  1490→      const flowerX = x + tileHash(row, col, 88) * (ts - 8) + 4;
+  1491→      const flowerY = y + tileHash(row, col, 91) * (ts - 8) + 4;
+  1492→      const flowerColors = ['#FFE066', '#FF9999', '#CC99FF', '#FFCC99'];
+  1493→      ctx.fillStyle = flowerColors[Math.floor(tileHash(row, col, 95) * flowerColors.length)];
+  1494→      ctx.beginPath();
+  1495→      ctx.arc(flowerX, flowerY, 2.5, 0, Math.PI * 2);
+  1496→      ctx.fill();
+  1497→      // Flower center
+  1498→      ctx.fillStyle = '#FFE066';
+  1499→      ctx.beginPath();
+  1500→      ctx.arc(flowerX, flowerY, 1, 0, Math.PI * 2);
+  1501→      ctx.fill();
+  1502→    }
+  1503→    
+  1504→    // Very subtle, near-invisible grid line (for alignment only)
+  1505→    ctx.strokeStyle = 'rgba(0,0,0,0.02)';
+  1506→    ctx.lineWidth = 0.25;
+  1507→    ctx.strokeRect(x, y, ts, ts);
+  1508→  }
+  1509→
+  1510→  private _renderPlazaCobblestone(ctx: CanvasRenderingContext2D, x: number, y: number, row: number, col: number): void {
+  1511→    const ts = this.tileSize;
+  1512→    
+  1513→    // Base tan/dirt color
+  1514→    ctx.fillStyle = '#C4A76C';
+  1515→    ctx.fillRect(x, y, ts, ts);
+  1516→    
+  1517→    // Warm dirt undertone
+  1518→    ctx.fillStyle = '#B89858';
+  1519→    const patchH = tileHash(row, col, 33);
+  1520→    if (patchH < 0.4) {
+  1521→      ctx.fillRect(x + 8, y + 8, ts - 16, ts - 16);
+  1522→    }
+  1523→    
+  1524→    // Cobblestone pattern - individual stones
+  1525→    const stoneW = 14;
+  1526→    const stoneH = 10;
+  1527→    const gap = 2;
+  1528→    
+  1529→    for (let sy = 0; sy < ts; sy += stoneH + gap) {
+  1530→      const offset = ((sy / (stoneH + gap)) % 2 === 0) ? 0 : stoneW / 2; // Brick-like offset
+  1531→      for (let sx = offset; sx < ts; sx += stoneW + gap) {
+  1532→        const sh = tileHash(row, col, sy * 100 + sx);
+  1533→        // Stone color variations
+  1534→        const stoneColors = ['#D2B48C', '#C4A76C', '#B89560', '#A88950', '#C9AE7A'];
+  1535→        ctx.fillStyle = stoneColors[Math.floor(sh * stoneColors.length)];
+  1536→        
+  1537→        // Draw rounded stone
+  1538→        const sw = Math.min(stoneW, ts - sx);
+  1539→        const sht = Math.min(stoneH, ts - sy);
+  1540→        if (sw > 0 && sht > 0) {
+  1541→          ctx.beginPath();
+  1542→          const r = 2;
+  1543→          ctx.roundRect(x + sx, y + sy, sw, sht, r);
+  1544→          ctx.fill();
+  1545→          
+  1546→          // Subtle stone edge shadow
+  1547→          ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  1548→          ctx.fillRect(x + sx, y + sy + sht - 1.5, sw, 1.5);
+  1549→          
+  1550→          // Stone highlight on top
+  1551→          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  1552→          ctx.fillRect(x + sx, y + sy, sw, 2);
+  1553→        }
+  1554→      }
+  1555→    }
+  1556→    
+  1557→    // Dirt/gravel fill between stones
+  1558→    ctx.fillStyle = '#A88950';
+  1559→    for (let i = 0; i < 3; i++) {
+  1560→      const gx = x + tileHash(row, col, i * 29 + 100) * ts;
+  1561→      const gy = y + tileHash(row, col, i * 31 + 110) * ts;
+  1562→      ctx.fillRect(gx, gy, 2, 2);
+  1563→    }
+  1564→    
+  1565→    // Very subtle grid line
+  1566→    ctx.strokeStyle = 'rgba(0,0,0,0.02)';
+  1567→    ctx.lineWidth = 0.25;
+  1568→    ctx.strokeRect(x, y, ts, ts);
+  1569→  }
+  1570→
+  1571→  private _renderDirtFloor(ctx: CanvasRenderingContext2D, x: number, y: number, row: number, col: number): void {
+  1572→    const ts = this.tileSize;
+  1573→    
+  1574→    // Base interior floor
+  1575→    ctx.fillStyle = '#C4A76C';
+  1576→    ctx.fillRect(x, y, ts, ts);
+  1577→    
+  1578→    // Floor tile pattern (checkerboard-like with subtle variation)
+  1579→    const h = tileHash(row, col, 55);
+  1580→    ctx.fillStyle = h < 0.5 ? '#BFA068' : '#C9AE76';
+  1581→    ctx.fillRect(x, y, ts, ts);
+  1582→    
+  1583→    // Subtle floor line pattern
+  1584→    ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+  1585→    ctx.lineWidth = 0.5;
+  1586→    // Horizontal lines
+  1587→    ctx.beginPath();
+  1588→    ctx.moveTo(x, y + ts / 2);
+  1589→    ctx.lineTo(x + ts, y + ts / 2);
+  1590→    ctx.stroke();
+  1591→    // Vertical lines
+  1592→    ctx.beginPath();
+  1593→    ctx.moveTo(x + ts / 2, y);
+  1594→    ctx.lineTo(x + ts / 2, y + ts);
+  1595→    ctx.stroke();
+  1596→    
+  1597→    // Occasional crack/wear mark
+  1598→    const crackChance = tileHash(row, col, 200);
+  1599→    if (crackChance < 0.2) {
+  1600→      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  1601→      ctx.lineWidth = 0.5;
+  1602→      ctx.beginPath();
+  1603→      const cx1 = x + tileHash(row, col, 210) * ts;
+  1604→      const cy1 = y + tileHash(row, col, 220) * ts;
+  1605→      ctx.moveTo(cx1, cy1);
+  1606→      ctx.lineTo(cx1 + 8, cy1 + 4);
+  1607→      ctx.stroke();
+  1608→    }
+  1609→  }
+  1610→
+  1611→  private _renderMarketStalls(ctx: CanvasRenderingContext2D, x: number, y: number, row: number, col: number): void {
+  1612→    const ts = this.tileSize;
+  1613→    
+  1614→    // Base market stall ground
+  1615→    ctx.fillStyle = '#A0522D';
+  1616→    ctx.fillRect(x, y, ts, ts);
+  1617→    
+  1618→    // Stall wood planks pattern
+  1619→    ctx.fillStyle = '#8B4513';
+  1620→    for (let py = 0; py < ts; py += 8) {
+  1621→      const plankOffset = tileHash(row, col, py) * 4;
+  1622→      ctx.fillRect(x + plankOffset, y + py, ts, 6);
+  1623→      // Plank edge
+  1624→      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  1625→      ctx.fillRect(x + plankOffset, y + py + 5, ts, 1);
+  1626→      ctx.fillStyle = '#8B4513';
+  1627→    }
+  1628→    
+  1629→    // Wood grain lines
+  1630→    ctx.strokeStyle = 'rgba(139,69,19,0.3)';
+  1631→    ctx.lineWidth = 0.3;
+  1632→    for (let i = 0; i < 3; i++) {
+  1633→      const gx = x + tileHash(row, col, i * 40 + 300) * ts;
+  1634→      ctx.beginPath();
+  1635→      ctx.moveTo(gx, y);
+  1636→      ctx.lineTo(gx + 2, y + ts);
+  1637→      ctx.stroke();
+  1638→    }
+  1639→  }
+  1640→
+  1641→  // ==================== BUILDING DETAIL RENDERING ====================
+  1642→
+  1643→  private _renderBuildingDetails(ctx: CanvasRenderingContext2D): void {
+  1644→    // For each building group, render walls, roof, windows, and doors
+  1645→    const groups5 = this.buildingGroups.get(5) || []; // Church
+  1646→    const groups6 = this.buildingGroups.get(6) || []; // Market
+  1647→    
+  1648→    for (const group of groups5) {
+  1649→      this._renderChurchBuilding(ctx, group);
+  1650→    }
+  1651→    for (const group of groups6) {
+  1652→      this._renderMarketBuilding(ctx, group);
+  1653→    }
+  1654→  }
+  1655→
+  1656→  private _renderChurchBuilding(ctx: CanvasRenderingContext2D, group: { minRow: number; minCol: number; maxRow: number; maxCol: number }): void {
+  1657→    const ts = this.tileSize;
+  1658→    const bx = group.minCol * ts - this.cameraX;
+  1659→    const by = group.minRow * ts - this.cameraY;
+  1660→    const bw = (group.maxCol - group.minCol + 1) * ts;
+  1661→    const bh = (group.maxRow - group.minRow + 1) * ts;
+  1662→    
+  1663→    // Building shadow on the ground (to the south and east)
+  1664→    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  1665→    ctx.fillRect(bx + 6, by + bh, bw, 12);
+  1666→    ctx.fillRect(bx + bw, by + 6, 12, bh + 6);
+  1667→    
+  1668→    // Wall texture - stone blocks
+  1669→    ctx.fillStyle = '#696969';
+  1670→    ctx.fillRect(bx, by, bw, bh);
+  1671→    
+  1672→    // Wall block pattern
+  1673→    const blockH = 12;
+  1674→    const blockW = 18;
+  1675→    for (let wy = 0; wy < bh; wy += blockH) {
+  1676→      const offset = ((wy / blockH) % 2 === 0) ? 0 : blockW / 2;
+  1677→      for (let wx = offset; wx < bw; wx += blockW) {
+  1678→        const sh = tileHash(group.minRow + Math.floor(wy / ts), group.minCol + Math.floor(wx / ts), 500);
+  1679→        const grays = ['#7A7A7A', '#6E6E6E', '#626262', '#757575'];
+  1680→        ctx.fillStyle = grays[Math.floor(sh * grays.length)];
+  1681→        const sw = Math.min(blockW, bw - wx);
+  1682→        const sht = Math.min(blockH, bh - wy);
+  1683→        if (sw > 0 && sht > 0) {
+  1684→          ctx.fillRect(bx + wx, by + wy, sw, sht);
+  1685→          // Block mortar line
+  1686→          ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  1687→          ctx.lineWidth = 0.5;
+  1688→          ctx.strokeRect(bx + wx, by + wy, sw, sht);
+  1689→        }
+  1690→      }
+  1691→    }
+  1692→    
+  1693→    // Roof line at the top
+  1694→    ctx.fillStyle = '#4A4A4A';
+  1695→    ctx.fillRect(bx - 4, by - 6, bw + 8, 8);
+  1696→    // Roof edge shadow
+  1697→    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  1698→    ctx.fillRect(bx - 4, by + 2, bw + 8, 4);
+  1699→    // Roof cap
+  1700→    ctx.fillStyle = '#555555';
+  1701→    ctx.fillRect(bx - 2, by - 10, bw + 4, 6);
+  1702→    
+  1703→    // Windows - evenly spaced
+  1704→    const windowCount = Math.max(1, Math.floor(bw / (ts * 1.2)));
+  1705→    const windowSpacing = bw / (windowCount + 1);
+  1706→    for (let i = 1; i <= windowCount; i++) {
+  1707→      const wx = bx + i * windowSpacing;
+  1708→      const wy = by + bh * 0.35;
+  1709→      
+  1710→      // Window frame
+  1711→      ctx.fillStyle = '#8B7355';
+  1712→      ctx.fillRect(wx - 8, wy - 6, 16, 12);
+  1713→      
+  1714→      // Window glass
+  1715→      ctx.fillStyle = this.timeOfDay === 'afternoon' ? '#E8D4A0' : '#D0E4F0';
+  1716→      ctx.fillRect(wx - 6, wy - 4, 12, 8);
+  1717→      
+  1718→      // Window cross bars
+  1719→      ctx.strokeStyle = '#8B7355';
+  1720→      ctx.lineWidth = 1;
+  1721→      ctx.beginPath();
+  1722→      ctx.moveTo(wx, wy - 4);
+  1723→      ctx.lineTo(wx, wy + 4);
+  1724→      ctx.moveTo(wx - 6, wy);
+  1725→      ctx.lineTo(wx + 6, wy);
+  1726→      ctx.stroke();
+  1727→      
+  1728→      // Window light glow (subtle)
+  1729→      if (this.timeOfDay === 'afternoon') {
+  1730→        ctx.fillStyle = 'rgba(232,212,160,0.15)';
+  1731→        ctx.fillRect(wx - 10, wy - 8, 20, 16);
+  1732→      }
+  1733→    }
+  1734→    
+  1735→    // Church cross on top
+  1736→    const centerX = bx + bw / 2;
+  1737→    ctx.fillStyle = '#D4D4D4';
+  1738→    ctx.fillRect(centerX - 2, by - 22, 4, 14);
+  1739→    ctx.fillRect(centerX - 6, by - 18, 12, 4);
+  1740→    
+  1741→    // Door at bottom center
+  1742→    const doorX = bx + bw / 2 - 8;
+  1743→    const doorY = by + bh - 16;
+  1744→    ctx.fillStyle = '#5C3A1E';
+  1745→    ctx.fillRect(doorX, doorY, 16, 16);
+  1746→    // Door frame
+  1747→    ctx.strokeStyle = '#4A2A10';
+  1748→    ctx.lineWidth = 1.5;
+  1749→    ctx.strokeRect(doorX, doorY, 16, 16);
+  1750→    // Door arch
+  1751→    ctx.fillStyle = '#6E6E6E';
+  1752→    ctx.beginPath();
+  1753→    ctx.arc(doorX + 8, doorY, 8, Math.PI, 0);
+  1754→    ctx.fill();
+  1755→  }
+  1756→
+  1757→  private _renderMarketBuilding(ctx: CanvasRenderingContext2D, group: { minRow: number; minCol: number; maxRow: number; maxCol: number }): void {
+  1758→    const ts = this.tileSize;
+  1759→    const bx = group.minCol * ts - this.cameraX;
+  1760→    const by = group.minRow * ts - this.cameraY;
+  1761→    const bw = (group.maxCol - group.minCol + 1) * ts;
+  1762→    const bh = (group.maxRow - group.minRow + 1) * ts;
+  1763→    
+  1764→    // Building shadow on the ground (south and east)
+  1765→    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  1766→    ctx.fillRect(bx + 4, by + bh, bw, 10);
+  1767→    ctx.fillRect(bx + bw, by + 4, 10, bh + 4);
+  1768→    
+  1769→    // Wall base - wood planks
+  1770→    ctx.fillStyle = '#8B4513';
+  1771→    ctx.fillRect(bx, by, bw, bh);
+  1772→    
+  1773→    // Wood plank texture
+  1774→    const plankH = 10;
+  1775→    for (let py = 0; py < bh; py += plankH) {
+  1776→      const sh = tileHash(group.minRow + Math.floor(py / ts), group.minCol, 600);
+  1777→      const woodColors = ['#9B5523', '#8B4513', '#7B3513', '#8A4010'];
+  1778→      ctx.fillStyle = woodColors[Math.floor(sh * woodColors.length)];
+  1779→      ctx.fillRect(bx, by + py, bw, plankH - 1);
+  1780→      // Plank gap line
+  1781→      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  1782→      ctx.fillRect(bx, by + py + plankH - 1, bw, 1);
+  1783→    }
+  1784→    
+  1785→    // Wood grain vertical lines
+  1786→    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  1787→    ctx.lineWidth = 0.3;
+  1788→    for (let vx = 0; vx < bw; vx += 14) {
+  1789→      ctx.beginPath();
+  1790→      ctx.moveTo(bx + vx, by);
+  1791→      ctx.lineTo(bx + vx + 1, by + bh);
+  1792→      ctx.stroke();
+  1793→    }
+  1794→    
+  1795→    // Awning/canopy over the market stalls (colorful fabric)
+  1796→    const awningY = by - 8;
+  1797→    ctx.fillStyle = '#CC4444';
+  1798→    ctx.fillRect(bx - 6, awningY, bw + 12, 10);
+  1799→    // Awning stripe pattern
+  1800→    ctx.fillStyle = '#EECCCC';
+  1801→    for (let sx = 0; sx < bw + 12; sx += 16) {
+  1802→      ctx.fillRect(bx - 6 + sx, awningY, 8, 10);
+  1803→    }
+  1804→    // Awning shadow
+  1805→    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  1806→    ctx.fillRect(bx - 6, awningY + 10, bw + 12, 3);
+  1807→    // Awning support poles
+  1808→    ctx.fillStyle = '#5C3A1E';
+  1809→    ctx.fillRect(bx - 4, awningY + 10, 3, 6);
+  1810→    ctx.fillRect(bx + bw + 2, awningY + 10, 3, 6);
+  1811→    
+  1812→    // Stall counter/table at the front
+  1813→    ctx.fillStyle = '#A0522D';
+  1814→    ctx.fillRect(bx + 2, by + bh - 8, bw - 4, 8);
+  1815→    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  1816→    ctx.lineWidth = 0.5;
+  1817→    ctx.strokeRect(bx + 2, by + bh - 8, bw - 4, 8);
+  1818→    
+  1819→    // Stall openings (where vendors stand)
+  1820→    const stallCount = Math.floor(bw / ts);
+  1821→    for (let i = 0; i < stallCount; i++) {
+  1822→      const sx = bx + i * ts + ts / 2;
+  1823→      // Hanging goods/produce indicator
+  1824→      ctx.fillStyle = '#DAA520';
+  1825→      ctx.fillRect(sx - 4, by + bh - 14, 8, 6);
+  1826→    }
+  1827→  }
+  1828→
+  1829→  // ==================== TREE / VEGETATION RENDERING ====================
+  1830→
+  1831→  private _renderTrees(ctx: CanvasRenderingContext2D): void {
+  1832→    for (const tree of TREE_POSITIONS) {
+  1833→      // Only render if within camera view
+  1834→      const tx = tree.col * this.tileSize - this.cameraX;
+  1835→      const ty = tree.row * this.tileSize - this.cameraY;
+  1836→      
+  1837→      if (tx < -80 || tx > this.viewWidth + 80 || ty < -80 || ty > this.viewHeight + 80) continue;
+  1838→      
+  1839→      this._renderSingleTree(ctx, tx + this.tileSize / 2, ty + this.tileSize / 2, tree.variant);
+  1840→    }
+  1841→  }
+  1842→
+  1843→  private _renderSingleTree(ctx: CanvasRenderingContext2D, cx: number, cy: number, variant: number): void {
+  1844→    const ts = this.tileSize;
+  1845→    
+  1846→    // Tree shadow on ground
+  1847→    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  1848→    ctx.beginPath();
+  1849→    ctx.ellipse(cx + 4, cy + 6, 16, 8, 0, 0, Math.PI * 2);
+  1850→    ctx.fill();
+  1851→    
+  1852→    // Tree trunk
+  1853→    const trunkColors = ['#5C3A1E', '#4A2A10', '#6B4422'];
+  1854→    ctx.fillStyle = trunkColors[variant % trunkColors.length];
+  1855→    ctx.fillRect(cx - 3, cy - 10, 6, 18);
+  1856→    
+  1857→    // Tree canopy (layered circles for natural look)
+  1858→    const canopyColors = ['#4E7A3E', '#5C8B4E', '#3D6B2E'];
+  1859→    const lightCanopyColors = ['#6B9E5E', '#7BAF6E', '#5C8B4E'];
+  1860→    
+  1861→    // Bottom layer (larger, darker)
+  1862→    ctx.fillStyle = canopyColors[variant % canopyColors.length];
+  1863→    ctx.beginPath();
+  1864→    ctx.ellipse(cx, cy - 16, 18, 12, 0, 0, Math.PI * 2);
+  1865→    ctx.fill();
+  1866→    
+  1867→    // Middle layer
+  1868→    ctx.fillStyle = lightCanopyColors[variant % lightCanopyColors.length];
+  1869→    ctx.beginPath();
+  1870→    ctx.ellipse(cx - 3, cy - 20, 14, 10, 0, 0, Math.PI * 2);
+  1871→    ctx.fill();
+  1872→    
+  1873→    // Top highlight
+  1874→    ctx.fillStyle = '#8FD47F';
+  1875→    ctx.beginPath();
+  1876→    ctx.ellipse(cx + 2, cy - 24, 8, 6, 0, 0, Math.PI * 2);
+  1877→    ctx.fill();
+  1878→    
+  1879→    // Subtle sway animation based on game time
+  1880→    const sway = Math.sin(this.gameTime * 0.8 + variant * 2) * 1.5;
+  1881→    // Draw a few animated leaf particles
+  1882→    ctx.fillStyle = 'rgba(100,180,80,0.3)';
+  1883→    ctx.beginPath();
+  1884→    ctx.arc(cx + sway * 3, cy - 22, 3, 0, Math.PI * 2);
+  1885→    ctx.fill();
+  1886→  }
+  1887→
+  1888→  // ==================== FOUNTAIN / WELL ====================
+  1889→
+  1890→  private _renderFountain(ctx: CanvasRenderingContext2D): void {
+  1891→    // Fountain positioned at plaza center (rows 6-7, cols 8-10)
+  1892→    const ts = this.tileSize;
+  1893→    const centerX = (9 * ts + ts / 2) - this.cameraX;
+  1894→    const centerY = (7 * ts + ts / 2) - this.cameraY;
+  1895→
+  1896→    // Fountain shadow
+  1897→    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  1898→    ctx.beginPath();
+  1899→    ctx.ellipse(centerX + 4, centerY + 12, 36, 14, 0, 0, Math.PI * 2);
+  1900→    ctx.fill();
+  1901→
+  1902→    // Outer stone basin (large oval)
+  1903→    ctx.strokeStyle = '#8B7355';
+  1904→    ctx.lineWidth = 3;
+  1905→    ctx.fillStyle = '#A89B82';
+  1906→    ctx.beginPath();
+  1907→    ctx.ellipse(centerX, centerY, 34, 22, 0, 0, Math.PI * 2);
+  1908→    ctx.fill();
+  1909→    ctx.stroke();
+  1910→
+  1911→    // Inner stone rim
+  1912→    ctx.strokeStyle = '#6E5E44';
+  1913→    ctx.lineWidth = 2;
+  1914→    ctx.fillStyle = '#4A8BA8';
+  1915→    ctx.beginPath();
+  1916→    ctx.ellipse(centerX, centerY, 26, 16, 0, 0, Math.PI * 2);
+  1917→    ctx.fill();
+  1918→    ctx.stroke();
+  1919→
+  1920→    // Water surface — animated shimmer
+  1921→    const shimmerPhase = this.gameTime * 2;
+  1922→    ctx.fillStyle = '#3D7B99';
+  1923→    ctx.beginPath();
+  1924→    ctx.ellipse(centerX, centerY, 24, 14, 0, 0, Math.PI * 2);
+  1925→    ctx.fill();
+  1926→
+  1927→    // Animated water ripple rings
+  1928→    for (let ring = 0; ring < 3; ring++) {
+  1929→      const ringPhase = shimmerPhase + ring * 1.5;
+  1930→      const ringRadius = 6 + ring * 7 + Math.sin(ringPhase) * 3;
+  1931→      const ringAlpha = 0.12 + Math.sin(ringPhase * 0.7) * 0.06;
+  1932→      ctx.strokeStyle = `rgba(140,200,240,${ringAlpha})`;
+  1933→      ctx.lineWidth = 1.5;
+  1934→      ctx.beginPath();
+  1935→      ctx.ellipse(centerX, centerY + Math.sin(ringPhase) * 1.5, ringRadius, ringRadius * 0.6, 0, 0, Math.PI * 2);
+  1936→      ctx.stroke();
+  1937→    }
+  1938→
+  1939→    // Water sparkle highlights (animated)
+  1940→    for (let i = 0; i < 5; i++) {
+  1941→      const sparkleAngle = shimmerPhase * 0.8 + i * 1.2;
+  1942→      const sparkleDist = 10 + Math.sin(sparkleAngle) * 8;
+  1943→      const sparkleX = centerX + Math.cos(sparkleAngle) * sparkleDist;
+  1944→      const sparkleY = centerY + Math.sin(sparkleAngle) * sparkleDist * 0.6;
+  1945→      const sparkleAlpha = 0.3 + Math.sin(shimmerPhase * 3 + i) * 0.2;
+  1946→      ctx.fillStyle = `rgba(200,240,255,${sparkleAlpha})`;
+  1947→      ctx.beginPath();
+  1948→      ctx.arc(sparkleX, sparkleY, 1.5, 0, Math.PI * 2);
+  1949→      ctx.fill();
+  1950→    }
+  1951→
+  1952→    // Central pillar/column
+  1953→    ctx.fillStyle = '#9E8E72';
+  1954→    ctx.fillRect(centerX - 4, centerY - 30, 8, 28);
+  1955→    // Pillar cap
+  1956→    ctx.fillStyle = '#8B7355';
+  1957→    ctx.fillRect(centerX - 7, centerY - 32, 14, 5);
+  1958→
+  1959→    // Water spout from pillar — animated dripping
+  1960→    const spoutPhase = Math.sin(this.gameTime * 4);
+  1961→    const spoutY = centerY - 28 + Math.abs(spoutPhase) * 6;
+  1962→    ctx.fillStyle = `rgba(100,180,220,${0.4 + spoutPhase * 0.15})`;
+  1963→    ctx.beginPath();
+  1964→    ctx.ellipse(centerX, spoutY, 5 + Math.sin(this.gameTime * 3) * 1.5, 3, 0, 0, Math.PI * 2);
+  1965→    ctx.fill();
+  1966→
+  1967→    // Splash particles at water surface
+  1968→    if (spoutPhase > 0.7) {
+  1969→      for (let s = 0; s < 3; s++) {
+  1970→        const splashX = centerX + Math.cos(this.gameTime * 5 + s * 2) * 8;
+  1971→        const splashY = centerY + Math.sin(this.gameTime * 5 + s * 2) * 4;
+  1972→        ctx.fillStyle = 'rgba(180,220,240,0.3)';
+  1973→        ctx.beginPath();
+  1974→        ctx.arc(splashX, splashY, 2, 0, Math.PI * 2);
+  1975→        ctx.fill();
+  1976→      }
+  1977→    }
+  1978→
+  1979→    // Basin stone detail — small blocks around rim
+  1980→    ctx.fillStyle = '#8B7355';
+  1981→    for (let a = 0; a < 8; a++) {
+  1982→      const angle = (a / 8) * Math.PI * 2;
+  1983→      const bx = centerX + Math.cos(angle) * 34;
+  1984→      const by = centerY + Math.sin(angle) * 22;
+  1985→      ctx.beginPath();
+  1986→      ctx.arc(bx, by, 3, 0, Math.PI * 2);
+  1987→      ctx.fill();
+  1988→    }
+  1989→  }
+  1990→
+  1991→  // ==================== MAP DECORATIONS ====================
+  1992→
+  1993→  // Decoration positions for various props around the map
+  1994→  private static DECORATIONS: { type: string; row: number; col: number; variant?: number }[] = [
+  1995→    // Wooden benches near fountain (rows 8-9, near center)
+  1996→    { type: 'bench', row: 8, col: 5, variant: 0 },
+  1997→    { type: 'bench', row: 8, col: 12, variant: 1 },
+  1998→    { type: 'bench', row: 5, col: 9, variant: 0 },
+  1999→    // Cart near market
+  2000→    { type: 'cart', row: 10, col: 2, variant: 0 },
+
+[showing lines 1-2000 of 2826; use offset=2001 with limit to continue reading]

@@ -268,7 +268,7 @@ export default function IntroScreen() {
         {/* Footer attribution */}
         <div className="absolute -bottom-12 left-0 right-0 text-center">
           <div className="text-white/30 text-[10px] tracking-widest uppercase">
-            Chapter 1 of 11 · Build v0.3
+            Chapter 1 of 11 · Build v0.4
           </div>
         </div>
       </div>

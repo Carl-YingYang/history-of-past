@@ -24,7 +24,7 @@ import { gameEvents } from '@/lib/game/eventBus';
  *     does NOT pause the game (the engine keeps running).
  */
 
-export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | null;
+export type PanelId = 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs' | null;
 
 interface UIState {
   activePanel: PanelId;
@@ -142,6 +142,16 @@ export function GlobalKeyboardShortcuts() {
         case 'b':
           // About Chapter — historical context
           store.togglePanel('about');
+          e.preventDefault();
+          break;
+        case 'q':
+          // Rizal Quote Library — browse quotes & favorites
+          store.togglePanel('quotes');
+          e.preventDefault();
+          break;
+        case 't':
+          // NPCs / People — relationship tracker
+          store.togglePanel('npcs');
           e.preventDefault();
           break;
         case 'h':

@@ -5,6 +5,8 @@ import { useUIStore } from './UIManager';
 import { useGameStore } from '@/stores/gameStore';
 import { toggleFieldNotesPanel } from './FieldNotesPanel';
 import { toggleDiscoveryLogPanel } from './DiscoveryLogPanel';
+import { toggleRizalQuoteLibrary } from './RizalQuoteLibrary';
+import { toggleNPCRelationshipPanel } from './NPCRelationshipPanel';
 import codex from '@/data/codex.json';
 import { achievementManager } from '@/lib/game/achievementManager';
 
@@ -63,6 +65,19 @@ export default function Toolbar() {
     return 0;
   });
 
+  // Live favorites count for Rizal Quote Library
+  const [favoritesCount, setFavoritesCount] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const raw = localStorage.getItem('noor-favorite-quotes');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.length;
+      }
+    } catch { /* ignore */ }
+    return 0;
+  });
+
   useEffect(() => {
     // Subscribe to live updates (initial values already read via lazy useState)
     const onNotesUpdate = (e: Event) => {
@@ -82,14 +97,22 @@ export default function Toolbar() {
     };
     window.addEventListener('noor:field-notes-updated', onNotesUpdate);
     window.addEventListener('noor:discovery-updated', onDiscoveryUpdated);
+    const onQuotesUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { favoritesCount: number } | undefined;
+      if (detail && typeof detail.favoritesCount === 'number') {
+        setFavoritesCount(detail.favoritesCount);
+      }
+    };
+    window.addEventListener('noor:quotes-updated', onQuotesUpdate);
     return () => {
       window.removeEventListener('noor:field-notes-updated', onNotesUpdate);
       window.removeEventListener('noor:discovery-updated', onDiscoveryUpdated);
+      window.removeEventListener('noor:quotes-updated', onQuotesUpdate);
     };
   }, []);
 
   const buttons: {
-    id: 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about';
+    id: 'codex' | 'journal' | 'settings' | 'minimap' | 'help' | 'glossary' | 'achievements' | 'storylog' | 'about' | 'quotes' | 'npcs';
     icon: string;
     label: string;
     shortcut: string;
@@ -102,40 +125,46 @@ export default function Toolbar() {
     { id: 'storylog', icon: '📜', label: 'Log', shortcut: 'L' },
     { id: 'minimap', icon: '🗺️', label: 'Map', shortcut: 'M' },
     { id: 'about', icon: '❦', label: 'About', shortcut: 'B' },
+    { id: 'quotes', icon: '💡', label: 'Quotes', shortcut: 'Q', counter: `${favoritesCount}` },
+    { id: 'npcs', icon: '👥', label: 'People', shortcut: 'T' },
     { id: 'settings', icon: '⚙️', label: 'Settings', shortcut: 'S' },
   ];
 
   return (
-    <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 flex-wrap max-w-[calc(100vw-120px)]">
+    <div className="absolute top-4 left-4 z-20 flex items-center gap-1 flex-wrap max-w-[calc(100vw-120px)]">
       {buttons.map(btn => {
         const isOpen = activePanel === btn.id;
         return (
           <button
             key={btn.id}
             onClick={() => togglePanel(btn.id)}
-            className={`group rounded-lg border p-1.5 shadow-lg transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950 ${
+            className={`group rounded-lg border p-1.5 shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950 ${
               isOpen
-                ? 'bg-amber-900/80 border-amber-400/60 shadow-amber-900/30'
-                : 'bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90 hover:border-amber-400/50'
+                ? 'bg-gradient-to-br from-amber-900/90 to-amber-950/80 border-amber-400/70 shadow-amber-900/40 ring-1 ring-amber-400/30'
+                : 'bg-stone-900/90 border-amber-400/30 hover:bg-gradient-to-br hover:from-stone-800/90 hover:to-amber-950/30 hover:border-amber-400/50'
             }`}
             title={`${btn.label} (${btn.shortcut})`}
             aria-label={`Open ${btn.label}`}
           >
             <div className="flex items-center gap-1">
-              <span className="text-sm">{btn.icon}</span>
-              <span className={`text-amber-400 font-bold text-[10px] leading-none ${
-                isOpen ? 'text-amber-300' : ''
+              <span className={`text-sm transition-transform duration-200 ${isOpen ? 'scale-110' : 'group-hover:scale-105'}`}>{btn.icon}</span>
+              <span className={`text-amber-400 font-bold text-[10px] leading-none transition-colors duration-200 ${
+                isOpen ? 'text-amber-300' : 'group-hover:text-amber-300'
               }`}>
                 {btn.label}
               </span>
             </div>
             {btn.counter && (
-              <div className="text-white/40 text-[9px] mt-0.5 text-center font-mono leading-none">
+              <div className={`text-[9px] mt-0.5 text-center font-mono leading-none transition-colors ${
+                isOpen ? 'text-amber-300/60' : 'text-white/40'
+              }`}>
                 {btn.counter}
               </div>
             )}
             {/* Shortcut hint - hidden on smallest screens */}
-            <div className="hidden md:block text-white/25 text-[8px] text-center font-mono leading-none mt-0.5">
+            <div className={`hidden md:block text-[8px] text-center font-mono leading-none mt-0.5 transition-colors ${
+              isOpen ? 'text-amber-400/60' : 'text-white/25'
+            }`}>
               {btn.shortcut}
             </div>
           </button>
@@ -145,13 +174,13 @@ export default function Toolbar() {
       {/* Discovery Log — separate toggle (custom event, like Field Notes) */}
       <button
         onClick={toggleDiscoveryLogPanel}
-        className="group rounded-lg border p-1.5 shadow-lg transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90 hover:border-amber-400/50"
+        className="group rounded-lg border p-1.5 shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-gradient-to-br hover:from-stone-800/90 hover:to-amber-950/30 hover:border-amber-400/50"
         title="Discovery Log (D)"
         aria-label="Open Discovery Log"
       >
         <div className="flex items-center gap-1">
-          <span className="text-sm">🧭</span>
-          <span className="text-amber-400 font-bold text-[10px] leading-none">Log</span>
+          <span className="text-sm transition-transform duration-200 group-hover:scale-105">🧭</span>
+          <span className="text-amber-400 font-bold text-[10px] leading-none group-hover:text-amber-300">Log</span>
         </div>
         <div className="text-white/40 text-[9px] mt-0.5 text-center font-mono leading-none">
           {discoveryCount}
@@ -164,13 +193,13 @@ export default function Toolbar() {
       {/* Field Notes — separate toggle (custom event) */}
       <button
         onClick={toggleFieldNotesPanel}
-        className="group rounded-lg border p-1.5 shadow-lg transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90 hover:border-amber-400/50"
+        className="group rounded-lg border p-1.5 shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-gradient-to-br hover:from-stone-800/90 hover:to-amber-950/30 hover:border-amber-400/50"
         title="Field Notes (N)"
         aria-label="Open Field Notes"
       >
         <div className="flex items-center gap-1">
-          <span className="text-sm">✏️</span>
-          <span className="text-amber-400 font-bold text-[10px] leading-none">Notes</span>
+          <span className="text-sm transition-transform duration-200 group-hover:scale-105">✏️</span>
+          <span className="text-amber-400 font-bold text-[10px] leading-none group-hover:text-amber-300">Notes</span>
         </div>
         <div className="text-white/40 text-[9px] mt-0.5 text-center font-mono leading-none">
           {notesCount}

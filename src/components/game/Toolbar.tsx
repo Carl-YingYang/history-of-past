@@ -2,6 +2,7 @@
 
 import { useUIStore } from './UIManager';
 import { useGameStore } from '@/stores/gameStore';
+import { toggleFieldNotesPanel } from './FieldNotesPanel';
 import codex from '@/data/codex.json';
 import { achievementManager } from '@/lib/game/achievementManager';
 
@@ -77,6 +78,25 @@ export default function Toolbar() {
           </button>
         );
       })}
+
+      {/* Field Notes — separate toggle (not part of the UIManager single-panel system) */}
+      <button
+        onClick={toggleFieldNotesPanel}
+        className="group rounded-lg border p-1.5 shadow-lg transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-amber-400/60 bg-stone-900/90 border-amber-400/30 hover:bg-stone-800/90 hover:border-amber-400/50"
+        title="Field Notes (N)"
+        aria-label="Open Field Notes"
+      >
+        <div className="flex items-center gap-1">
+          <span className="text-sm">✏️</span>
+          <span className="text-amber-400 font-bold text-[10px] leading-none">Notes</span>
+        </div>
+        <div className="text-white/40 text-[9px] mt-0.5 text-center font-mono leading-none">
+          you
+        </div>
+        <div className="hidden md:block text-white/25 text-[8px] text-center font-mono leading-none mt-0.5">
+          N
+        </div>
+      </button>
     </div>
   );
 }

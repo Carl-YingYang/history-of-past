@@ -20,6 +20,8 @@ import StoryLogPanel from '@/components/game/StoryLogPanel';
 import Toolbar from '@/components/game/Toolbar';
 import NPCLabelOverlay from '@/components/game/NPCLabelOverlay';
 import CulturalFactToast from '@/components/game/CulturalFactToast';
+import FieldNotesPanel from '@/components/game/FieldNotesPanel';
+import SaveIndicator from '@/components/game/SaveIndicator';
 import {
   GlobalKeyboardShortcuts,
   ModalBackdrop,
@@ -145,6 +147,9 @@ export default function Home() {
         <AchievementsPanel />
         <StoryLogPanel />
 
+        {/* Free-form player notepad (separate from UIManager panel system) */}
+        <FieldNotesPanel />
+
         {/* HUD (XP, time, medal, chapter progress) */}
         <HUD />
 
@@ -156,6 +161,9 @@ export default function Home() {
 
         {/* Cultural fact toast notifications */}
         <CulturalFactToast />
+
+        {/* Save status indicator (bottom-right, click to manual save) */}
+        <SaveIndicator />
 
         {/* Touch controls (bottom-left, also visible on desktop for accessibility) */}
         {!chapterComplete && activePanel === null && (
@@ -186,7 +194,7 @@ export default function Home() {
             <span className="text-white/30">move</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">Space</kbd>
             <span className="text-white/30">talk</span>
-            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/G/J/A/L/M/S</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">C/G/J/N/A/L/M/S</kbd>
             <span className="text-white/30">panels</span>
             <kbd className="px-1.5 py-0.5 rounded-md bg-stone-800/80 border border-amber-400/20 text-amber-400 text-[10px] font-mono">H</kbd>
             <span className="text-white/30">help</span>

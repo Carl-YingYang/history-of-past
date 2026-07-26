@@ -129,6 +129,11 @@ export function GlobalKeyboardShortcuts() {
           store.togglePanel('storylog');
           e.preventDefault();
           break;
+        case 'n':
+          // Field Notes uses a separate toggle event (not part of single-panel system)
+          window.dispatchEvent(new Event('noor:toggle-field-notes'));
+          e.preventDefault();
+          break;
         case 'h':
         case '?':
           store.togglePanel('help');

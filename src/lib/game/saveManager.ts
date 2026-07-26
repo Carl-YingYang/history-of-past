@@ -79,17 +79,31 @@ class SaveManager {
 
   async saveProgress(): Promise<void> {
     this.saveData.lastSaveTime = Date.now();
+    let success = false;
     try {
-      await fetch('/api/save', {
+      const res = await fetch('/api/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.saveData),
       });
+      success = res.ok;
     } catch (e) {
       console.warn('Server save failed, data kept locally:', e);
+      success = false;
     }
     // Also persist to localStorage as fallback
-    localStorage.setItem('noor-save', JSON.stringify(this.saveData));
+    try {
+      localStorage.setItem('noor-save', JSON.stringify(this.saveData));
+    } catch {
+      // localStorage may be full or unavailable; ignore
+    }
+    // Emit a save-completion event so UI indicators can react
+    gameEvents.emit('save:complete', { success, timestamp: this.saveData.lastSaveTime });
+  }
+
+  /** Returns the timestamp (ms since epoch) of the last successful save. */
+  getLastSaveTime(): number {
+    return this.saveData.lastSaveTime;
   }
 
   async loadProgress(): Promise<SaveData> {

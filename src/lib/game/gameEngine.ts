@@ -57,6 +57,31 @@ interface Particle {
   gravity?: number;     // Optional gravity (for celebration bursts)
 }
 
+interface Firefly {
+  x: number;            // World coordinates
+  y: number;
+  baseX: number;        // Anchor point for sinusoidal drift
+  baseY: number;
+  phase: number;        // Phase offset for blinking
+  blinkSpeed: number;   // How fast the firefly blinks
+  driftPhase: number;   // Phase offset for drift motion
+  brightness: number;   // Current 0..1 brightness
+}
+
+interface DriftLeaf {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  rotationSpeed: number;
+  size: number;
+  color: string;
+  alpha: number;
+  life: number;
+  maxLife: number;
+}
+
 interface BurstParticle {
   x: number;       // world coordinates
   y: number;
@@ -141,10 +166,25 @@ class GameEngine {
   // NPC interaction
   private interactCooldown: number = 0;
 
+  // Exploration stats — tracks tiles visited and NPCs talked to.
+  // Persisted to localStorage under 'noor-stats' so the QuestTracker can show
+  // a small "exploration" stat footer.
+  private visitedTiles: Set<string> = new Set();
+  private npcsTalkedTo: Set<string> = new Set();
+  private statsFlushTimer: number = 0;
+
   // Atmosphere: ambient particles (dust motes)
   private particles: Particle[] = [];
   private particleSpawnTimer: number = 0;
   private gameTime: number = 0; // Running game time for animations
+
+  // Atmosphere: fireflies (evening/afternoon glowing insects) - persistent, no lifecycle
+  private fireflies: Firefly[] = [];
+  private fireflySpawnTimer: number = 0;
+
+  // Atmosphere: drifting leaves (occasional foliage blowing across the scene)
+  private driftLeaves: DriftLeaf[] = [];
+  private leafSpawnTimer: number = 0;
 
   // Celebration burst particles (golden burst when an objective completes)
   private burstParticles: BurstParticle[] = [];
@@ -297,6 +337,9 @@ class GameEngine {
     // Initialize some particles
     this._initParticles();
 
+    // Initialize fireflies (persistent ambient atmosphere)
+    this._initFireflies();
+
     // Start game loop
     this.lastTimestamp = performance.now();
     this._gameLoop(this.lastTimestamp);
@@ -427,6 +470,8 @@ class GameEngine {
       const dist = this._distanceBetween(this.player, npc);
       if (dist < this.tileSize * 2) {
         this.interactCooldown = 500;
+        // Track NPC interaction for exploration stats
+        this.npcsTalkedTo.add(npcId);
         
         // Determine which dialogue to trigger
         if (npcId === 'mang-tenyo' && !saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
@@ -743,6 +788,12 @@ class GameEngine {
     // Update particles
     this._updateParticles(dt);
 
+    // Update fireflies (ambient glowing insects)
+    this._updateFireflies(dt);
+
+    // Update drifting leaves (occasional foliage)
+    this._updateDriftLeaves(dt);
+
     // Update burst particles (celebration effect)
     this._updateBurstParticles(dt);
 
@@ -757,6 +808,26 @@ class GameEngine {
       timeOfDay: this.timeOfDay,
       chapterPhase: this.chapterPhase,
     });
+
+    // Track exploration stats — count unique tiles visited
+    const tileRow = Math.floor(this.player.y / this.tileSize);
+    const tileCol = Math.floor(this.player.x / this.tileSize);
+    const tileKey = `${tileRow},${tileCol}`;
+    this.visitedTiles.add(tileKey);
+
+    // Flush stats to localStorage every ~2s (debounced)
+    this.statsFlushTimer += dt;
+    if (this.statsFlushTimer > 2.0) {
+      this.statsFlushTimer = 0;
+      try {
+        localStorage.setItem('noor-stats', JSON.stringify({
+          tilesExplored: this.visitedTiles.size,
+          npcsTalkedTo: this.npcsTalkedTo.size,
+        }));
+      } catch {
+        // localStorage may be unavailable; ignore
+      }
+    }
   }
 
   private _vectorToDirection(x: number, y: number): Direction {
@@ -920,6 +991,202 @@ class GameEngine {
     }
   }
 
+  // ==================== FIREFLIES ====================
+
+  private _initFireflies(): void {
+    // Pre-spawn fireflies scattered around the map (persistent)
+    if (!this.player) return;
+    const MAP_W = mapData.width * this.tileSize;
+    const MAP_H = mapData.height * this.tileSize;
+    for (let i = 0; i < 18; i++) {
+      const fx = Math.random() * MAP_W;
+      const fy = Math.random() * MAP_H;
+      this.fireflies.push({
+        x: fx,
+        y: fy,
+        baseX: fx,
+        baseY: fy,
+        phase: Math.random() * Math.PI * 2,
+        blinkSpeed: 0.8 + Math.random() * 1.6, // 0.8-2.4 rad/s
+        driftPhase: Math.random() * Math.PI * 2,
+        brightness: 0,
+      });
+    }
+  }
+
+  private _updateFireflies(dt: number): void {
+    // Note: gameTime is already updated in the main _update() loop
+
+    // Occasionally relocate fireflies that are too far from the player's view
+    // so we always have some nearby fireflies
+    this.fireflySpawnTimer += dt;
+    if (this.fireflySpawnTimer > 1.5 && this.player) {
+      this.fireflySpawnTimer = 0;
+      // Despawn fireflies that wandered too far
+      this.fireflies = this.fireflies.filter(f => {
+        const dx = f.x - this.player!.x;
+        const dy = f.y - this.player!.y;
+        return Math.sqrt(dx * dx + dy * dy) < this.viewWidth * 1.2;
+      });
+      // Spawn a few new ones near the player's view
+      while (this.fireflies.length < 18 && this.player) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = this.viewWidth * 0.4 + Math.random() * this.viewWidth * 0.3;
+        const fx = this.player.x + Math.cos(angle) * radius;
+        const fy = this.player.y + Math.sin(angle) * radius;
+        this.fireflies.push({
+          x: fx,
+          y: fy,
+          baseX: fx,
+          baseY: fy,
+          phase: Math.random() * Math.PI * 2,
+          blinkSpeed: 0.8 + Math.random() * 1.6,
+          driftPhase: Math.random() * Math.PI * 2,
+          brightness: 0,
+        });
+      }
+    }
+
+    // Update firefly positions and brightness
+    for (const f of this.fireflies) {
+      // Sinusoidal drift around the anchor point
+      const driftRadius = 18;
+      f.x = f.baseX + Math.cos(this.gameTime * 0.6 + f.driftPhase) * driftRadius;
+      f.y = f.baseY + Math.sin(this.gameTime * 0.4 + f.driftPhase * 1.3) * driftRadius * 0.7;
+
+      // Slowly migrate the anchor point (gentle wandering)
+      f.baseX += Math.sin(this.gameTime * 0.15 + f.driftPhase) * 0.15;
+      f.baseY += Math.cos(this.gameTime * 0.18 + f.phase) * 0.1;
+
+      // Blink brightness using a smooth wave (0..1)
+      // Use sin^4 for sharper on/off transitions
+      const raw = Math.sin(this.gameTime * f.blinkSpeed + f.phase);
+      const norm = (raw + 1) / 2; // 0..1
+      f.brightness = Math.pow(norm, 3); // Sharp blink curve
+    }
+  }
+
+  private _renderFireflies(ctx: CanvasRenderingContext2D): void {
+    // Fireflies only show during afternoon (golden hour) — they evoke a warm evening feel
+    if (this.timeOfDay !== 'afternoon') return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter'; // Additive blending for glow
+
+    for (const f of this.fireflies) {
+      const screenX = f.x - this.cameraX;
+      const screenY = f.y - this.cameraY;
+
+      // Skip off-screen fireflies
+      if (screenX < -30 || screenX > this.viewWidth + 30 || screenY < -30 || screenY > this.viewHeight + 30) continue;
+
+      const b = f.brightness;
+      if (b < 0.02) continue;
+
+      // Outer glow halo (large soft circle)
+      const glowRadius = 12;
+      const glowGrad = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, glowRadius);
+      glowGrad.addColorStop(0, `rgba(255, 240, 160, ${0.5 * b})`);
+      glowGrad.addColorStop(0.3, `rgba(255, 220, 100, ${0.25 * b})`);
+      glowGrad.addColorStop(1, 'rgba(255, 200, 80, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core bright dot
+      ctx.fillStyle = `rgba(255, 255, 220, ${0.95 * b})`;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ==================== DRIFTING LEAVES ====================
+
+  private _updateDriftLeaves(dt: number): void {
+    // Occasionally spawn a new leaf
+    this.leafSpawnTimer += dt;
+    if (this.leafSpawnTimer > 2.5 + Math.random() * 3 && this.player && this.driftLeaves.length < 8) {
+      this.leafSpawnTimer = 0;
+      // Spawn from the right side (wind blowing from east to west)
+      const spawnX = this.player.x + this.viewWidth * 0.6 + Math.random() * 100;
+      const spawnY = this.player.y - this.viewHeight * 0.3 + Math.random() * this.viewHeight * 0.6;
+      const colors = ['#8B5A2B', '#A0522D', '#6B4423', '#C17840', '#9C6B3F'];
+      this.driftLeaves.push({
+        x: spawnX,
+        y: spawnY,
+        vx: -25 - Math.random() * 20, // Wind blows leftward
+        vy: 8 + Math.random() * 8,    // Gentle downward drift
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 3,
+        size: 5 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 0,
+        life: 0,
+        maxLife: 8 + Math.random() * 4,
+      });
+    }
+
+    // Update leaves
+    for (let i = this.driftLeaves.length - 1; i >= 0; i--) {
+      const leaf = this.driftLeaves[i];
+      leaf.life += dt;
+
+      // Leaf motion: drifts left and downward, with sinusoidal sway
+      leaf.x += leaf.vx * dt + Math.sin(this.gameTime * 1.5 + i) * 0.5;
+      leaf.y += leaf.vy * dt + Math.cos(this.gameTime * 1.2 + i * 0.7) * 0.3;
+      leaf.rotation += leaf.rotationSpeed * dt;
+
+      // Fade in/out
+      const lifeRatio = leaf.life / leaf.maxLife;
+      if (lifeRatio < 0.15) {
+        leaf.alpha = lifeRatio / 0.15 * 0.85;
+      } else if (lifeRatio > 0.7) {
+        leaf.alpha = (1 - lifeRatio) / 0.3 * 0.85;
+      } else {
+        leaf.alpha = 0.85;
+      }
+
+      // Remove dead leaves
+      if (leaf.life >= leaf.maxLife) {
+        this.driftLeaves.splice(i, 1);
+      }
+    }
+  }
+
+  private _renderDriftLeaves(ctx: CanvasRenderingContext2D): void {
+    for (const leaf of this.driftLeaves) {
+      const screenX = leaf.x - this.cameraX;
+      const screenY = leaf.y - this.cameraY;
+      if (screenX < -20 || screenX > this.viewWidth + 20 || screenY < -20 || screenY > this.viewHeight + 20) continue;
+
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      ctx.rotate(leaf.rotation);
+      ctx.globalAlpha = leaf.alpha;
+
+      // Draw a simple leaf shape (almond/oval)
+      ctx.fillStyle = leaf.color;
+      ctx.beginPath();
+      // Ellipse-ish leaf shape
+      ctx.ellipse(0, 0, leaf.size, leaf.size * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Leaf vein (thin darker line)
+      ctx.strokeStyle = 'rgba(40, 25, 10, 0.4)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(-leaf.size, 0);
+      ctx.lineTo(leaf.size, 0);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+  }
+
   // ==================== RENDERING ====================
 
   private _render(): void {
@@ -967,6 +1234,12 @@ class GameEngine {
 
     // Render ambient particles (dust motes)
     this._renderParticles(ctx);
+
+    // Render fireflies (glowing evening insects)
+    this._renderFireflies(ctx);
+
+    // Render drifting leaves
+    this._renderDriftLeaves(ctx);
 
     // Render atmospheric effects (mist, birds)
     this._renderMist(ctx);
@@ -2099,10 +2372,38 @@ class GameEngine {
   // ==================== BUILDING LABELS ====================
 
   private _renderBuildingLabels(ctx: CanvasRenderingContext2D): void {
+    if (!this.player) return;
+
     for (const label of mapData.buildingLabels) {
       const centerX = (label.col + label.width / 2) * this.tileSize - this.cameraX;
       // Position labels well above the building (room for roof + cross + awning)
       const topY = label.row * this.tileSize - this.cameraY - 46;
+
+      // Compute distance from player to building center (in tile units)
+      const buildingCenterX = (label.col + label.width / 2) * this.tileSize + this.tileSize / 2;
+      const buildingCenterY = (label.row + label.height / 2) * this.tileSize + this.tileSize / 2;
+      const dx = this.player.x - buildingCenterX;
+      const dy = this.player.y - buildingCenterY;
+      const distTiles = Math.sqrt(dx * dx + dy * dy) / this.tileSize;
+
+      // Fade out the label as the player approaches the building
+      // (so it doesn't overlap with NPC name tags rendered by NPCLabelOverlay)
+      // Full opacity at distTiles >= 7, fully hidden at distTiles <= 4
+      const FADE_NEAR = 4;
+      const FADE_FAR = 7;
+      let labelAlpha = 1;
+      if (distTiles <= FADE_NEAR) {
+        labelAlpha = 0;
+      } else if (distTiles < FADE_FAR) {
+        labelAlpha = (distTiles - FADE_NEAR) / (FADE_FAR - FADE_NEAR);
+        // Smooth ease-in-out
+        labelAlpha = labelAlpha * labelAlpha * (3 - 2 * labelAlpha);
+      }
+
+      if (labelAlpha < 0.02) continue; // Skip rendering if essentially invisible
+
+      ctx.save();
+      ctx.globalAlpha = labelAlpha;
 
       // Measure text dimensions for panel sizing
       ctx.font = 'bold 13px "Geist", sans-serif';
@@ -2117,7 +2418,7 @@ class GameEngine {
       const panelX = centerX - panelW / 2;
       const panelY = topY - 2;
 
-      // Connecting line from panel to building roof
+      // Connecting line from panel to building roof (dashed)
       ctx.strokeStyle = 'rgba(139,115,85,0.45)';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 2]);
@@ -2127,9 +2428,10 @@ class GameEngine {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Panel shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(panelX + 2, panelY + 2, panelW, panelH);
+      // Panel shadow — soft, low-opacity, only 1px offset for a subtle drop
+      // (was 0.35 at +2,+2 — too prominent, looked like a black rectangle)
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.fillRect(panelX + 1, panelY + 1, panelW, panelH);
 
       // Panel background (warm parchment color)
       ctx.fillStyle = '#F5E6C8';
@@ -2145,9 +2447,16 @@ class GameEngine {
       ctx.lineWidth = 0.5;
       ctx.strokeRect(panelX + 3, panelY + 3, panelW - 6, panelH - 6);
 
-      // Glow effect for important labels
-      ctx.fillStyle = 'rgba(255,215,0,0.06)';
-      ctx.fillRect(panelX - 4, panelY - 4, panelW + 8, panelH + 8);
+      // Soft golden glow halo (radial, more elegant than flat rect)
+      const glowGrad = ctx.createRadialGradient(
+        centerX, topY + panelH / 2, 0,
+        centerX, topY + panelH / 2, panelW * 0.9
+      );
+      glowGrad.addColorStop(0, 'rgba(255,215,0,0.18)');
+      glowGrad.addColorStop(0.5, 'rgba(255,215,0,0.05)');
+      glowGrad.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(panelX - 8, panelY - 8, panelW + 16, panelH + 16);
 
       // Main label text
       ctx.font = 'bold 13px "Geist", sans-serif';
@@ -2163,7 +2472,7 @@ class GameEngine {
         ctx.fillText(label.label, centerX, topY + 9);
       }
       ctx.textBaseline = 'alphabetic';
-      
+
       // Small decorative corner marks
       ctx.fillStyle = '#8B7355';
       const cornerSize = 4;
@@ -2179,6 +2488,8 @@ class GameEngine {
       // Bottom-right corner
       ctx.fillRect(panelX + panelW - cornerSize - 1, panelY + panelH - 2, cornerSize, 1);
       ctx.fillRect(panelX + panelW - 2, panelY + panelH - cornerSize - 1, 1, cornerSize);
+
+      ctx.restore();
     }
   }
 
@@ -2352,39 +2663,48 @@ class GameEngine {
   // ==================== TRIGGER HINTS ====================
 
   private _renderTriggerHints(ctx: CanvasRenderingContext2D): void {
-    // Subtle visual hint for the gossip area — golden shimmer with sparkle particles
+    // Subtle visual hint for the gossip area — golden shimmer with sparkle particles.
+    // NOTE: No rectangular border drawn — it can visually overlap with the
+    // Market building label and NPC name tags, making the area feel cluttered.
+    // Instead we use floating sparkle particles + a soft radial glow.
     const gossipZone = this.triggerZones.find(z => z.id === 'market-gossip');
     if (gossipZone && !gossipZone.triggered && saveManager.isObjectiveCompleted(gossipZone.requiresObjective || '')) {
       const x = gossipZone.col * this.tileSize - this.cameraX;
       const y = gossipZone.row * this.tileSize - this.cameraY;
       const w = gossipZone.width * this.tileSize;
       const h = gossipZone.height * this.tileSize;
-      
-      // Pulsing golden shimmer (very subtle)
-      const shimmer = Math.sin(this.gameTime * 2) * 0.04 + 0.08;
-      ctx.fillStyle = `rgba(255,215,0,${shimmer})`;
-      ctx.fillRect(x, y, w, h);
-      
-      // Sparkle particles within the zone
-      for (let i = 0; i < 6; i++) {
+      const centerX = x + w / 2;
+      const centerY = y + h / 2;
+
+      // Soft radial golden glow centered on the zone (very subtle)
+      const glowRadius = Math.max(w, h) * 0.75;
+      const glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+      const pulse = Math.sin(this.gameTime * 2) * 0.04 + 0.08;
+      glowGrad.addColorStop(0, `rgba(255,215,0,${pulse})`);
+      glowGrad.addColorStop(0.5, `rgba(255,215,0,${pulse * 0.4})`);
+      glowGrad.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(x - 24, y - 24, w + 48, h + 48);
+
+      // Floating sparkle particles within the zone
+      for (let i = 0; i < 8; i++) {
         const sparkX = x + tileHash(gossipZone.row, gossipZone.col, i * 40 + 500) * w;
         const sparkY = y + tileHash(gossipZone.row, gossipZone.col, i * 40 + 600) * h;
         const sparkPhase = Math.sin(this.gameTime * 3 + i * 1.5);
-        const sparkAlpha = Math.max(0, sparkPhase * 0.15);
+        const sparkAlpha = Math.max(0, sparkPhase * 0.4);
         if (sparkAlpha > 0) {
-          ctx.fillStyle = `rgba(255,215,0,${sparkAlpha})`;
+          // Glow halo
+          ctx.fillStyle = `rgba(255,215,0,${sparkAlpha * 0.3})`;
           ctx.beginPath();
-          ctx.arc(sparkX, sparkY, 2 + sparkPhase * 1.5, 0, Math.PI * 2);
+          ctx.arc(sparkX, sparkY, 4 + sparkPhase * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          // Bright core
+          ctx.fillStyle = `rgba(255,240,180,${sparkAlpha})`;
+          ctx.beginPath();
+          ctx.arc(sparkX, sparkY, 1.5 + sparkPhase * 0.5, 0, Math.PI * 2);
           ctx.fill();
         }
       }
-      
-      // Subtle dotted border around the zone
-      ctx.strokeStyle = `rgba(255,215,0,${shimmer * 2})`;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 8]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.setLineDash([]);
     }
     
     // Subtle hint for Ibarra sighting zone

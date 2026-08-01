@@ -113,6 +113,16 @@ interface BuildingState {
   spriteHeight: number;
 }
 
+interface TreeState {
+  key: string;
+  row: number;
+  col: number;
+  width: number;
+  height: number;
+  spriteWidth: number;
+  spriteHeight: number;
+}
+
 interface TriggerZone {
   id: string;
   type: string;
@@ -173,6 +183,7 @@ class GameEngine {
   private npcs: NPCState[] = [];
   private props: PropState[] = [];
   private buildings: BuildingState[] = [];
+  private treeStates: TreeState[] = [];
   private triggerZones: TriggerZone[] = [];
   private camera: CameraState;
   private dialogue: DialogueState;
@@ -273,6 +284,9 @@ class GameEngine {
 
     // Parse buildings and props
     this._parseBuildingsAndProps();
+
+    // Parse trees
+    this._parseTrees();
 
     // Parse trigger zones
     this._parseTriggerZones();
@@ -392,6 +406,24 @@ class GameEngine {
           spriteWidth: p.spriteWidth || p.width * DISPLAY_TILE_SIZE,
           spriteHeight: p.spriteHeight || p.height * DISPLAY_TILE_SIZE,
           solid: p.solid !== undefined ? p.solid : true,
+        });
+      }
+    }
+  }
+
+  private _parseTrees(): void {
+    this.treeStates = [];
+    const treesData = mapData.trees as any[];
+    if (treesData) {
+      for (const t of treesData) {
+        this.treeStates.push({
+          key: t.key,
+          row: t.row,
+          col: t.col,
+          width: t.width,
+          height: t.height,
+          spriteWidth: t.spriteWidth || t.width * DISPLAY_TILE_SIZE,
+          spriteHeight: t.spriteHeight || t.height * DISPLAY_TILE_SIZE,
         });
       }
     }
@@ -983,14 +1015,20 @@ class GameEngine {
     const endCol = Math.ceil((camX + INTERNAL_WIDTH) / TILE_SIZE);
     const endRow = Math.ceil((camY + INTERNAL_HEIGHT) / TILE_SIZE);
 
-    // ── LAYER 1: Ground tiles ──
-    this._renderGroundTiles(ctx, camX, camY, startRow, endRow, endCol);
+    // Build set of tiles covered by scene stamps (buildings)
+    const sceneStampTiles = this._getSceneStampTiles();
 
-    // ── LAYER 2: Building sprites ──
+    // ── LAYER 1: Ground tiles (skip areas covered by scene stamps) ──
+    this._renderGroundTiles(ctx, camX, camY, startRow, endRow, endCol, sceneStampTiles);
+
+    // ── LAYER 2: Building scene stamps ──
     this._renderBuildings(ctx, camX, camY);
 
     // ── LAYER 3: Props (below characters) ──
     this._renderProps(ctx, camX, camY);
+
+    // ── LAYER 3.5: Trees ──
+    this._renderTrees(ctx, camX, camY);
 
     // ── LAYER 4: Y-sorted characters (NPCs + Player) ──
     this._renderCharacters(ctx, camX, camY);
@@ -1003,9 +1041,23 @@ class GameEngine {
     this.ctx.drawImage(this.offscreen!, 0, 0);
   }
 
+  /** Get set of tile positions covered by scene stamp buildings */
+  private _getSceneStampTiles(): Set<string> {
+    const covered = new Set<string>();
+    for (const building of this.buildings) {
+      for (let r = building.row; r < building.row + building.height; r++) {
+        for (let c = building.col; c < building.col + building.width; c++) {
+          covered.add(`${r},${c}`);
+        }
+      }
+    }
+    return covered;
+  }
+
   private _renderGroundTiles(
     ctx: CanvasRenderingContext2D, camX: number, camY: number,
-    startRow: number, endRow: number, endCol: number
+    startRow: number, endRow: number, endCol: number,
+    sceneStampTiles: Set<string>
   ): void {
     // Tile types that are buildings (rendered as sprites, not tiles)
     const BUILDING_TILE_TYPES = new Set([5, 6]);
@@ -1015,6 +1067,7 @@ class GameEngine {
       1: '#C4A76C', 2: '#8FBC8F', 3: '#D2B48C', 4: '#A0522D',
       5: '#696969', 6: '#8B4513', 7: '#6B8E6B', 8: '#555555',
       9: '#B8A070', 10: '#4A90A4', 11: '#7CB342', 12: '#00000033',
+      13: '#B8A88C', 14: '#C4A76C', 15: '#4169E1',
     };
 
     for (let row = startRow; row <= endRow && row < this.mapHeight; row++) {
@@ -1022,10 +1075,13 @@ class GameEngine {
       for (let col = 0; col <= endCol && col < this.mapWidth; col++) {
         if (col < 0) continue;
 
-        const tileType = this.groundLayer[row]?.[col] || 0;
-        if (tileType === 0) continue; // Empty tile — should not exist but safety check
+        // Skip tiles covered by scene stamps
+        if (sceneStampTiles.has(`${row},${col}`)) continue;
 
-        // Skip building tile types (church=5, mansion=6) — they are rendered as sprites
+        const tileType = this.groundLayer[row]?.[col] || 0;
+        if (tileType === 0) continue;
+
+        // Skip building tile types (church=5, mansion=6) — they are rendered as scene stamps
         if (BUILDING_TILE_TYPES.has(tileType)) continue;
 
         const screenX = col * TILE_SIZE - camX;
@@ -1087,6 +1143,25 @@ class GameEngine {
         propAsset.canvas,
         0, 0, propAsset.displayWidth, propAsset.displayHeight,
         px, py, propAsset.internalWidth, propAsset.internalHeight
+      );
+      ctx.imageSmoothingEnabled = false;
+    }
+  }
+
+  private _renderTrees(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    for (const tree of this.treeStates) {
+      const treeAsset = assetManager.getTree(tree.key);
+      if (!treeAsset) continue;
+
+      const tx = tree.col * TILE_SIZE - camX;
+      const ty = tree.row * TILE_SIZE - camY;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(
+        treeAsset.canvas,
+        0, 0, treeAsset.displayWidth, treeAsset.displayHeight,
+        tx, ty, treeAsset.internalWidth, treeAsset.internalHeight
       );
       ctx.imageSmoothingEnabled = false;
     }

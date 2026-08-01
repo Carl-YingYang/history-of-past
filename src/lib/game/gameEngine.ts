@@ -100,6 +100,7 @@ interface PropState {
   height: number;
   spriteWidth: number;
   spriteHeight: number;
+  solid: boolean;
 }
 
 interface BuildingState {
@@ -390,6 +391,7 @@ class GameEngine {
           height: p.height,
           spriteWidth: p.spriteWidth || p.width * DISPLAY_TILE_SIZE,
           spriteHeight: p.spriteHeight || p.height * DISPLAY_TILE_SIZE,
+          solid: p.solid !== undefined ? p.solid : true,
         });
       }
     }
@@ -657,6 +659,7 @@ class GameEngine {
 
   private _isPropAtTile(row: number, col: number): boolean {
     for (const prop of this.props) {
+      if (!prop.solid) continue; // Skip non-solid (decorative) props
       if (row >= prop.row && row < prop.row + prop.height &&
           col >= prop.col && col < prop.col + prop.width) {
         return true;
@@ -981,7 +984,7 @@ class GameEngine {
     const endRow = Math.ceil((camY + INTERNAL_HEIGHT) / TILE_SIZE);
 
     // ── LAYER 1: Ground tiles ──
-    this._renderGroundTiles(ctx, camX, camY, startRow, startRow, endRow, endCol);
+    this._renderGroundTiles(ctx, camX, camY, startRow, endRow, endCol);
 
     // ── LAYER 2: Building sprites ──
     this._renderBuildings(ctx, camX, camY);
@@ -1002,15 +1005,28 @@ class GameEngine {
 
   private _renderGroundTiles(
     ctx: CanvasRenderingContext2D, camX: number, camY: number,
-    _startRow: number, startRow: number, endRow: number, endCol: number
+    startRow: number, endRow: number, endCol: number
   ): void {
+    // Tile types that are buildings (rendered as sprites, not tiles)
+    const BUILDING_TILE_TYPES = new Set([5, 6]);
+
+    // Fallback colors for tile types without images
+    const fallbackColors: Record<number, string> = {
+      1: '#C4A76C', 2: '#8FBC8F', 3: '#D2B48C', 4: '#A0522D',
+      5: '#696969', 6: '#8B4513', 7: '#6B8E6B', 8: '#555555',
+      9: '#B8A070', 10: '#4A90A4', 11: '#7CB342', 12: '#00000033',
+    };
+
     for (let row = startRow; row <= endRow && row < this.mapHeight; row++) {
       if (row < 0) continue;
       for (let col = 0; col <= endCol && col < this.mapWidth; col++) {
         if (col < 0) continue;
 
         const tileType = this.groundLayer[row]?.[col] || 0;
-        if (tileType === 0) continue; // Empty tile
+        if (tileType === 0) continue; // Empty tile — should not exist but safety check
+
+        // Skip building tile types (church=5, mansion=6) — they are rendered as sprites
+        if (BUILDING_TILE_TYPES.has(tileType)) continue;
 
         const screenX = col * TILE_SIZE - camX;
         const screenY = row * TILE_SIZE - camY;
@@ -1020,23 +1036,9 @@ class GameEngine {
         if (tileAsset) {
           ctx.drawImage(tileAsset.canvas, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE, screenX, screenY, TILE_SIZE, TILE_SIZE);
         } else {
-          // Fallback: colored rectangle
-          const fallbackColors: Record<number, string> = {
-            1: '#C4A76C', 2: '#8FBC8F', 3: '#D2B48C', 4: '#A0522D',
-            5: '#696969', 6: '#8B4513', 7: '#6B8E6B', 8: '#555555',
-            9: '#B8A070', 10: '#4A90A4', 11: '#7CB342', 12: '#00000033',
-          };
+          // Fallback: colored rectangle for tiles without images
           ctx.fillStyle = fallbackColors[tileType] || '#FF00FF';
           ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-        }
-
-        // Also check buildings layer (render building tile type on ground)
-        const buildingType = this.buildingsLayer[row]?.[col] || 0;
-        if (buildingType > 0 && buildingType !== 5 && buildingType !== 6) {
-          const buildingTile = assetManager.getTile(buildingType);
-          if (buildingTile) {
-            ctx.drawImage(buildingTile.canvas, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE, screenX, screenY, TILE_SIZE, TILE_SIZE);
-          }
         }
       }
     }

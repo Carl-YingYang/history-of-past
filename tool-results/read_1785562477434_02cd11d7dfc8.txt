@@ -1,0 +1,806 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useMemo } from 'react';
+     4→import { useUIStore } from './UIManager';
+     5→import { useGameStore } from '@/stores/gameStore';
+     6→import mapData from '@/data/mapData.json';
+     7→import characterData from '@/data/characters.json';
+     8→
+     9→/**
+    10→ * Minimap - Enhanced overview of the San Diego map with building labels,
+    11→ * NPC markers, discovery markers, compass, zoom levels, and visual polish.
+    12→ *
+    13→ * Task 9-b additions:
+    14→ *   - Undiscovered buildings render as a pulsing gray dashed circle with a
+    15→ *     "?" glyph instead of their label, so the player can see there's
+    16→ *     *something* there but hasn't found it yet.
+    17→ *   - Hovering any building marker shows a tooltip ("Undiscovered location"
+    18→ *     for ? markers, or the building name for discovered ones).
+    19→ *   - Legend gets a "❓ Undiscovered" entry.
+    20→ *   - Discovery counter at the bottom reflects the actual building count
+    21→ *     from `mapData.buildingLabels` (currently 3).
+    22→ */
+    23→
+    24→// Zoom level cell sizes
+    25→const ZOOM_LEVELS: Record<string, { cellSize: number; label: string }> = {
+    26→  'small':  { cellSize: 8,  label: 'S' },
+    27→  'medium': { cellSize: 12, label: 'M' },
+    28→  'large':  { cellSize: 16, label: 'L' },
+    29→};
+    30→
+    31→// Shape of a discovery-log entry persisted by DiscoveryLogPanel under
+    32→// 'noor-discovery-log'. Only the fields we actually read here.
+    33→interface DiscoveryLogEntry {
+    34→  id: string;
+    35→  name: string;
+    36→  type: string;
+    37→  position: { x: number; y: number };
+    38→  timestamp: number;
+    39→  note?: string;
+    40→}
+    41→
+    42→// Information about the building marker currently under the cursor. Used to
+    43→// render a positioned tooltip overlay.
+    44→interface HoveredMarker {
+    45→  cssX: number;       // mouse X relative to canvas (CSS px)
+    46→  cssY: number;       // mouse Y relative to canvas (CSS px)
+    47→  label: string;
+    48→  discovered: boolean;
+    49→}
+    50→
+    51→/**
+    52→ * Build the canonical discovery-log id for a building label, matching the
+    53→ * format used by DiscoveryLogPanel/Minimap when dispatching 'noor:discovery'
+    54→ * events: `bldg-<slugified-label>`.
+    55→ */
+    56→function getBuildingDiscoveryId(label: string): string {
+    57→  return `bldg-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    58→}
+    59→
+    60→/** Load the discovery log from localStorage (SSR-safe). */
+    61→function loadDiscoveryLog(): DiscoveryLogEntry[] {
+    62→  if (typeof window === 'undefined') return [];
+    63→  try {
+    64→    const raw = localStorage.getItem('noor-discovery-log');
+    65→    if (!raw) return [];
+    66→    const parsed = JSON.parse(raw);
+    67→    if (!Array.isArray(parsed)) return [];
+    68→    return parsed.filter(
+    69→      (d): d is DiscoveryLogEntry =>
+    70→        d && typeof d === 'object' && typeof d.id === 'string'
+    71→    );
+    72→  } catch {
+    73→    return [];
+    74→  }
+    75→}
+    76→
+    77→// NPC color mapping from characters.json
+    78→const NPC_COLORS: Record<string, string> = {};
+    79→for (const [id, char] of Object.entries(characterData.characters)) {
+    80→  if (char.placeholder && char.placeholderColor) {
+    81→    NPC_COLORS[id] = char.placeholderColor;
+    82→  } else if (id === 'ibara') {
+    83→    NPC_COLORS[id] = '#FFD700'; // Gold for Ibarra
+    84→  }
+    85→}
+    86→// Fallback for known NPC ids not in characters
+    87→NPC_COLORS['mang-tenyo'] = NPC_COLORS['mang-tenyo'] || '#8B4513';
+    88→NPC_COLORS['kitchen-staff-1'] = NPC_COLORS['kitchen-staff-1'] || '#D2691E';
+    89→NPC_COLORS['kitchen-staff-2'] = NPC_COLORS['kitchen-staff-2'] || '#CD853F';
+    90→NPC_COLORS['ibara'] = NPC_COLORS['ibara'] || '#FFD700';
+    91→
+    92→export default function Minimap() {
+    93→  const { activePanel, togglePanel } = useUIStore();
+    94→  const isOpen = activePanel === 'minimap';
+    95→  const { completedObjectives } = useGameStore();
+    96→
+    97→  const [playerPos, setPlayerPos] = useState({ row: 15, col: 10 });
+    98→  const [playerDirection, setPlayerDirection] = useState<string>('south');
+    99→  const [zoomLevel, setZoomLevel] = useState<string>('medium');
+   100→  // Lazy initializer: load discovered locations from localStorage on first render
+   101→  const [discoveredLocations, setDiscoveredLocations] = useState<string[]>(() => {
+   102→    try {
+   103→      const saved = localStorage.getItem('noor-discovered-locations');
+   104→      if (saved) return JSON.parse(saved);
+   105→    } catch (e) {
+   106→      // Ignore
+   107→    }
+   108→    return [];
+   109→  });
+   110→  // Discovery log (canonical source per Task 9-b). We also keep the legacy
+   111→  // `noor-discovered-locations` list as a fallback for backward compatibility.
+   112→  const [discoveryLog, setDiscoveryLog] = useState<DiscoveryLogEntry[]>(() => loadDiscoveryLog());
+   113→  // Building marker currently under the cursor (for tooltip rendering).
+   114→  const [hoveredMarker, setHoveredMarker] = useState<HoveredMarker | null>(null);
+   115→  const canvasRef = useRef<HTMLCanvasElement>(null);
+   116→  const rafRef = useRef<number | null>(null);
+   117→  const discoveredRef = useRef(discoveredLocations);
+   118→  // Keep ref in sync with state via effect (not during render)
+   119→  useEffect(() => {
+   120→    discoveredRef.current = discoveredLocations;
+   121→  }, [discoveredLocations]);
+   122→
+   123→  // Set of building discovery-log ids that have been recorded. Computed from
+   124→  // `discoveryLog`; falls back to `discoveredLocations` (label-based) so a
+   125→  // discovery recorded through either channel counts as discovered.
+   126→  const discoveredBuildingIds = useMemo(() => {
+   127→    const ids = new Set<string>();
+   128→    for (const entry of discoveryLog) ids.add(entry.id);
+   129→    // Also include any buildings recorded by label in the legacy list.
+   130→    for (const label of discoveredLocations) {
+   131→      ids.add(getBuildingDiscoveryId(label));
+   132→    }
+   133→    return ids;
+   134→  }, [discoveryLog, discoveredLocations]);
+   135→
+   136→  // Listen for live discovery-log updates so the minimap re-renders as soon
+   137→  // as a new building is discovered (without waiting for the next poll).
+   138→  useEffect(() => {
+   139→    const handler = () => setDiscoveryLog(loadDiscoveryLog());
+   140→    window.addEventListener('noor:discovery-updated', handler as EventListener);
+   141→    window.addEventListener('noor:discovery', handler as EventListener);
+   142→    return () => {
+   143→      window.removeEventListener('noor:discovery-updated', handler as EventListener);
+   144→      window.removeEventListener('noor:discovery', handler as EventListener);
+   145→    };
+   146→  }, []);
+   147→
+   148→  // Listen for player position updates and check for discoveries in callback
+   149→  useEffect(() => {
+   150→    const handlePositionUpdate = (e: Event) => {
+   151→      const detail = (e as CustomEvent).detail;
+   152→      if (detail?.playerPos) setPlayerPos(detail.playerPos);
+   153→      if (detail?.playerDirection) setPlayerDirection(detail.playerDirection);
+   154→    };
+   155→    window.addEventListener('noor:positionUpdate', handlePositionUpdate);
+   156→
+   157→    // Poll player position from save data every 500ms
+   158→    // Discovery check is done within the polling callback (not directly in effect body)
+   159→    const interval = setInterval(() => {
+   160→      try {
+   161→        const save = localStorage.getItem('noor-save');
+   162→        if (save) {
+   163→          const data = JSON.parse(save);
+   164→          if (data.gameState?.playerPosition) {
+   165→            const pos = data.gameState.playerPosition;
+   166→            setPlayerPos(pos);
+   167→
+   168→            // Check for location discovery within this callback
+   169→            const buildingLabelsData = mapData.buildingLabels;
+   170→            const currentDiscoveries = discoveredRef.current;
+   171→            const newDiscoveries: string[] = [];
+   172→
+   173→            for (const building of buildingLabelsData) {
+   174→              const centerRow = building.row + Math.floor(building.height / 2);
+   175→              const centerCol = building.col + Math.floor(building.width / 2);
+   176→              const dist = Math.abs(pos.row - centerRow) + Math.abs(pos.col - centerCol);
+   177→
+   178→              if (dist <= 3 && !currentDiscoveries.includes(building.label)) {
+   179→                newDiscoveries.push(building.label);
+   180→              }
+   181→            }
+   182→
+   183→            if (newDiscoveries.length > 0) {
+   184→              const updated = [...currentDiscoveries, ...newDiscoveries];
+   185→              setDiscoveredLocations(updated);
+   186→              discoveredRef.current = updated;
+   187→              try {
+   188→                localStorage.setItem('noor-discovered-locations', JSON.stringify(updated));
+   189→              } catch (e) {
+   190→                // Ignore
+   191→              }
+   192→
+   193→              // Dispatch 'noor:discovery' events so the DiscoveryLogPanel
+   194→              // (and any other listener) can record full discovery metadata.
+   195→              for (const building of buildingLabelsData) {
+   196→                if (newDiscoveries.includes(building.label)) {
+   197→                  const centerRow = building.row + Math.floor(building.height / 2);
+   198→                  const centerCol = building.col + Math.floor(building.width / 2);
+   199→                  window.dispatchEvent(new CustomEvent('noor:discovery', {
+   200→                    detail: {
+   201→                      id: `bldg-${building.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+   202→                      name: building.label,
+   203→                      type: 'building',
+   204→                      position: { x: centerCol, y: centerRow },
+   205→                      timestamp: Date.now(),
+   206→                      note: building.sublabel || undefined,
+   207→                    },
+   208→                  }));
+   209→                }
+   210→              }
+   211→            }
+   212→          }
+   213→          if (data.gameState?.playerDirection) {
+   214→            setPlayerDirection(data.gameState.playerDirection);
+   215→          }
+   216→        }
+   217→      } catch (e) {
+   218→        // Ignore
+   219→      }
+   220→    }, 500);
+   221→
+   222→    return () => {
+   223→      window.removeEventListener('noor:positionUpdate', handlePositionUpdate);
+   224→      clearInterval(interval);
+   225→    };
+   226→  }, []);
+   227→
+   228→  // Render minimap to canvas
+   229→  useEffect(() => {
+   230→    if (!isOpen || !canvasRef.current) return;
+   231→
+   232→    const canvas = canvasRef.current;
+   233→    const ctx = canvas.getContext('2d');
+   234→    if (!ctx) return;
+   235→
+   236→    const { cellSize } = ZOOM_LEVELS[zoomLevel];
+   237→    const canvasW = mapData.width * cellSize;
+   238→    const canvasH = mapData.height * cellSize;
+   239→    canvas.width = canvasW;
+   240→    canvas.height = canvasH;
+   241→
+   242→    let lastDraw = 0;
+   243→
+   244→    const draw = (t: number) => {
+   245→      if (t - lastDraw < 80) {
+   246→        rafRef.current = requestAnimationFrame(draw);
+   247→        return;
+   248→      }
+   249→      lastDraw = t;
+   250→
+   251→      // Clear with dark background
+   252→      ctx.fillStyle = '#0a0a0a';
+   253→      ctx.fillRect(0, 0, canvasW, canvasH);
+   254→
+   255→      // Draw tiles with enhanced colors and subtle borders
+   256→      for (let row = 0; row < mapData.height; row++) {
+   257→        for (let col = 0; col < mapData.width; col++) {
+   258→          const groundTile = mapData.layers.ground[row]?.[col];
+   259→          const buildingTile = mapData.layers.buildings[row]?.[col];
+   260→
+   261→          let color = '#1a1a1a';
+   262→          let borderColor = '#222222';
+   263→
+   264→          if (groundTile === 2) { color = '#3a5f3a'; borderColor = '#4a6f4a'; }
+   265→          else if (groundTile === 3) { color = '#8B7355'; borderColor = '#9B8365'; }
+   266→          else if (groundTile === 1) { color = '#C4A76C'; borderColor = '#D4B77C'; }
+   267→          else if (groundTile === 4) { color = '#A0522D'; borderColor = '#B0623D'; }
+   268→
+   269→          // Buildings
+   270→          if (buildingTile === 5) { color = '#696969'; borderColor = '#797979'; }
+   271→          if (buildingTile === 6) { color = '#8B4513'; borderColor = '#9B5523'; }
+   272→
+   273→          ctx.fillStyle = color;
+   274→          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+   275→
+   276→          // Subtle grid lines
+   277→          ctx.strokeStyle = borderColor;
+   278→          ctx.lineWidth = 0.3;
+   279→          ctx.strokeRect(col * cellSize, row * cellSize, cellSize, cellSize);
+   280→        }
+   281→      }
+   282→
+   283→      // Draw fountain/water and trees from decoration layer
+   284→      const decorationLayer = (mapData.layers as any).decoration;
+   285→      if (decorationLayer) {
+   286→        for (let row = 0; row < mapData.height; row++) {
+   287→          for (let col = 0; col < mapData.width; col++) {
+   288→            const decorTile = decorationLayer[row]?.[col];
+   289→            if (decorTile === 7) {
+   290→              ctx.fillStyle = '#7CB9E8';
+   291→              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+   292→            }
+   293→            if (decorTile === 8) {
+   294→              ctx.fillStyle = '#2d4a2d';
+   295→              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+   296→            }
+   297→          }
+   298→        }
+   299→      }
+   300→
+   301→      // ---- Building Labels from mapData.buildingLabels ----
+   302→      const buildingLabelsData = mapData.buildingLabels;
+   303→      const fontSize = zoomLevel === 'large' ? 9 : zoomLevel === 'medium' ? 7 : 6;
+   304→      ctx.font = `bold ${fontSize}px monospace`;
+   305→      ctx.textAlign = 'center';
+   306→
+   307→      // Pulsing alpha for the "?" undiscovered markers — oscillates between
+   308→      // 0.4 and 0.7 with a ~1.4s period to gently draw the player's attention.
+   309→      const pulseT = Date.now() / 1000;
+   310→      const questionAlpha = 0.55 + Math.sin(pulseT * Math.PI / 0.7) * 0.15; // ~0.4..0.7
+   311→
+   312→      for (const building of buildingLabelsData) {
+   313→        const centerRow = building.row + Math.floor(building.height / 2);
+   314→        const centerCol = building.col + Math.floor(building.width / 2);
+   315→        const centerX = centerCol * cellSize + cellSize / 2;
+   316→        const centerY = centerRow * cellSize + cellSize / 2;
+   317→
+   318→        const label = building.label;
+   319→        const isDiscovered = discoveredBuildingIds.has(getBuildingDiscoveryId(label));
+   320→
+   321→        if (!isDiscovered) {
+   322→          // ── Undiscovered marker: gray dashed circle + "?" glyph ──
+   323→          const qRadius = Math.max(cellSize * 0.9, 6);
+   324→          // Soft dark fill so the ? reads against any background
+   325→          ctx.globalAlpha = questionAlpha;
+   326→          ctx.fillStyle = 'rgba(40, 40, 40, 0.85)';
+   327→          ctx.beginPath();
+   328→          ctx.arc(centerX, centerY, qRadius, 0, Math.PI * 2);
+   329→          ctx.fill();
+   330→
+   331→          // Dashed gray border
+   332→          ctx.strokeStyle = 'rgba(180, 180, 180, 0.9)';
+   333→          ctx.lineWidth = 1;
+   334→          ctx.setLineDash([2, 2]);
+   335→          ctx.beginPath();
+   336→          ctx.arc(centerX, centerY, qRadius, 0, Math.PI * 2);
+   337→          ctx.stroke();
+   338→          ctx.setLineDash([]);
+   339→
+   340→          // "?" glyph in white/50
+   341→          const qFontSize = Math.max(8, cellSize + 2);
+   342→          ctx.font = `bold ${qFontSize}px monospace`;
+   343→          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+   344→          ctx.textAlign = 'center';
+   345→          ctx.textBaseline = 'middle';
+   346→          ctx.fillText('?', centerX, centerY + 1);
+   347→          ctx.textBaseline = 'alphabetic';
+   348→          ctx.globalAlpha = 1;
+   349→          ctx.font = `bold ${fontSize}px monospace`;
+   350→          continue; // skip the discovered-label rendering below
+   351→        }
+   352→
+   353→        // Background rectangle for label
+   354→        const textWidth = ctx.measureText(label).width;
+   355→        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+   356→        ctx.fillRect(
+   357→          centerX - textWidth / 2 - 2,
+   358→          centerY - fontSize / 2 - 1,
+   359→          textWidth + 4,
+   360→          fontSize + 2
+   361→        );
+   362→
+   363→        // Label text - white/amber
+   364→        ctx.fillStyle = '#E8D0A0';
+   365→        ctx.fillText(label, centerX, centerY + fontSize / 2 - 1);
+   366→
+   367→        // Sublabel if present
+   368→        if (building.sublabel && zoomLevel !== 'small') {
+   369→          const subFontSize = fontSize - 1;
+   370→          ctx.font = `${subFontSize}px monospace`;
+   371→          const subWidth = ctx.measureText(building.sublabel).width;
+   372→          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+   373→          ctx.fillRect(
+   374→            centerX - subWidth / 2 - 1,
+   375→            centerY + fontSize / 2 + 1,
+   376→            subWidth + 2,
+   377→            subFontSize + 1
+   378→          );
+   379→          ctx.fillStyle = '#A08060';
+   380→          ctx.fillText(building.sublabel, centerX, centerY + fontSize / 2 + subFontSize + 1);
+   381→          ctx.font = `bold ${fontSize}px monospace`;
+   382→        }
+   383→
+   384→        // Discovery marker ✦ if player has been near
+   385→        const wasDiscoveredLegacy = discoveredLocations.includes(building.label);
+   386→        if (wasDiscoveredLegacy) {
+   387→          const discoveryFontSize = fontSize + 2;
+   388→          ctx.font = `bold ${discoveryFontSize}px serif`;
+   389→          ctx.fillStyle = '#FFD700';
+   390→          ctx.textAlign = 'right';
+   391→          ctx.fillText('✦', centerX + textWidth / 2 + 2, centerY - fontSize / 2 - 2);
+   392→          ctx.textAlign = 'center';
+   393→          ctx.font = `bold ${fontSize}px monospace`;
+   394→        }
+   395→      }
+   396→
+   397→      // ---- NPC Position Markers ----
+   398→      const npcPosData = mapData.npcPositions as Record<string, { row: number; col: number; direction: string; appearsAfter?: string }>;
+   399→      for (const [id, pos] of Object.entries(npcPosData)) {
+   400→        let visible = true;
+   401→        if (pos.appearsAfter) {
+   402→          visible = completedObjectives.includes(pos.appearsAfter);
+   403→        }
+   404→
+   405→        if (visible) {
+   406→          const npcColor = NPC_COLORS[id] || '#FF6B35';
+   407→          const npcX = pos.col * cellSize + cellSize / 2;
+   408→          const npcY = pos.row * cellSize + cellSize / 2;
+   409→          const npcRadius = cellSize / 2 - 1;
+   410→
+   411→          // NPC glow
+   412→          ctx.globalAlpha = 0.25;
+   413→          ctx.fillStyle = npcColor;
+   414→          ctx.beginPath();
+   415→          ctx.arc(npcX, npcY, npcRadius + 3, 0, Math.PI * 2);
+   416→          ctx.fill();
+   417→          ctx.globalAlpha = 1;
+   418→
+   419→          // NPC dot
+   420→          ctx.fillStyle = npcColor;
+   421→          ctx.beginPath();
+   422→          ctx.arc(npcX, npcY, npcRadius, 0, Math.PI * 2);
+   423→          ctx.fill();
+   424→
+   425→          // Small white center highlight
+   426→          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+   427→          ctx.beginPath();
+   428→          ctx.arc(npcX, npcY, Math.max(1, npcRadius - 2), 0, Math.PI * 2);
+   429→          ctx.fill();
+   430→
+   431→          // NPC name label on medium/large zoom
+   432→          if (zoomLevel !== 'small') {
+   433→            const charInfo = characterData.characters[id as keyof typeof characterData.characters];
+   434→            const displayName = charInfo?.displayName || id;
+   435→            const nameFontSize = zoomLevel === 'large' ? 7 : 5;
+   436→            ctx.font = `${nameFontSize}px monospace`;
+   437→            ctx.textAlign = 'center';
+   438→            const nameWidth = ctx.measureText(displayName).width;
+   439→            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+   440→            ctx.fillRect(npcX - nameWidth / 2 - 1, npcY - npcRadius - nameFontSize - 3, nameWidth + 2, nameFontSize + 2);
+   441→            ctx.fillStyle = npcColor;
+   442→            ctx.fillText(displayName, npcX, npcY - npcRadius - 2);
+   443→          }
+   444→        }
+   445→      }
+   446→
+   447→      // ---- Player Position (pulsing amber/yellow) ----
+   448→      const pulse = (Math.sin(Date.now() / 250) + 1) / 2;
+   449→      const px = playerPos.col * cellSize + cellSize / 2;
+   450→      const py = playerPos.row * cellSize + cellSize / 2;
+   451→      const playerRadius = cellSize / 2;
+   452→
+   453→      // Outer glow ring (amber/yellow pulsing)
+   454→      ctx.globalAlpha = 0.15 + pulse * 0.15;
+   455→      ctx.fillStyle = '#FFC107';
+   456→      ctx.beginPath();
+   457→      ctx.arc(px, py, playerRadius + pulse * 4, 0, Math.PI * 2);
+   458→      ctx.fill();
+   459→
+   460→      // Inner glow
+   461→      ctx.globalAlpha = 0.3 + pulse * 0.1;
+   462→      ctx.fillStyle = '#FFD54F';
+   463→      ctx.beginPath();
+   464→      ctx.arc(px, py, playerRadius + 2, 0, Math.PI * 2);
+   465→      ctx.fill();
+   466→
+   467→      ctx.globalAlpha = 1;
+   468→
+   469→      // Player dot (bright amber)
+   470→      ctx.fillStyle = `rgba(255, 193, 7, ${0.85 + pulse * 0.15})`;
+   471→      ctx.beginPath();
+   472→      ctx.arc(px, py, playerRadius - 1, 0, Math.PI * 2);
+   473→      ctx.fill();
+   474→
+   475→      // Direction indicator arrow
+   476→      const dirOffsets: Record<string, { dx: number; dy: number }> = {
+   477→        'north': { dx: 0, dy: -3 },
+   478→        'south': { dx: 0, dy: 3 },
+   479→        'east': { dx: 3, dy: 0 },
+   480→        'west': { dx: -3, dy: 0 },
+   481→        'north-east': { dx: 2, dy: -2 },
+   482→        'north-west': { dx: -2, dy: -2 },
+   483→        'south-east': { dx: 2, dy: 2 },
+   484→        'south-west': { dx: -2, dy: 2 },
+   485→      };
+   486→      const dirOffset = dirOffsets[playerDirection] || dirOffsets['south'];
+   487→      ctx.strokeStyle = '#FFC107';
+   488→      ctx.lineWidth = 2;
+   489→      ctx.beginPath();
+   490→      ctx.moveTo(px, py);
+   491→      ctx.lineTo(px + dirOffset.dx, py + dirOffset.dy);
+   492→      ctx.stroke();
+   493→
+   494→      // Player square outline (amber)
+   495→      ctx.strokeStyle = '#FFC107';
+   496→      ctx.lineWidth = 1;
+   497→      ctx.strokeRect(
+   498→        playerPos.col * cellSize + 1,
+   499→        playerPos.row * cellSize + 1,
+   500→        cellSize - 2,
+   501→        cellSize - 2
+   502→      );
+   503→
+   504→      // ---- Compass Indicator ----
+   505→      const compassX = canvasW - cellSize * 2;
+   506→      const compassY = cellSize;
+   507→      const compassR = cellSize * 0.8;
+   508→
+   509→      // Compass circle background
+   510→      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+   511→      ctx.beginPath();
+   512→      ctx.arc(compassX, compassY, compassR + 2, 0, Math.PI * 2);
+   513→      ctx.fill();
+   514→
+   515→      // Compass circle border
+   516→      ctx.strokeStyle = '#D4A574';
+   517→      ctx.lineWidth = 1;
+   518→      ctx.beginPath();
+   519→      ctx.arc(compassX, compassY, compassR, 0, Math.PI * 2);
+   520→      ctx.stroke();
+   521→
+   522→      // Compass needle pointing north
+   523→      ctx.fillStyle = '#FFC107';
+   524→      ctx.beginPath();
+   525→      ctx.moveTo(compassX, compassY - compassR + 2);
+   526→      ctx.lineTo(compassX - 2, compassY);
+   527→      ctx.lineTo(compassX + 2, compassY);
+   528→      ctx.closePath();
+   529→      ctx.fill();
+   530→
+   531→      // South needle (darker)
+   532→      ctx.fillStyle = '#5A3A1A';
+   533→      ctx.beginPath();
+   534→      ctx.moveTo(compassX, compassY + compassR - 2);
+   535→      ctx.lineTo(compassX - 2, compassY);
+   536→      ctx.lineTo(compassX + 2, compassY);
+   537→      ctx.closePath();
+   538→      ctx.fill();
+   539→
+   540→      // Compass labels
+   541→      const compassFontSize = Math.max(4, cellSize * 0.4);
+   542→      ctx.font = `bold ${compassFontSize}px sans-serif`;
+   543→      ctx.textAlign = 'center';
+   544→      ctx.textBaseline = 'middle';
+   545→      ctx.fillStyle = '#FFC107';
+   546→      ctx.fillText('N', compassX, compassY - compassR - compassFontSize / 2);
+   547→      ctx.fillStyle = '#8B7355';
+   548→      ctx.fillText('S', compassX, compassY + compassR + compassFontSize / 2);
+   549→      ctx.fillText('E', compassX + compassR + compassFontSize / 2, compassY);
+   550→      ctx.fillText('W', compassX - compassR - compassFontSize / 2, compassY);
+   551→      ctx.textBaseline = 'alphabetic';
+   552→
+   553→      // ---- "San Diego — 1887" watermark ----
+   554→      const watermarkFontSize = Math.max(6, cellSize * 0.55);
+   555→      ctx.font = `italic ${watermarkFontSize}px Georgia, serif`;
+   556→      ctx.textAlign = 'center';
+   557→      ctx.fillStyle = 'rgba(212, 165, 116, 0.25)';
+   558→      ctx.fillText('San Diego — 1887', canvasW / 2, canvasH - cellSize);
+   559→
+   560→      rafRef.current = requestAnimationFrame(draw);
+   561→    };
+   562→
+   563→    rafRef.current = requestAnimationFrame(draw);
+   564→
+   565→    return () => {
+   566→      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+   567→    };
+   568→  }, [isOpen, playerPos, playerDirection, zoomLevel, discoveredLocations, discoveredBuildingIds, completedObjectives]);
+   569→
+   570→  // ── Hover tooltip tracking (Task 9-b) ──
+   571→  // Detect when the cursor is over a building marker (discovered or ? ) and
+   572→  // surface that to React state so we can render a positioned tooltip overlay.
+   573→  // Uses CSS pixels relative to the canvas so the tooltip placement is correct
+   574→  // even if the canvas is scaled by CSS.
+   575→  useEffect(() => {
+   576→    const canvas = canvasRef.current;
+   577→    if (!canvas) return;
+   578→
+   579→    const handleMove = (e: MouseEvent) => {
+   580→      const rect = canvas.getBoundingClientRect();
+   581→      const cssX = e.clientX - rect.left;
+   582→      const cssY = e.clientY - rect.top;
+   583→      // Map to canvas-internal coordinates for hit-testing
+   584→      const scaleX = canvas.width / rect.width;
+   585→      const scaleY = canvas.height / rect.height;
+   586→      const cx = cssX * scaleX;
+   587→      const cy = cssY * scaleY;
+   588→      const { cellSize } = ZOOM_LEVELS[zoomLevel];
+   589→
+   590→      // Hit-test against each building's center within a generous radius.
+   591→      // The radius scales with zoom so small/medium maps remain usable.
+   592→      const hitRadius = Math.max(cellSize * 1.5, 10);
+   593→      let best: HoveredMarker | null = null;
+   594→      let bestDist = hitRadius;
+   595→      for (const building of mapData.buildingLabels) {
+   596→        const centerRow = building.row + Math.floor(building.height / 2);
+   597→        const centerCol = building.col + Math.floor(building.width / 2);
+   598→        const bx = centerCol * cellSize + cellSize / 2;
+   599→        const by = centerRow * cellSize + cellSize / 2;
+   600→        const d = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
+   601→        if (d <= bestDist) {
+   602→          bestDist = d;
+   603→          const isDiscovered = discoveredBuildingIds.has(getBuildingDiscoveryId(building.label));
+   604→          best = { cssX, cssY, label: building.label, discovered: isDiscovered };
+   605→        }
+   606→      }
+   607→      setHoveredMarker(best);
+   608→    };
+   609→
+   610→    const handleLeave = () => setHoveredMarker(null);
+   611→
+   612→    canvas.addEventListener('mousemove', handleMove);
+   613→    canvas.addEventListener('mouseleave', handleLeave);
+   614→    return () => {
+   615→      canvas.removeEventListener('mousemove', handleMove);
+   616→      canvas.removeEventListener('mouseleave', handleLeave);
+   617→    };
+   618→  }, [zoomLevel, discoveredBuildingIds]);
+   619→
+   620→  // Mirror the hovered-marker label into the canvas `title` attribute so the
+   621→  // native browser tooltip also fires (and screen readers can announce it).
+   622→  useEffect(() => {
+   623→    const canvas = canvasRef.current;
+   624→    if (!canvas) return;
+   625→    if (hoveredMarker) {
+   626→      canvas.title = hoveredMarker.discovered
+   627→        ? hoveredMarker.label
+   628→        : 'Undiscovered location';
+   629→    } else {
+   630→      canvas.title = 'San Diego Plaza minimap';
+   631→    }
+   632→  }, [hoveredMarker]);
+   633→
+   634→  if (!isOpen) return null;
+   635→
+   636→  const { cellSize } = ZOOM_LEVELS[zoomLevel];
+   637→  const canvasW = mapData.width * cellSize;
+   638→  const canvasH = mapData.height * cellSize;
+   639→
+   640→  // Count of discovered buildings for the footer counter (uses the same
+   641→  // source-of-truth as the canvas ? / label rendering above).
+   642→  const discoveredBuildingCount = mapData.buildingLabels.filter(
+   643→    (b) => discoveredBuildingIds.has(getBuildingDiscoveryId(b.label))
+   644→  ).length;
+   645→  const totalBuildings = mapData.buildingLabels.length;
+   646→
+   647→  return (
+   648→    <div className="absolute top-16 right-4 z-50 animate-panel-slide-in max-w-[calc(100vw-2rem)]">
+   649→      {/* Decorative amber border wrapper */}
+   650→      <div className="rounded-xl bg-stone-950/97 shadow-2xl shadow-amber-950/30 overflow-hidden">
+   651→        {/* Ornamental top border — filipino weaving-inspired pattern */}
+   652→        <div className="h-[3px] bg-gradient-to-r from-amber-600/0 via-amber-500 to-amber-600/0" />
+   653→
+   654→        <div className="p-3">
+   655→          {/* Header row */}
+   656→          <div className="flex items-center justify-between mb-3">
+   657→            <div>
+   658→              <h3 className="text-amber-400 font-bold text-sm flex items-center gap-2">
+   659→                <span className="text-base">🗺️</span> San Diego Plaza
+   660→              </h3>
+   661→              <div className="text-white/40 text-[10px] mt-0.5">
+   662→                1887 town map · <span className="text-amber-400/50">Chapter 1</span>
+   663→              </div>
+   664→            </div>
+   665→
+   666→            <div className="flex items-center gap-2">
+   667→              {/* Zoom toggle buttons */}
+   668→              <div className="flex gap-1">
+   669→                {(['small', 'medium', 'large'] as const).map((level) => (
+   670→                  <button
+   671→                    key={level}
+   672→                    onClick={() => setZoomLevel(level)}
+   673→                    className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-all ${
+   674→                      zoomLevel === level
+   675→                        ? 'bg-amber-500 text-stone-900 shadow shadow-amber-400/50'
+   676→                        : 'bg-stone-800/60 text-white/50 hover:bg-stone-700/60 hover:text-white/70'
+   677→                    }`}
+   678→                    aria-label={`Zoom ${level}`}
+   679→                  >
+   680→                    {ZOOM_LEVELS[level].label}
+   681→                  </button>
+   682→                ))}
+   683→              </div>
+   684→
+   685→              <button
+   686→                onClick={() => togglePanel('minimap')}
+   687→                className="close-btn-styled w-7 h-7 rounded-md bg-stone-800/40 text-white/60 text-sm flex items-center justify-center"
+   688→                aria-label="Close map"
+   689→              >
+   690→                ✕
+   691→              </button>
+   692→            </div>
+   693→          </div>
+   694→
+   695→          {/* Canvas with decorative amber border */}
+   696→          <div className="relative rounded-lg overflow-hidden border-2 border-amber-500/30 bg-black shadow-inner shadow-amber-900/20">
+   697→            <canvas
+   698→              ref={canvasRef}
+   699→              className="block"
+   700→              style={{ imageRendering: 'pixelated', width: canvasW, height: canvasH }}
+   701→            />
+   702→            {/* Hover tooltip overlay (Task 9-b) — positioned relative to the
+   703→                canvas wrapper. The `title` attribute on the canvas itself is
+   704→                updated dynamically as a fallback for screen readers / native
+   705→                tooltip behavior. */}
+   706→            {hoveredMarker && (
+   707→              <div
+   708→                role="tooltip"
+   709→                className={`pointer-events-none absolute z-10 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shadow-lg border ${
+   710→                  hoveredMarker.discovered
+   711→                    ? 'bg-stone-950/95 border-amber-400/40 text-amber-300'
+   712→                    : 'bg-stone-950/95 border-gray-400/40 text-gray-300'
+   713→                }`}
+   714→                style={{
+   715→                  left: Math.min(Math.max(hoveredMarker.cssX, 60), canvasW - 60),
+   716→                  top: Math.max(hoveredMarker.cssY - 32, 4),
+   717→                  transform: 'translateX(-50%)',
+   718→                }}
+   719→              >
+   720→                {hoveredMarker.discovered
+   721→                  ? hoveredMarker.label
+   722→                  : '❓ Undiscovered location'}
+   723→              </div>
+   724→            )}
+   725→          </div>
+   726→
+   727→          {/* Enhanced legend */}
+   728→          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px]">
+   729→            <div className="flex items-center gap-1.5">
+   730→              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow shadow-amber-400/50 animate-pulse" />
+   731→              <span className="text-white/70">You (player)</span>
+   732→            </div>
+   733→            <div className="flex items-center gap-1.5">
+   734→              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#8B4513' }} />
+   735→              <span className="text-white/70">Mang Tenyo</span>
+   736→            </div>
+   737→            <div className="flex items-center gap-1.5">
+   738→              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D2691E' }} />
+   739→              <span className="text-white/70">Aling Nena</span>
+   740→            </div>
+   741→            <div className="flex items-center gap-1.5">
+   742→              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#CD853F' }} />
+   743→              <span className="text-white/70">Mang Andres</span>
+   744→            </div>
+   745→            <div className="flex items-center gap-1.5">
+   746→              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow shadow-yellow-400/40" />
+   747→              <span className="text-white/70">Ibarra (sighted)</span>
+   748→            </div>
+   749→            <div className="flex items-center gap-1.5">
+   750→              <div className="w-2.5 h-2.5 bg-gray-500" />
+   751→              <span className="text-white/70">Building</span>
+   752→            </div>
+   753→            <div className="flex items-center gap-1.5">
+   754→              <div className="w-2.5 h-2.5 bg-blue-400" />
+   755→              <span className="text-white/70">Fountain/Water</span>
+   756→            </div>
+   757→            <div className="flex items-center gap-1.5">
+   758→              <div className="w-2.5 h-2.5 bg-emerald-700" />
+   759→              <span className="text-white/70">Trees/Garden</span>
+   760→            </div>
+   761→            <div className="flex items-center gap-1.5">
+   762→              <span className="text-amber-400 text-[8px]">✦</span>
+   763→              <span className="text-white/70">Discovered</span>
+   764→            </div>
+   765→            <div className="flex items-center gap-1.5">
+   766→              <span
+   767→                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-dashed border-gray-400 text-gray-300 text-[8px] font-bold"
+   768→                aria-hidden
+   769→              >
+   770→                ?
+   771→              </span>
+   772→              <span className="text-white/70">Undiscovered</span>
+   773→            </div>
+   774→            <div className="flex items-center gap-1.5">
+   775→              <div className="w-2.5 h-2.5 rounded-full bg-amber-200" />
+   776→              <span className="text-white/70">Town Path</span>
+   777→            </div>
+   778→          </div>
+   779→
+   780→          {/* Coordinates and direction */}
+   781→          <div className="mt-2 pt-2 border-t border-amber-400/10 flex items-center justify-between text-[10px]">
+   782→            <div className="text-white/40 font-mono">
+   783→              Position: ({playerPos.col}, {playerPos.row})
+   784→            </div>
+   785→            <div className="text-amber-400/50 font-mono capitalize">
+   786→              Facing: {playerDirection}
+   787→            </div>
+   788→          </div>
+   789→
+   790→          {/* Discovery counter (Task 9-b: now reflects actual building count
+   791→              and uses the same discovery-log source-of-truth as the markers). */}
+   792→          <div className="mt-1 flex items-center gap-2 text-[10px]">
+   793→            <span className="text-amber-400/60">✦ Discovered:</span>
+   794→            <span className="text-white/50 font-mono">
+   795→              {discoveredBuildingCount}/{totalBuildings} locations
+   796→            </span>
+   797→          </div>
+   798→        </div>
+   799→
+   800→        {/* Ornamental bottom border */}
+   801→        <div className="h-[3px] bg-gradient-to-r from-amber-600/0 via-amber-500 to-amber-600/0" />
+   802→      </div>
+   803→    </div>
+   804→  );
+   805→}
+   806→

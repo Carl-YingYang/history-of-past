@@ -2030,3 +2030,35 @@ Stage Summary:
 - Consider adding visual character portraits in dialogue (currently uses emoji)
 - Add localization (full Filipino language UI toggle)
 - Add a "Glossary Quiz" mode to test player vocabulary
+---
+Task ID: pokemon-overhaul
+Agent: main-agent
+Task: Complete Pokémon GBA-style overhaul of Project Noor
+
+Work Log:
+- Pulled latest assets from GitHub (24 new assets in public/new and must assets/)
+- Analyzed all 24 assets with VLM: tiles (10), buildings (2), NPC sprite sheets (3), props (9)
+- Analyzed reference images: current game vs Pokémon FireRed/LeafGreen Gen 3 target
+- Created comprehensive 8-phase maximization plan
+- Phase 1: Organized all 24 assets into clean directory structure (tiles/, buildings/, npcs/, props/)
+- Phase 2: Built assetManager.ts - loads all assets, pre-processes tiles to 48×48, parses sprite sheets
+- Phase 3: Rewrote gameEngine.ts with Pokémon grid movement (4-dir, 150ms slide, input buffering)
+- Phase 4: Tile rendering with actual PNG images replacing colored rectangles
+- Phase 5: Building & prop system with large sprites, Y-sorting
+- Phase 6: NPC sprite sheet integration (Mang Tenyo, Vendor 1, Vendor 2)
+- Phase 7: Expanded map from 20×16 to 40×30 with church, plaza, market, mansion zones
+- Phase 8: Pixel art pipeline - 480×320 internal → 960×640 display (2× pixel scale)
+- Verified with agent-browser: tiles rendering as images, grid movement working, quest tracker functional
+- Pushed to GitHub: both main and master branches
+
+Stage Summary:
+- All 24 assets are now organized and used in the game
+- Tile rendering uses actual PNG images (not colored rectangles)
+- Movement is grid-based Pokémon style (4-directional, tile-by-tile, 150ms slide)
+- Map expanded to 40×30 tiles with proper zone layout
+- Buildings and props rendered as large sprites with Y-sorting
+- NPC sprite sheets parsed and integrated
+- Pixel art pipeline at 2× scale for GBA aesthetic
+- All existing systems preserved (dialogue, quests, save, HUD, achievements)
+- Zero lint errors
+- Game is playable end-to-end

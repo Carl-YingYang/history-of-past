@@ -20,40 +20,54 @@
       "displayName": "Crisóstomo Ibarra"
     },
     "mang-tenyo": {
-      "spritePath": "/sprites/placeholder-npc",
+      "spritePath": "/sprites/npcs/mang_tenyo_sheet",
+      "spriteSheet": "mang_tenyo_sheet",
       "animations": {
         "Breathing_Idle": { "frames": 4, "frameRate": 4 },
-        "Walk": { "frames": 6, "frameRate": 8 }
+        "Walk": { "frames": 4, "frameRate": 6 }
       },
-      "size": { "width": 72, "height": 72 },
-      "displayName": "Mang Tenyo",
-      "placeholder": true,
-      "placeholderColor": "#8B4513",
-      "placeholderLabel": "TODO: replace with real Mang Tenyo sprite"
+      "size": { "width": 120, "height": 120 },
+      "displayName": "Mang Tenyo"
+    },
+    "vendor-1": {
+      "spritePath": "/sprites/npcs/vendor1_sheet",
+      "spriteSheet": "vendor1_sheet",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 5, "frameRate": 6 }
+      },
+      "size": { "width": 128, "height": 216 },
+      "displayName": "Aling Nena"
+    },
+    "vendor-2": {
+      "spritePath": "/sprites/npcs/vendor2_sheet",
+      "spriteSheet": "vendor2_sheet",
+      "animations": {
+        "Breathing_Idle": { "frames": 4, "frameRate": 4 },
+        "Walk": { "frames": 4, "frameRate": 6 }
+      },
+      "size": { "width": 144, "height": 108 },
+      "displayName": "Mang Andres"
     },
     "kitchen-staff-1": {
-      "spritePath": "/sprites/placeholder-npc",
+      "spritePath": "/sprites/npcs/vendor1_sheet",
+      "spriteSheet": "vendor1_sheet",
       "animations": {
         "Breathing_Idle": { "frames": 4, "frameRate": 4 },
-        "Walk": { "frames": 6, "frameRate": 8 }
+        "Walk": { "frames": 5, "frameRate": 6 }
       },
-      "size": { "width": 72, "height": 72 },
-      "displayName": "Aling Nena",
-      "placeholder": true,
-      "placeholderColor": "#D2691E",
-      "placeholderLabel": "Market vendor (gossip source 1)"
+      "size": { "width": 128, "height": 216 },
+      "displayName": "Aling Nena"
     },
     "kitchen-staff-2": {
-      "spritePath": "/sprites/placeholder-npc",
+      "spritePath": "/sprites/npcs/vendor2_sheet",
+      "spriteSheet": "vendor2_sheet",
       "animations": {
         "Breathing_Idle": { "frames": 4, "frameRate": 4 },
-        "Walk": { "frames": 6, "frameRate": 8 }
+        "Walk": { "frames": 4, "frameRate": 6 }
       },
-      "size": { "width": 72, "height": 72 },
-      "displayName": "Mang Andres",
-      "placeholder": true,
-      "placeholderColor": "#CD853F",
-      "placeholderLabel": "Market vendor (gossip source 2)"
+      "size": { "width": 144, "height": 108 },
+      "displayName": "Mang Andres"
     }
   }
 }

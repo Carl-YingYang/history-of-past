@@ -83,12 +83,19 @@ export default function GameCanvas() {
   }, [initEngine]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div className="relative w-full h-full overflow-hidden bg-black flex items-center justify-center">
       <canvas
         ref={canvasRef}
         tabIndex={0}
-        className="w-full h-full block outline-none"
-        style={{ imageRendering: 'pixelated' }}
+        className="block outline-none"
+        style={{
+          width: '960px',
+          height: '640px',
+          imageRendering: 'pixelated',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+        }}
       />
       {/* Loading overlay */}
       {!gameReady && (

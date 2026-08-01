@@ -1,0 +1,1369 @@
+     1→     1→// GameEngine - Core game loop, Canvas rendering, input handling, and scene management
+     2→     2→// Pokémon Gen 3 (GBA) style 2D top-down pixel art RPG engine for Project Noor
+     3→     3→// Rewritten with tile-based rendering, grid movement, sprite sheets, and Y-sorting
+     4→     4→
+     5→     5→import { gameEvents } from './eventBus';
+     6→     6→import { spriteLoader } from './spriteLoader';
+     7→     7→import { assetManager } from './assetManager';
+     8→     8→import { saveManager } from './saveManager';
+     9→     9→import { soundManager } from './soundManager';
+    10→    10→import mapData from '@/data/mapData.json';
+    11→    11→import dialogueData from '@/data/dialogueData.json';
+    12→    12→import characterData from '@/data/characters.json';
+    13→    13→
+    14→    14→// ═══════════════════════════════════════════════════════════════════
+    15→    15→// CONSTANTS
+    16→    16→// ═══════════════════════════════════════════════════════════════════
+    17→    17→
+    18→    18→const INTERNAL_WIDTH = 480;
+    19→    19→const INTERNAL_HEIGHT = 320;
+    20→    20→const TILE_SIZE = 24;            // Internal pixels per tile (48/2 for 2× scale)
+    21→    21→const DISPLAY_TILE_SIZE = 48;    // Display pixels per tile
+    22→    22→const SLIDE_DURATION = 150;      // ms to slide between tiles
+    23→    23→const SLIDE_PAUSE = 50;          // ms pause between consecutive tiles when key held
+    24→    24→const IDLE_ANIM_RATE = 300;      // ms between idle animation frames
+    25→    25→const WALK_ANIM_RATE = 100;      // ms between walk animation frames
+    26→    26→const CAMERA_LERP = 0.12;        // Camera smoothing factor (0 = no follow, 1 = instant)
+    27→    27→const NPC_INTERACT_DIST = 1.5;   // Tile distance to interact with NPC
+    28→    28→const CHAR_RENDER_SIZE = 32;     // Character render size in internal pixels
+    29→    29→
+    30→    30→// 4-direction movement
+    31→    31→type Direction4 = 'north' | 'south' | 'east' | 'west';
+    32→    32→
+    33→    33→const DIR_OFFSET: Record<Direction4, { dr: number; dc: number }> = {
+    34→    34→  north: { dr: -1, dc: 0 },
+    35→    35→  south: { dr: 1, dc: 0 },
+    36→    36→  east:  { dr: 0, dc: 1 },
+    37→    37→  west:  { dr: 0, dc: -1 },
+    38→    38→};
+    39→    39→
+    40→    40→// Direction to facing string for sprite lookup
+    41→    41→const DIR_TO_FACING: Record<Direction4, string> = {
+    42→    42→  north: 'north',
+    43→    43→  south: 'south',
+    44→    44→  east: 'east',
+    45→    45→  west: 'west',
+    46→    46→};
+    47→    47→
+    48→    48→// Key to direction mapping
+    49→    49→const KEY_TO_DIR: Record<string, Direction4> = {
+    50→    50→  'w': 'north', 'arrowup': 'north',
+    51→    51→  's': 'south', 'arrowdown': 'south',
+    52→    52→  'd': 'east',  'arrowright': 'east',
+    53→    53→  'a': 'west',  'arrowleft': 'west',
+    54→    54→};
+    55→    55→
+    56→    56→// ═══════════════════════════════════════════════════════════════════
+    57→    57→// INTERFACES
+    58→    58→// ═══════════════════════════════════════════════════════════════════
+    59→    59→
+    60→    60→interface PlayerState {
+    61→    61→  row: number;           // Current tile row
+    62→    62→  col: number;           // Current tile col
+    63→    63→  facing: Direction4;    // Current facing direction
+    64→    64→  isSliding: boolean;    // Whether currently sliding between tiles
+    65→    65→  slideStart: number;    // Timestamp when slide started
+    66→    66→  slideFromRow: number;  // Row we're sliding from
+    67→    67→  slideFromCol: number;  // Col we're sliding from
+    68→    68→  slideToRow: number;    // Row we're sliding to
+    69→    69→  slideToCol: number;    // Col we're sliding to
+    70→    70→  pixelX: number;        // Current render pixel X (internal coords)
+    71→    71→  pixelY: number;        // Current render pixel Y (internal coords)
+    72→    72→  animFrame: number;     // Current animation frame index
+    73→    73→  animTimer: number;     // Time accumulator for animation
+    74→    74→  bufferedDir: Direction4 | null;  // Buffered next direction during slide
+    75→    75→  lastMoveTime: number;  // Timestamp of last completed move
+    76→    76→}
+    77→    77→
+    78→    78→interface NPCState {
+    79→    79→  id: string;
+    80→    80→  characterKey: string;
+    81→    81→  row: number;
+    82→    82→  col: number;
+    83→    83→  facing: Direction4;
+    84→    84→  visible: boolean;
+    85→    85→  appearsAfterObjective?: string;
+    86→    86→  spriteSheet?: string;
+    87→    87→  animFrame: number;
+    88→    88→  animTimer: number;
+    89→    89→  displayName: string;
+    90→    90→  // Pixel position for rendering (computed from tile position)
+    91→    91→  pixelX: number;
+    92→    92→  pixelY: number;
+    93→    93→}
+    94→    94→
+    95→    95→interface PropState {
+    96→    96→  key: string;
+    97→    97→  row: number;
+    98→    98→  col: number;
+    99→    99→  width: number;
+   100→   100→  height: number;
+   101→   101→  spriteWidth: number;
+   102→   102→  spriteHeight: number;
+   103→   103→  solid: boolean;
+   104→   104→}
+   105→   105→
+   106→   106→interface BuildingState {
+   107→   107→  key: string;
+   108→   108→  row: number;
+   109→   109→  col: number;
+   110→   110→  width: number;
+   111→   111→  height: number;
+   112→   112→  spriteWidth: number;
+   113→   113→  spriteHeight: number;
+   114→   114→}
+   115→   115→
+   116→   116→interface TriggerZone {
+   117→   117→  id: string;
+   118→   118→  type: string;
+   119→   119→  npcId?: string;
+   120→   120→  row: number;
+   121→   121→  col: number;
+   122→   122→  width: number;
+   123→   123→  height: number;
+   124→   124→  radius: number;
+   125→   125→  requiresObjective?: string;
+   126→   126→  triggersTimeTransition?: boolean;
+   127→   127→  dialogueId?: string;
+   128→   128→  triggered: boolean;
+   129→   129→}
+   130→   130→
+   131→   131→interface CameraState {
+   132→   132→  x: number;   // Top-left corner X in internal pixels
+   133→   133→  y: number;   // Top-left corner Y in internal pixels
+   134→   134→  targetX: number;
+   135→   135→  targetY: number;
+   136→   136→}
+   137→   137→
+   138→   138→interface DialogueState {
+   139→   139→  active: boolean;
+   140→   140→  dialogueId: string | null;
+   141→   141→  lines: DialogueLine[];
+   142→   142→  currentLineIndex: number;
+   143→   143→  npcId: string | null;
+   144→   144→  triggered: boolean;
+   145→   145→}
+   146→   146→
+   147→   147→interface DialogueLine {
+   148→   148→  speaker: string;
+   149→   149→  text: string;
+   150→   150→  translation?: string;
+   151→   151→  isTimeTransition?: boolean;
+   152→   152→  isIbarraSighting?: boolean;
+   153→   153→}
+   154→   154→
+   155→   155→// ═══════════════════════════════════════════════════════════════════
+   156→   156→// GAME ENGINE CLASS
+   157→   157→// ═══════════════════════════════════════════════════════════════════
+   158→   158→
+   159→   159→class GameEngine {
+   160→   160→  private canvas: HTMLCanvasElement | null = null;
+   161→   161→  private ctx: CanvasRenderingContext2D | null = null;
+   162→   162→  private animFrameId: number | null = null;
+   163→   163→  private lastTime: number = 0;
+   164→   164→  private running: boolean = false;
+   165→   165→  private initialized: boolean = false;
+   166→   166→
+   167→   167→  // Offscreen buffer for internal resolution rendering
+   168→   168→  private offscreen: HTMLCanvasElement | null = null;
+   169→   169→  private offCtx: CanvasRenderingContext2D | null = null;
+   170→   170→
+   171→   171→  // Game state
+   172→   172→  private player: PlayerState;
+   173→   173→  private npcs: NPCState[] = [];
+   174→   174→  private props: PropState[] = [];
+   175→   175→  private buildings: BuildingState[] = [];
+   176→   176→  private triggerZones: TriggerZone[] = [];
+   177→   177→  private camera: CameraState;
+   178→   178→  private dialogue: DialogueState;
+   179→   179→
+   180→   180→  // Input state
+   181→   181→  private keysDown: Set<string> = new Set();
+   182→   182→  private interactPressed: boolean = false;
+   183→   183→  private touchDir: Direction4 | null = null;
+   184→   184→
+   185→   185→  // Map data references
+   186→   186→  private groundLayer: number[][] = [];
+   187→   187→  private buildingsLayer: number[][] = [];
+   188→   188→  private collisionLayer: number[][] = [];
+   189→   189→  private overlayLayer: number[][] = [];
+   190→   190→  private mapWidth: number = 40;
+   191→   191→  private mapHeight: number = 30;
+   192→   192→
+   193→   193→  // Footstep sound throttle
+   194→   194→  private lastFootstepTime: number = 0;
+   195→   195→  private readonly FOOTSTEP_INTERVAL = 400;
+   196→   196→
+   197→   197→  // Market ambient proximity tracking
+   198→   198→  private wasNearMarket: boolean = false;
+   199→   199→
+   200→   200→  // NPC interaction tracking for relationship depth
+   201→   201→  private npcInteractionCounts: Record<string, number> = {};
+   202→   202→
+   203→   203→  constructor() {
+   204→   204→    this.player = this._createDefaultPlayer();
+   205→   205→    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+   206→   206→    this.dialogue = {
+   207→   207→      active: false,
+   208→   208→      dialogueId: null,
+   209→   209→      lines: [],
+   210→   210→      currentLineIndex: 0,
+   211→   211→      npcId: null,
+   212→   212→      triggered: false,
+   213→   213→    };
+   214→   214→  }
+   215→   215→
+   216→   216→  private _createDefaultPlayer(): PlayerState {
+   217→   217→    const spawn = mapData.playerSpawn as { row: number; col: number };
+   218→   218→    return {
+   219→   219→      row: spawn.row,
+   220→   220→      col: spawn.col,
+   221→   221→      facing: 'north',
+   222→   222→      isSliding: false,
+   223→   223→      slideStart: 0,
+   224→   224→      slideFromRow: spawn.row,
+   225→   225→      slideFromCol: spawn.col,
+   226→   226→      slideToRow: spawn.row,
+   227→   227→      slideToCol: spawn.col,
+   228→   228→      pixelX: spawn.col * TILE_SIZE,
+   229→   229→      pixelY: spawn.row * TILE_SIZE,
+   230→   230→      animFrame: 0,
+   231→   231→      animTimer: 0,
+   232→   232→      bufferedDir: null,
+   233→   233→      lastMoveTime: 0,
+   234→   234→    };
+   235→   235→  }
+   236→   236→
+   237→   237→  // ═══════════════════════════════════════════════════════════════════
+   238→   238→  // INITIALIZATION
+   239→   239→  // ═══════════════════════════════════════════════════════════════════
+   240→   240→
+   241→   241→  async init(canvas: HTMLCanvasElement): Promise<void> {
+   242→   242→    this.canvas = canvas;
+   243→   243→
+   244→   244→    // Set canvas to internal resolution
+   245→   245→    canvas.width = INTERNAL_WIDTH;
+   246→   246→    canvas.height = INTERNAL_HEIGHT;
+   247→   247→    this.ctx = canvas.getContext('2d')!;
+   248→   248→    this.ctx.imageSmoothingEnabled = false;
+   249→   249→
+   250→   250→    // Create offscreen buffer (same internal resolution)
+   251→   251→    this.offscreen = document.createElement('canvas');
+   252→   252→    this.offscreen.width = INTERNAL_WIDTH;
+   253→   253→    this.offscreen.height = INTERNAL_HEIGHT;
+   254→   254→    this.offCtx = this.offscreen.getContext('2d')!;
+   255→   255→    this.offCtx.imageSmoothingEnabled = false;
+   256→   256→
+   257→   257→    // Load all assets via assetManager
+   258→   258→    await assetManager.loadAll();
+   259→   259→
+   260→   260→    // Load character sprites via spriteLoader
+   261→   261→    await spriteLoader.loadCharacter('student');
+   262→   262→    await spriteLoader.loadCharacter('ibara');
+   263→   263→
+   264→   264→    // Load save data
+   265→   265→    await saveManager.loadProgress();
+   266→   266→    saveManager.startAutoSave();
+   267→   267→
+   268→   268→    // Parse map data
+   269→   269→    this._parseMapData();
+   270→   270→
+   271→   271→    // Parse NPC positions from mapData
+   272→   272→    this._parseNPCData();
+   273→   273→
+   274→   274→    // Parse buildings and props
+   275→   275→    this._parseBuildingsAndProps();
+   276→   276→
+   277→   277→    // Parse trigger zones
+   278→   278→    this._parseTriggerZones();
+   279→   279→
+   280→   280→    // Load NPC interaction counts from localStorage
+   281→   281→    this._loadNpcInteractions();
+   282→   282→
+   283→   283→    // Initialize player position from save data if available
+   284→   284→    this._initPlayerFromSave();
+   285→   285→
+   286→   286→    // Set up input listeners
+   287→   287→    this._setupInputListeners();
+   288→   288→
+   289→   289→    // Initialize camera to center on player
+   290→   290→    this._snapCameraToPlayer();
+   291→   291→
+   292→   292→    // Start game loop
+   293→   293→    this.running = true;
+   294→   294→    this.lastTime = performance.now();
+   295→   295→    this._gameLoop(this.lastTime);
+   296→   296→
+   297→   297→    this.initialized = true;
+   298→   298→    gameEvents.emit('game:ready');
+   299→   299→
+   300→   300→    // Start ambient sounds
+   301→   301→    soundManager.initOnUserGesture();
+   302→   302→  }
+   303→   303→
+   304→   304→  destroy(): void {
+   305→   305→    this.running = false;
+   306→   306→    if (this.animFrameId) {
+   307→   307→      cancelAnimationFrame(this.animFrameId);
+   308→   308→      this.animFrameId = null;
+   309→   309→    }
+   310→   310→    this._removeInputListeners();
+   311→   311→    saveManager.stopAutoSave();
+   312→   312→  }
+   313→   313→
+   314→   314→  // ═══════════════════════════════════════════════════════════════════
+   315→   315→  // MAP DATA PARSING
+   316→   316→  // ═══════════════════════════════════════════════════════════════════
+   317→   317→
+   318→   318→  private _parseMapData(): void {
+   319→   319→    const layers = mapData.layers as any;
+   320→   320→    this.groundLayer = layers.ground;
+   321→   321→    this.buildingsLayer = layers.buildings;
+   322→   322→    this.collisionLayer = layers.collision;
+   323→   323→    this.overlayLayer = layers.overlay || Array.from({ length: mapData.height }, () => Array(mapData.width).fill(0));
+   324→   324→    this.mapWidth = mapData.width;
+   325→   325→    this.mapHeight = mapData.height;
+   326→   326→  }
+   327→   327→
+   328→   328→  private _parseNPCData(): void {
+   329→   329→    this.npcs = [];
+   330→   330→    const npcPositions = mapData.npcPositions as Record<string, any>;
+   331→   331→    for (const [id, pos] of Object.entries(npcPositions)) {
+   332→   332→      const charKey = id;
+   333→   333→      const charConfig = (characterData.characters as any)[charKey] || (characterData.characters as any)[id];
+   334→   334→      const displayName = charConfig?.displayName || id;
+   335→   335→
+   336→   336→      // Check visibility condition
+   337→   337→      let visible = true;
+   338→   338→      if (pos.appearsAfter) {
+   339→   339→        visible = saveManager.isObjectiveCompleted(pos.appearsAfter);
+   340→   340→      }
+   341→   341→
+   342→   342→      const row = pos.row as number;
+   343→   343→      const col = pos.col as number;
+   344→   344→
+   345→   345→      this.npcs.push({
+   346→   346→        id,
+   347→   347→        characterKey: charKey,
+   348→   348→        row,
+   349→   349→        col,
+   350→   350→        facing: this._toDirection4(pos.direction as string),
+   351→   351→        visible,
+   352→   352→        appearsAfterObjective: pos.appearsAfter,
+   353→   353→        spriteSheet: pos.spriteSheet || charConfig?.spriteSheet,
+   354→   354→        animFrame: 0,
+   355→   355→        animTimer: 0,
+   356→   356→        displayName,
+   357→   357→        pixelX: col * TILE_SIZE,
+   358→   358→        pixelY: row * TILE_SIZE,
+   359→   359→      });
+   360→   360→    }
+   361→   361→  }
+   362→   362→
+   363→   363→  private _parseBuildingsAndProps(): void {
+   364→   364→    // Parse buildings from mapData
+   365→   365→    this.buildings = [];
+   366→   366→    const buildingsData = mapData.buildings as any[];
+   367→   367→    if (buildingsData) {
+   368→   368→      for (const b of buildingsData) {
+   369→   369→        this.buildings.push({
+   370→   370→          key: b.key,
+   371→   371→          row: b.row,
+   372→   372→          col: b.col,
+   373→   373→          width: b.width,
+   374→   374→          height: b.height,
+   375→   375→          spriteWidth: b.spriteWidth || b.width * DISPLAY_TILE_SIZE,
+   376→   376→          spriteHeight: b.spriteHeight || b.height * DISPLAY_TILE_SIZE,
+   377→   377→        });
+   378→   378→      }
+   379→   379→    }
+   380→   380→
+   381→   381→    // Parse props from mapData
+   382→   382→    this.props = [];
+   383→   383→    const propsData = mapData.props as any[];
+   384→   384→    if (propsData) {
+   385→   385→      for (const p of propsData) {
+   386→   386→        this.props.push({
+   387→   387→          key: p.key,
+   388→   388→          row: p.row,
+   389→   389→          col: p.col,
+   390→   390→          width: p.width,
+   391→   391→          height: p.height,
+   392→   392→          spriteWidth: p.spriteWidth || p.width * DISPLAY_TILE_SIZE,
+   393→   393→          spriteHeight: p.spriteHeight || p.height * DISPLAY_TILE_SIZE,
+   394→   394→          solid: p.solid !== undefined ? p.solid : true,
+   395→   395→        });
+   396→   396→      }
+   397→   397→    }
+   398→   398→  }
+   399→   399→
+   400→   400→  private _parseTriggerZones(): void {
+   401→   401→    this.triggerZones = [];
+   402→   402→    const zones = mapData.triggerZones as any[];
+   403→   403→    if (zones) {
+   404→   404→      for (const z of zones) {
+   405→   405→        this.triggerZones.push({
+   406→   406→          id: z.id,
+   407→   407→          type: z.type,
+   408→   408→          npcId: z.npcId,
+   409→   409→          row: z.row,
+   410→   410→          col: z.col,
+   411→   411→          width: z.width,
+   412→   412→          height: z.height,
+   413→   413→          radius: z.radius,
+   414→   414→          requiresObjective: z.requiresObjective,
+   415→   415→          triggersTimeTransition: z.triggersTimeTransition,
+   416→   416→          dialogueId: z.dialogueId,
+   417→   417→          triggered: false,
+   418→   418→        });
+   419→   419→      }
+   420→   420→    }
+   421→   421→  }
+   422→   422→
+   423→   423→  private _initPlayerFromSave(): void {
+   424→   424→    const saveData = saveManager.getSaveData();
+   425→   425→    if (saveData.gameState.playerPosition) {
+   426→   426→      const pos = saveData.gameState.playerPosition;
+   427→   427→      // Validate position is within map and walkable
+   428→   428→      if (pos.row >= 0 && pos.row < this.mapHeight &&
+   429→   429→          pos.col >= 0 && pos.col < this.mapWidth &&
+   430→   430→          !this._isCollision(pos.row, pos.col)) {
+   431→   431→        this.player.row = pos.row;
+   432→   432→        this.player.col = pos.col;
+   433→   433→      }
+   434→   434→    }
+   435→   435→    // Recalculate pixel position
+   436→   436→    this.player.pixelX = this.player.col * TILE_SIZE;
+   437→   437→    this.player.pixelY = this.player.row * TILE_SIZE;
+   438→   438→    this.player.slideFromRow = this.player.row;
+   439→   439→    this.player.slideFromCol = this.player.col;
+   440→   440→    this.player.slideToRow = this.player.row;
+   441→   441→    this.player.slideToCol = this.player.col;
+   442→   442→  }
+   443→   443→
+   444→   444→  // ═══════════════════════════════════════════════════════════════════
+   445→   445→  // INPUT HANDLING
+   446→   446→  // ═══════════════════════════════════════════════════════════════════
+   447→   447→
+   448→   448→  private _keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+   449→   449→  private _keyupHandler: ((e: KeyboardEvent) => void) | null = null;
+   450→   450→
+   451→   451→  private _setupInputListeners(): void {
+   452→   452→    this._keydownHandler = (e: KeyboardEvent) => this._onKeyDown(e);
+   453→   453→    this._keyupHandler = (e: KeyboardEvent) => this._onKeyUp(e);
+   454→   454→    window.addEventListener('keydown', this._keydownHandler);
+   455→   455→    window.addEventListener('keyup', this._keyupHandler);
+   456→   456→  }
+   457→   457→
+   458→   458→  private _removeInputListeners(): void {
+   459→   459→    if (this._keydownHandler) window.removeEventListener('keydown', this._keydownHandler);
+   460→   460→    if (this._keyupHandler) window.removeEventListener('keyup', this._keyupHandler);
+   461→   461→  }
+   462→   462→
+   463→   463→  private _onKeyDown(e: KeyboardEvent): void {
+   464→   464→    // Ignore input when focus is in text fields
+   465→   465→    const target = e.target as HTMLElement;
+   466→   466→    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+   467→   467→
+   468→   468→    const key = e.key.toLowerCase();
+   469→   469→
+   470→   470→    // Prevent default for game keys (stop page scrolling)
+   471→   471→    if (KEY_TO_DIR[key] || key === ' ' || key === 'enter') {
+   472→   472→      e.preventDefault();
+   473→   473→    }
+   474→   474→
+   475→   475→    this.keysDown.add(key);
+   476→   476→
+   477→   477→    // Interaction key (Space/Enter)
+   478→   478→    if (key === ' ' || key === 'enter') {
+   479→   479→      if (!this.interactPressed) {
+   480→   480→        this.interactPressed = true;
+   481→   481→        this._handleInteract();
+   482→   482→      }
+   483→   483→    }
+   484→   484→  }
+   485→   485→
+   486→   486→  private _onKeyUp(e: KeyboardEvent): void {
+   487→   487→    const key = e.key.toLowerCase();
+   488→   488→    this.keysDown.delete(key);
+   489→   489→
+   490→   490→    if (key === ' ' || key === 'enter') {
+   491→   491→      this.interactPressed = false;
+   492→   492→    }
+   493→   493→  }
+   494→   494→
+   495→   495→  // Touch / external controls
+   496→   496→  setMoveDirection(dir: 'up' | 'down' | 'left' | 'right' | null): void {
+   497→   497→    if (!dir) {
+   498→   498→      this.touchDir = null;
+   499→   499→      return;
+   500→   500→    }
+   501→   501→    const mapping: Record<string, Direction4> = {
+   502→   502→      up: 'north', down: 'south', left: 'west', right: 'east'
+   503→   503→    };
+   504→   504→    this.touchDir = mapping[dir] || null;
+   505→   505→  }
+   506→   506→
+   507→   507→  triggerInteract(): void {
+   508→   508→    this._handleInteract();
+   509→   509→  }
+   510→   510→
+   511→   511→  // ═══════════════════════════════════════════════════════════════════
+   512→   512→  // MOVEMENT SYSTEM (Pokémon Grid Movement)
+   513→   513→  // ═══════════════════════════════════════════════════════════════════
+   514→   514→
+   515→   515→  private _getDesiredDirection(): Direction4 | null {
+   516→   516→    // Check keyboard keys
+   517→   517→    for (const key of this.keysDown) {
+   518→   518→      const dir = KEY_TO_DIR[key];
+   519→   519→      if (dir) return dir;
+   520→   520→    }
+   521→   521→    // Check touch direction
+   522→   522→    return this.touchDir;
+   523→   523→  }
+   524→   524→
+   525→   525→  private _tryMove(dir: Direction4, now: number): void {
+   526→   526→    // Update facing direction immediately
+   527→   527→    this.player.facing = dir;
+   528→   528→
+   529→   529→    if (this.player.isSliding) {
+   530→   530→      // Buffer the direction for when slide completes
+   531→   531→      this.player.bufferedDir = dir;
+   532→   532→      return;
+   533→   533→    }
+   534→   534→
+   535→   535→    // Check pause between moves
+   536→   536→    if (now - this.player.lastMoveTime < SLIDE_PAUSE) return;
+   537→   537→
+   538→   538→    // Calculate target tile
+   539→   539→    const offset = DIR_OFFSET[dir];
+   540→   540→    const targetRow = this.player.row + offset.dr;
+   541→   541→    const targetCol = this.player.col + offset.dc;
+   542→   542→
+   543→   543→    // Check bounds
+   544→   544→    if (targetRow < 0 || targetRow >= this.mapHeight || targetCol < 0 || targetCol >= this.mapWidth) return;
+   545→   545→
+   546→   546→    // Check collision
+   547→   547→    if (this._isCollision(targetRow, targetCol)) return;
+   548→   548→
+   549→   549→    // Check if NPC occupies target tile
+   550→   550→    if (this._isNpcAtTile(targetRow, targetCol)) return;
+   551→   551→
+   552→   552→    // Check if prop occupies target tile
+   553→   553→    if (this._isPropAtTile(targetRow, targetCol)) return;
+   554→   554→
+   555→   555→    // Start sliding
+   556→   556→    this.player.isSliding = true;
+   557→   557→    this.player.slideStart = now;
+   558→   558→    this.player.slideFromRow = this.player.row;
+   559→   559→    this.player.slideFromCol = this.player.col;
+   560→   560→    this.player.slideToRow = targetRow;
+   561→   561→    this.player.slideToCol = targetCol;
+   562→   562→    this.player.bufferedDir = null;
+   563→   563→
+   564→   564→    // Play footstep sound
+   565→   565→    if (now - this.lastFootstepTime > this.FOOTSTEP_INTERVAL) {
+   566→   566→      soundManager.playFootstep();
+   567→   567→      this.lastFootstepTime = now;
+   568→   568→    }
+   569→   569→  }
+   570→   570→
+   571→   571→  private _updateMovement(now: number, dt: number): void {
+   572→   572→    if (this.dialogue.active) return; // No movement during dialogue
+   573→   573→
+   574→   574→    // Process desired direction
+   575→   575→    const desired = this._getDesiredDirection();
+   576→   576→    if (desired) {
+   577→   577→      this._tryMove(desired, now);
+   578→   578→    }
+   579→   579→
+   580→   580→    // Update slide interpolation
+   581→   581→    if (this.player.isSliding) {
+   582→   582→      const elapsed = now - this.player.slideStart;
+   583→   583→      const t = Math.min(1, elapsed / SLIDE_DURATION);
+   584→   584→
+   585→   585→      // Interpolate pixel position
+   586→   586→      const fromX = this.player.slideFromCol * TILE_SIZE;
+   587→   587→      const fromY = this.player.slideFromRow * TILE_SIZE;
+   588→   588→      const toX = this.player.slideToCol * TILE_SIZE;
+   589→   589→      const toY = this.player.slideToRow * TILE_SIZE;
+   590→   590→
+   591→   591→      this.player.pixelX = fromX + (toX - fromX) * t;
+   592→   592→      this.player.pixelY = fromY + (toY - fromY) * t;
+   593→   593→
+   594→   594→      // Update walk animation
+   595→   595→      this.player.animTimer += dt;
+   596→   596→      if (this.player.animTimer >= WALK_ANIM_RATE) {
+   597→   597→        this.player.animTimer -= WALK_ANIM_RATE;
+   598→   598→        this.player.animFrame++;
+   599→   599→      }
+   600→   600→
+   601→   601→      // Check if slide is complete
+   602→   602→      if (t >= 1) {
+   603→   603→        this.player.isSliding = false;
+   604→   604→        this.player.row = this.player.slideToRow;
+   605→   605→        this.player.col = this.player.slideToCol;
+   606→   606→        this.player.pixelX = this.player.col * TILE_SIZE;
+   607→   607→        this.player.pixelY = this.player.row * TILE_SIZE;
+   608→   608→        this.player.lastMoveTime = now;
+   609→   609→
+   610→   610→        // Emit player:move event
+   611→   611→        gameEvents.emit('player:move', { row: this.player.row, col: this.player.col });
+   612→   612→
+   613→   613→        // Update save state
+   614→   614→        saveManager.updateGameState({
+   615→   615→          playerPosition: { row: this.player.row, col: this.player.col },
+   616→   616→          playerDirection: this.player.facing,
+   617→   617→        });
+   618→   618→
+   619→   619→        // Check trigger zones
+   620→   620→        this._checkTriggerZones(now);
+   621→   621→
+   622→   622→        // Process buffered direction
+   623→   623→        if (this.player.bufferedDir) {
+   624→   624→          const bufDir = this.player.bufferedDir;
+   625→   625→          this.player.bufferedDir = null;
+   626→   626→          this._tryMove(bufDir, now);
+   627→   627→        } else {
+   628→   628→          // Switch to idle
+   629→   629→          this.player.animFrame = 0;
+   630→   630→          this.player.animTimer = 0;
+   631→   631→        }
+   632→   632→      }
+   633→   633→    } else {
+   634→   634→      // Idle animation
+   635→   635→      this.player.animTimer += dt;
+   636→   636→      if (this.player.animTimer >= IDLE_ANIM_RATE) {
+   637→   637→        this.player.animTimer -= IDLE_ANIM_RATE;
+   638→   638→        this.player.animFrame++;
+   639→   639→      }
+   640→   640→
+   641→   641→      // Snap pixel position to tile (safety)
+   642→   642→      this.player.pixelX = this.player.col * TILE_SIZE;
+   643→   643→      this.player.pixelY = this.player.row * TILE_SIZE;
+   644→   644→    }
+   645→   645→  }
+   646→   646→
+   647→   647→  // ═══════════════════════════════════════════════════════════════════
+   648→   648→  // COLLISION SYSTEM
+   649→   649→  // ═══════════════════════════════════════════════════════════════════
+   650→   650→
+   651→   651→  private _isCollision(row: number, col: number): boolean {
+   652→   652→    if (row < 0 || row >= this.mapHeight || col < 0 || col >= this.mapWidth) return true;
+   653→   653→    return this.collisionLayer[row]?.[col] === 1;
+   654→   654→  }
+   655→   655→
+   656→   656→  private _isNpcAtTile(row: number, col: number): boolean {
+   657→   657→    return this.npcs.some(npc => npc.visible && npc.row === row && npc.col === col);
+   658→   658→  }
+   659→   659→
+   660→   660→  private _isPropAtTile(row: number, col: number): boolean {
+   661→   661→    for (const prop of this.props) {
+   662→   662→      if (!prop.solid) continue; // Skip non-solid (decorative) props
+   663→   663→      if (row >= prop.row && row < prop.row + prop.height &&
+   664→   664→          col >= prop.col && col < prop.col + prop.width) {
+   665→   665→        return true;
+   666→   666→      }
+   667→   667→    }
+   668→   668→    return false;
+   669→   669→  }
+   670→   670→
+   671→   671→  // ═══════════════════════════════════════════════════════════════════
+   672→   672→  // CAMERA SYSTEM
+   673→   673→  // ═══════════════════════════════════════════════════════════════════
+   674→   674→
+   675→   675→  private _updateCamera(): void {
+   676→   676→    // Camera target: center on player
+   677→   677→    const playerCenterX = this.player.pixelX + TILE_SIZE / 2;
+   678→   678→    const playerCenterY = this.player.pixelY + TILE_SIZE / 2;
+   679→   679→
+   680→   680→    this.camera.targetX = playerCenterX - INTERNAL_WIDTH / 2;
+   681→   681→    this.camera.targetY = playerCenterY - INTERNAL_HEIGHT / 2;
+   682→   682→
+   683→   683→    // Clamp to map edges
+   684→   684→    const maxCamX = this.mapWidth * TILE_SIZE - INTERNAL_WIDTH;
+   685→   685→    const maxCamY = this.mapHeight * TILE_SIZE - INTERNAL_HEIGHT;
+   686→   686→    this.camera.targetX = Math.max(0, Math.min(maxCamX, this.camera.targetX));
+   687→   687→    this.camera.targetY = Math.max(0, Math.min(maxCamY, this.camera.targetY));
+   688→   688→
+   689→   689→    // Smooth lerp
+   690→   690→    this.camera.x += (this.camera.targetX - this.camera.x) * CAMERA_LERP;
+   691→   691→    this.camera.y += (this.camera.targetY - this.camera.y) * CAMERA_LERP;
+   692→   692→
+   693→   693→    // Clamp again (for precision)
+   694→   694→    this.camera.x = Math.max(0, Math.min(maxCamX, this.camera.x));
+   695→   695→    this.camera.y = Math.max(0, Math.min(maxCamY, this.camera.y));
+   696→   696→  }
+   697→   697→
+   698→   698→  private _snapCameraToPlayer(): void {
+   699→   699→    const playerCenterX = this.player.pixelX + TILE_SIZE / 2;
+   700→   700→    const playerCenterY = this.player.pixelY + TILE_SIZE / 2;
+   701→   701→    this.camera.x = playerCenterX - INTERNAL_WIDTH / 2;
+   702→   702→    this.camera.y = playerCenterY - INTERNAL_HEIGHT / 2;
+   703→   703→    const maxCamX = this.mapWidth * TILE_SIZE - INTERNAL_WIDTH;
+   704→   704→    const maxCamY = this.mapHeight * TILE_SIZE - INTERNAL_HEIGHT;
+   705→   705→    this.camera.x = Math.max(0, Math.min(maxCamX, this.camera.x));
+   706→   706→    this.camera.y = Math.max(0, Math.min(maxCamY, this.camera.y));
+   707→   707→    this.camera.targetX = this.camera.x;
+   708→   708→    this.camera.targetY = this.camera.y;
+   709→   709→  }
+   710→   710→
+   711→   711→  // ═══════════════════════════════════════════════════════════════════
+   712→   712→  // NPC UPDATES
+   713→   713→  // ═══════════════════════════════════════════════════════════════════
+   714→   714→
+   715→   715→  private _updateNPCs(dt: number): void {
+   716→   716→    for (const npc of this.npcs) {
+   717→   717→      // Check appearance condition
+   718→   718→      if (npc.appearsAfterObjective) {
+   719→   719→        const wasVisible = npc.visible;
+   720→   720→        npc.visible = saveManager.isObjectiveCompleted(npc.appearsAfterObjective);
+   721→   721→        if (npc.visible && !wasVisible) {
+   722→   722→          gameEvents.emit('ibarra:appear');
+   723→   723→        }
+   724→   724→      }
+   725→   725→
+   726→   726→      // Update idle animation
+   727→   727→      npc.animTimer += dt;
+   728→   728→      if (npc.animTimer >= IDLE_ANIM_RATE) {
+   729→   729→        npc.animTimer -= IDLE_ANIM_RATE;
+   730→   730→        npc.animFrame++;
+   731→   731→      }
+   732→   732→
+   733→   733→      // Update pixel position (NPCs don't move, but snap to tile)
+   734→   734→      npc.pixelX = npc.col * TILE_SIZE;
+   735→   735→      npc.pixelY = npc.row * TILE_SIZE;
+   736→   736→    }
+   737→   737→  }
+   738→   738→
+   739→   739→  // ═══════════════════════════════════════════════════════════════════
+   740→   740→  // INTERACTION & TRIGGER SYSTEM
+   741→   741→  // ═══════════════════════════════════════════════════════════════════
+   742→   742→
+   743→   743→  private _handleInteract(): void {
+   744→   744→    if (this.dialogue.active) {
+   745→   745→      // Advance dialogue
+   746→   746→      this.advanceDialogue();
+   747→   747→      return;
+   748→   748→    }
+   749→   749→
+   750→   750→    // Try to talk to an adjacent NPC
+   751→   751→    const facing = this.player.facing;
+   752→   752→    const offset = DIR_OFFSET[facing];
+   753→   753→    const targetRow = this.player.row + offset.dr;
+   754→   754→    const targetCol = this.player.col + offset.dc;
+   755→   755→
+   756→   756→    // Check NPCs at target tile or current tile
+   757→   757→    let closestNpc: NPCState | null = null;
+   758→   758→    let closestDist = Infinity;
+   759→   759→
+   760→   760→    for (const npc of this.npcs) {
+   761→   761→      if (!npc.visible) continue;
+   762→   762→      const dist = Math.abs(npc.row - targetRow) + Math.abs(npc.col - targetCol);
+   763→   763→      if (dist === 0 && dist < closestDist) {
+   764→   764→        closestNpc = npc;
+   765→   765→        closestDist = dist;
+   766→   766→      }
+   767→   767→    }
+   768→   768→
+   769→   769→    // Also check NPCs on player's tile (standing on top of them)
+   770→   770→    if (!closestNpc) {
+   771→   771→      for (const npc of this.npcs) {
+   772→   772→        if (!npc.visible) continue;
+   773→   773→        const dist = Math.abs(npc.row - this.player.row) + Math.abs(npc.col - this.player.col);
+   774→   774→        if (dist <= 1 && dist < closestDist) {
+   775→   775→          closestNpc = npc;
+   776→   776→          closestDist = dist;
+   777→   777→        }
+   778→   778→      }
+   779→   779→    }
+   780→   780→
+   781→   781→    if (closestNpc) {
+   782→   782→      // Face NPC toward player
+   783→   783→      closestNpc.facing = this._oppositeDirection(this.player.facing);
+   784→   784→      this._startNpcDialogue(closestNpc);
+   785→   785→    }
+   786→   786→  }
+   787→   787→
+   788→   788→  private _startNpcDialogue(npc: NPCState): void {
+   789→   789→    // Increment interaction count
+   790→   790→    this.npcInteractionCounts[npc.id] = (this.npcInteractionCounts[npc.id] || 0) + 1;
+   791→   791→    this._saveNpcInteractions();
+   792→   792→
+   793→   793→    // Determine which dialogue to use
+   794→   794→    let dialogueId: string | null = null;
+   795→   795→    const npcId = npc.id;
+   796→   796→
+   797→   797→    // Check for first-time dialogues based on NPC ID
+   798→   798→    if (npcId === 'mang-tenyo') {
+   799→   799→      if (!saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo')) {
+   800→   800→        dialogueId = 'mang-tenyo-first';
+   801→   801→      } else if (!saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+   802→   802→        dialogueId = 'mang-tenyo-repeat';
+   803→   803→      } else {
+   804→   804→        dialogueId = 'mang-tenyo-after-gossip';
+   805→   805→      }
+   806→   806→    } else if (npcId === 'vendor-1' || npcId === 'vendor-2' || npcId === 'kitchen-staff-1' || npcId === 'kitchen-staff-2') {
+   807→   807→      // Vendors share market-gossip dialogue
+   808→   808→      if (saveManager.isObjectiveCompleted('obj.ch1.follow_tenyo') && !saveManager.isObjectiveCompleted('obj.ch1.overhear_gossip')) {
+   809→   809→        dialogueId = 'market-gossip';
+   810→   810→      } else {
+   811→   811→        // Generic vendor repeat
+   812→   812→        dialogueId = 'mang-tenyo-repeat'; // Fallback
+   813→   813→      }
+   814→   814→    } else if (npcId === 'ibara') {
+   815→   815→      // Ibarra sighting
+   816→   816→      dialogueId = 'ibarra-sighting';
+   817→   817→    }
+   818→   818→
+   819→   819→    if (dialogueId && (dialogueData.dialogues as any)[dialogueId]) {
+   820→   820→      this._startDialogue(dialogueId, npcId);
+   821→   821→    }
+   822→   822→  }
+   823→   823→
+   824→   824→  private _startDialogue(dialogueId: string, npcId: string | null): void {
+   825→   825→    const dialogueObj = (dialogueData.dialogues as any)[dialogueId];
+   826→   826→    if (!dialogueObj) return;
+   827→   827→
+   828→   828→    const lines: DialogueLine[] = dialogueObj.lines.map((l: any) => ({
+   829→   829→      speaker: l.speaker,
+   830→   830→      text: l.text,
+   831→   831→      translation: l.translation,
+   832→   832→      isTimeTransition: l.isTimeTransition,
+   833→   833→      isIbarraSighting: l.isIbarraSighting,
+   834→   834→    }));
+   835→   835→
+   836→   836→    this.dialogue = {
+   837→   837→      active: true,
+   838→   838→      dialogueId,
+   839→   839→      lines,
+   840→   840→      currentLineIndex: 0,
+   841→   841→      npcId,
+   842→   842→      triggered: true,
+   843→   843→    };
+   844→   844→
+   845→   845→    // Emit dialogue:start event
+   846→   846→    const firstLine = lines[0];
+   847→   847→    gameEvents.emit('dialogue:start', {
+   848→   848→      dialogueId,
+   849→   849→      line: firstLine,
+   850→   850→      lineIndex: 0,
+   851→   851→      totalLines: lines.length,
+   852→   852→    });
+   853→   853→
+   854→   854→    // Complete any objectives this dialogue unlocks
+   855→   855→    if (dialogueObj.unlocksObjective) {
+   856→   856→      saveManager.completeObjective(dialogueObj.unlocksObjective);
+   857→   857→      saveManager.saveProgress();
+   858→   858→    }
+   859→   859→  }
+   860→   860→
+   861→   861→  advanceDialogue(): void {
+   862→   862→    if (!this.dialogue.active) return;
+   863→   863→
+   864→   864→    const nextIndex = this.dialogue.currentLineIndex + 1;
+   865→   865→
+   866→   866→    if (nextIndex >= this.dialogue.lines.length) {
+   867→   867→      // End dialogue
+   868→   868→      const wasTimeTransition = this.dialogue.lines.some(l => l.isTimeTransition);
+   869→   869→
+   870→   870→      this.dialogue = {
+   871→   871→        active: false,
+   872→   872→        dialogueId: null,
+   873→   873→        lines: [],
+   874→   874→        currentLineIndex: 0,
+   875→   875→        npcId: null,
+   876→   876→        triggered: false,
+   877→   877→      };
+   878→   878→
+   879→   879→      gameEvents.emit('dialogue:end');
+   880→   880→
+   881→   881→      // Handle time transition
+   882→   882→      if (wasTimeTransition) {
+   883→   883→        gameEvents.emit('time:transition', 'morning');
+   884→   884→        saveManager.updateGameState({ timeOfDay: 'morning', chapterPhase: 'ibarra-sighting' });
+   885→   885→        soundManager.play('time-transition');
+   886→   886→      }
+   887→   887→
+   888→   888→      return;
+   889→   889→    }
+   890→   890→
+   891→   891→    // Advance to next line
+   892→   892→    this.dialogue.currentLineIndex = nextIndex;
+   893→   893→    const line = this.dialogue.lines[nextIndex];
+   894→   894→
+   895→   895→    gameEvents.emit('dialogue:line', {
+   896→   896→      dialogueId: this.dialogue.dialogueId,
+   897→   897→      line,
+   898→   898→      lineIndex: nextIndex,
+   899→   899→      totalLines: this.dialogue.lines.length,
+   900→   900→    });
+   901→   901→
+   902→   902→    // Handle time transition in dialogue line
+   903→   903→    if (line.isTimeTransition) {
+   904→   904→      gameEvents.emit('time:transition', 'morning');
+   905→   905→      saveManager.updateGameState({ timeOfDay: 'morning' });
+   906→   906→    }
+   907→   907→  }
+   908→   908→
+   909→   909→  private _checkTriggerZones(now: number): void {
+   910→   910→    for (const zone of this.triggerZones) {
+   911→   911→      if (zone.triggered) continue;
+   912→   912→
+   913→   913→      // Check objective requirement
+   914→   914→      if (zone.requiresObjective && !saveManager.isObjectiveCompleted(zone.requiresObjective)) continue;
+   915→   915→
+   916→   916→      // Check if player is in the zone
+   917→   917→      const inZone = this.player.row >= zone.row && this.player.row < zone.row + zone.height &&
+   918→   918→                     this.player.col >= zone.col && this.player.col < zone.col + zone.width;
+   919→   919→
+   920→   920→      // Or within radius
+   921→   921→      const centerRow = zone.row + (zone.height - 1) / 2;
+   922→   922→      const centerCol = zone.col + (zone.width - 1) / 2;
+   923→   923→      const dist = Math.sqrt(
+   924→   924→        Math.pow(this.player.row - centerRow, 2) +
+   925→   925→        Math.pow(this.player.col - centerCol, 2)
+   926→   926→      );
+   927→   927→      const inRadius = zone.radius > 0 && dist <= zone.radius;
+   928→   928→
+   929→   929→      if (inZone || inRadius) {
+   930→   930→        zone.triggered = true;
+   931→   931→
+   932→   932→        if (zone.dialogueId) {
+   933→   933→          this._startDialogue(zone.dialogueId, zone.npcId || null);
+   934→   934→        }
+   935→   935→
+   936→   936→        gameEvents.emit('interaction:trigger', { zoneId: zone.id, type: zone.type });
+   937→   937→
+   938→   938→        // If this triggers a time transition, handle it
+   939→   939→        if (zone.triggersTimeTransition) {
+   940→   940→          // Time transition will be handled by the dialogue lines
+   941→   941→        }
+   942→   942→      }
+   943→   943→    }
+   944→   944→  }
+   945→   945→
+   946→   946→  // ═══════════════════════════════════════════════════════════════════
+   947→   947→  // AMBIENT SOUND TRACKING
+   948→   948→  // ═══════════════════════════════════════════════════════════════════
+   949→   949→
+   950→   950→  private _updateAmbient(): void {
+   951→   951→    // Check if player is near market area (rows 17-22, cols 3-22)
+   952→   952→    const nearMarket = this.player.row >= 16 && this.player.row <= 23 &&
+   953→   953→                       this.player.col >= 2 && this.player.col <= 23;
+   954→   954→
+   955→   955→    if (nearMarket && !this.wasNearMarket) {
+   956→   956→      soundManager.startMarketAmbient();
+   957→   957→      this.wasNearMarket = true;
+   958→   958→    } else if (!nearMarket && this.wasNearMarket) {
+   959→   959→      soundManager.stopMarketAmbient();
+   960→   960→      this.wasNearMarket = false;
+   961→   961→    }
+   962→   962→  }
+   963→   963→
+   964→   964→  // ═══════════════════════════════════════════════════════════════════
+   965→   965→  // RENDERING PIPELINE
+   966→   966→  // ═══════════════════════════════════════════════════════════════════
+   967→   967→
+   968→   968→  private _render(): void {
+   969→   969→    if (!this.offCtx || !this.ctx) return;
+   970→   970→
+   971→   971→    const ctx = this.offCtx;
+   972→   972→
+   973→   973→    // Clear
+   974→   974→    ctx.fillStyle = '#1a1a2e';
+   975→   975→    ctx.fillRect(0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT);
+   976→   976→
+   977→   977→    const camX = Math.round(this.camera.x);
+   978→   978→    const camY = Math.round(this.camera.y);
+   979→   979→
+   980→   980→    // Calculate visible tile range
+   981→   981→    const startCol = Math.floor(camX / TILE_SIZE);
+   982→   982→    const startRow = Math.floor(camY / TILE_SIZE);
+   983→   983→    const endCol = Math.ceil((camX + INTERNAL_WIDTH) / TILE_SIZE);
+   984→   984→    const endRow = Math.ceil((camY + INTERNAL_HEIGHT) / TILE_SIZE);
+   985→   985→
+   986→   986→    // ── LAYER 1: Ground tiles ──
+   987→   987→    this._renderGroundTiles(ctx, camX, camY, startRow, endRow, endCol);
+   988→   988→
+   989→   989→    // ── LAYER 2: Building sprites ──
+   990→   990→    this._renderBuildings(ctx, camX, camY);
+   991→   991→
+   992→   992→    // ── LAYER 3: Props (below characters) ──
+   993→   993→    this._renderProps(ctx, camX, camY);
+   994→   994→
+   995→   995→    // ── LAYER 4: Y-sorted characters (NPCs + Player) ──
+   996→   996→    this._renderCharacters(ctx, camX, camY);
+   997→   997→
+   998→   998→    // ── LAYER 5: Overlay (shadows) ──
+   999→   999→    this._renderOverlay(ctx, camX, camY, startRow, endRow, endCol);
+  1000→  1000→
+  1001→  1001→    // ── Copy to display canvas ──
+  1002→  1002→    this.ctx.imageSmoothingEnabled = false;
+  1003→  1003→    this.ctx.drawImage(this.offscreen!, 0, 0);
+  1004→  1004→  }
+  1005→  1005→
+  1006→  1006→  private _renderGroundTiles(
+  1007→  1007→    ctx: CanvasRenderingContext2D, camX: number, camY: number,
+  1008→  1008→    startRow: number, endRow: number, endCol: number
+  1009→  1009→  ): void {
+  1010→  1010→    // Tile types that are buildings (rendered as sprites, not tiles)
+  1011→  1011→    const BUILDING_TILE_TYPES = new Set([5, 6]);
+  1012→  1012→
+  1013→  1013→    // Fallback colors for tile types without images
+  1014→  1014→    const fallbackColors: Record<number, string> = {
+  1015→  1015→      1: '#C4A76C', 2: '#8FBC8F', 3: '#D2B48C', 4: '#A0522D',
+  1016→  1016→      5: '#696969', 6: '#8B4513', 7: '#6B8E6B', 8: '#555555',
+  1017→  1017→      9: '#B8A070', 10: '#4A90A4', 11: '#7CB342', 12: '#00000033',
+  1018→  1018→    };
+  1019→  1019→
+  1020→  1020→    for (let row = startRow; row <= endRow && row < this.mapHeight; row++) {
+  1021→  1021→      if (row < 0) continue;
+  1022→  1022→      for (let col = 0; col <= endCol && col < this.mapWidth; col++) {
+  1023→  1023→        if (col < 0) continue;
+  1024→  1024→
+  1025→  1025→        const tileType = this.groundLayer[row]?.[col] || 0;
+  1026→  1026→        if (tileType === 0) continue; // Empty tile — should not exist but safety check
+  1027→  1027→
+  1028→  1028→        // Skip building tile types (church=5, mansion=6) — they are rendered as sprites
+  1029→  1029→        if (BUILDING_TILE_TYPES.has(tileType)) continue;
+  1030→  1030→
+  1031→  1031→        const screenX = col * TILE_SIZE - camX;
+  1032→  1032→        const screenY = row * TILE_SIZE - camY;
+  1033→  1033→
+  1034→  1034→        // Render tile image from assetManager
+  1035→  1035→        const tileAsset = assetManager.getTile(tileType);
+  1036→  1036→        if (tileAsset) {
+  1037→  1037→          ctx.drawImage(tileAsset.canvas, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE, screenX, screenY, TILE_SIZE, TILE_SIZE);
+  1038→  1038→        } else {
+  1039→  1039→          // Fallback: colored rectangle for tiles without images
+  1040→  1040→          ctx.fillStyle = fallbackColors[tileType] || '#FF00FF';
+  1041→  1041→          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+  1042→  1042→        }
+  1043→  1043→      }
+  1044→  1044→    }
+  1045→  1045→  }
+  1046→  1046→
+  1047→  1047→  private _renderBuildings(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  1048→  1048→    for (const building of this.buildings) {
+  1049→  1049→      const buildingAsset = assetManager.getBuilding(building.key);
+  1050→  1050→      if (!buildingAsset) continue;
+  1051→  1051→
+  1052→  1052→      // Building position in internal pixels
+  1053→  1053→      const bx = building.col * TILE_SIZE - camX;
+  1054→  1054→      const by = building.row * TILE_SIZE - camY;
+  1055→  1055→
+  1056→  1056→      // Scale building sprite to tile footprint
+  1057→  1057→      const drawWidth = building.width * TILE_SIZE;
+  1058→  1058→      const drawHeight = building.height * TILE_SIZE;
+  1059→  1059→
+  1060→  1060→      ctx.drawImage(
+  1061→  1061→        buildingAsset.image,
+  1062→  1062→        0, 0, buildingAsset.image.width, buildingAsset.image.height,
+  1063→  1063→        bx, by, drawWidth, drawHeight
+  1064→  1064→      );
+  1065→  1065→    }
+  1066→  1066→  }
+  1067→  1067→
+  1068→  1068→  private _renderProps(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  1069→  1069→    for (const prop of this.props) {
+  1070→  1070→      const propAsset = assetManager.getProp(prop.key);
+  1071→  1071→      if (!propAsset) continue;
+  1072→  1072→
+  1073→  1073→      const px = prop.col * TILE_SIZE - camX;
+  1074→  1074→      const py = prop.row * TILE_SIZE - camY;
+  1075→  1075→      const drawWidth = prop.width * TILE_SIZE;
+  1076→  1076→      const drawHeight = prop.height * TILE_SIZE;
+  1077→  1077→
+  1078→  1078→      ctx.drawImage(
+  1079→  1079→        propAsset.image,
+  1080→  1080→        0, 0, propAsset.image.width, propAsset.image.height,
+  1081→  1081→        px, py, drawWidth, drawHeight
+  1082→  1082→      );
+  1083→  1083→    }
+  1084→  1084→  }
+  1085→  1085→
+  1086→  1086→  private _renderCharacters(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  1087→  1087→    // Collect all renderable characters with their Y position for sorting
+  1088→  1088→    interface Renderable {
+  1089→  1089→      type: 'player' | 'npc';
+  1090→  1090→      y: number;
+  1091→  1091→      data: any;
+  1092→  1092→    }
+  1093→  1093→
+  1094→  1094→    const renderables: Renderable[] = [];
+  1095→  1095→
+  1096→  1096→    // Add player
+  1097→  1097→    renderables.push({
+  1098→  1098→      type: 'player',
+  1099→  1099→      y: this.player.pixelY + TILE_SIZE, // Bottom of sprite for Y-sorting
+  1100→  1100→      data: this.player,
+  1101→  1101→    });
+  1102→  1102→
+  1103→  1103→    // Add visible NPCs
+  1104→  1104→    for (const npc of this.npcs) {
+  1105→  1105→      if (!npc.visible) continue;
+  1106→  1106→      renderables.push({
+  1107→  1107→        type: 'npc',
+  1108→  1108→        y: npc.pixelY + TILE_SIZE,
+  1109→  1109→        data: npc,
+  1110→  1110→      });
+  1111→  1111→    }
+  1112→  1112→
+  1113→  1113→    // Sort by Y position (top to bottom)
+  1114→  1114→    renderables.sort((a, b) => a.y - b.y);
+  1115→  1115→
+  1116→  1116→    // Render in sorted order
+  1117→  1117→    for (const r of renderables) {
+  1118→  1118→      if (r.type === 'player') {
+  1119→  1119→        this._renderPlayer(ctx, camX, camY);
+  1120→  1120→      } else {
+  1121→  1121→        this._renderNPC(ctx, r.data as NPCState, camX, camY);
+  1122→  1122→      }
+  1123→  1123→    }
+  1124→  1124→  }
+  1125→  1125→
+  1126→  1126→  private _renderPlayer(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  1127→  1127→    const screenX = this.player.pixelX - camX;
+  1128→  1128→    const screenY = this.player.pixelY - camY;
+  1129→  1129→
+  1130→  1130→    // Try to get player sprite from spriteLoader
+  1131→  1131→    const facing = DIR_TO_FACING[this.player.facing];
+  1132→  1132→    const isMoving = this.player.isSliding;
+  1133→  1133→    const animName = isMoving ? 'Walk' : 'Breathing_Idle';
+  1134→  1134→
+  1135→  1135→    const frameCount = spriteLoader.getAnimationFrameCount('student', animName);
+  1136→  1136→    const frameIndex = frameCount > 0 ? this.player.animFrame % frameCount : 0;
+  1137→  1137→
+  1138→  1138→    const frame = spriteLoader.getFrame('student', animName, facing, frameIndex);
+  1139→  1139→
+  1140→  1140→    if (frame) {
+  1141→  1141→      // Draw the sprite frame scaled to CHAR_RENDER_SIZE
+  1142→  1142→      const drawSize = CHAR_RENDER_SIZE;
+  1143→  1143→      const offsetX = (TILE_SIZE - drawSize) / 2;
+  1144→  1144→      const offsetY = TILE_SIZE - drawSize; // Character bottom aligns with tile bottom
+  1145→  1145→
+  1146→  1146→      ctx.drawImage(
+  1147→  1147→        frame,
+  1148→  1148→        0, 0, frame.width, frame.height,
+  1149→  1149→        screenX + offsetX, screenY + offsetY, drawSize, drawSize
+  1150→  1150→      );
+  1151→  1151→    } else {
+  1152→  1152→      // Fallback: draw a colored character
+  1153→  1153→      this._drawPlaceholderCharacter(ctx, screenX, screenY, '#4A90D9', 'P');
+  1154→  1154→    }
+  1155→  1155→  }
+  1156→  1156→
+  1157→  1157→  private _renderNPC(ctx: CanvasRenderingContext2D, npc: NPCState, camX: number, camY: number): void {
+  1158→  1158→    const screenX = npc.pixelX - camX;
+  1159→  1159→    const screenY = npc.pixelY - camY;
+  1160→  1160→
+  1161→  1161→    // Try to render using sprite sheet from assetManager
+  1162→  1162→    if (npc.spriteSheet) {
+  1163→  1163→      const spriteSet = assetManager.getNpcSheet(npc.spriteSheet);
+  1164→  1164→      if (spriteSet) {
+  1165→  1165→        const facing = DIR_TO_FACING[npc.facing];
+  1166→  1166→        const frames = spriteSet.idle; // NPCs use idle animation
+  1167→  1167→        const dirFrames = frames[facing] || frames['south'];
+  1168→  1168→
+  1169→  1169→        if (dirFrames && dirFrames.length > 0) {
+  1170→  1170→          const frameIndex = npc.animFrame % dirFrames.length;
+  1171→  1171→          const frame = dirFrames[frameIndex];
+  1172→  1172→
+  1173→  1173→          // Scale NPC sprite to fit character render area
+  1174→  1174→          const drawWidth = CHAR_RENDER_SIZE;
+  1175→  1175→          const drawHeight = CHAR_RENDER_SIZE + 8; // NPCs can be slightly taller
+  1176→  1176→          const offsetX = (TILE_SIZE - drawWidth) / 2;
+  1177→  1177→          const offsetY = TILE_SIZE - drawHeight;
+  1178→  1178→
+  1179→  1179→          ctx.drawImage(
+  1180→  1180→            frame.canvas,
+  1181→  1181→            0, 0, frame.width, frame.height,
+  1182→  1182→            screenX + offsetX, screenY + offsetY, drawWidth, drawHeight
+  1183→  1183→          );
+  1184→  1184→          return;
+  1185→  1185→        }
+  1186→  1186→      }
+  1187→  1187→    }
+  1188→  1188→
+  1189→  1189→    // Try spriteLoader as fallback (for ibara)
+  1190→  1190→    const charKey = npc.characterKey;
+  1191→  1191→    const facing = DIR_TO_FACING[npc.facing];
+  1192→  1192→    const frame = spriteLoader.getFrame(charKey, 'Breathing_Idle', facing, npc.animFrame % 4);
+  1193→  1193→
+  1194→  1194→    if (frame) {
+  1195→  1195→      const drawSize = CHAR_RENDER_SIZE;
+  1196→  1196→      const offsetX = (TILE_SIZE - drawSize) / 2;
+  1197→  1197→      const offsetY = TILE_SIZE - drawSize;
+  1198→  1198→
+  1199→  1199→      ctx.drawImage(
+  1200→  1200→        frame,
+  1201→  1201→        0, 0, frame.width, frame.height,
+  1202→  1202→        screenX + offsetX, screenY + offsetY, drawSize, drawSize
+  1203→  1203→      );
+  1204→  1204→    } else {
+  1205→  1205→      // Final fallback: colored placeholder
+  1206→  1206→      const npcColors: Record<string, string> = {
+  1207→  1207→        'mang-tenyo': '#8B4513',
+  1208→  1208→        'vendor-1': '#D2691E',
+  1209→  1209→        'vendor-2': '#CD853F',
+  1210→  1210→        'ibara': '#1E3A5F',
+  1211→  1211→        'kitchen-staff-1': '#D2691E',
+  1212→  1212→        'kitchen-staff-2': '#CD853F',
+  1213→  1213→      };
+  1214→  1214→      const color = npcColors[npc.id] || '#FF6B6B';
+  1215→  1215→      this._drawPlaceholderCharacter(ctx, screenX, screenY, color, npc.displayName.substring(0, 2));
+  1216→  1216→    }
+  1217→  1217→  }
+  1218→  1218→
+  1219→  1219→  private _drawPlaceholderCharacter(
+  1220→  1220→    ctx: CanvasRenderingContext2D, x: number, y: number,
+  1221→  1221→    color: string, label: string
+  1222→  1222→  ): void {
+  1223→  1223→    // Simple pixel-art style character placeholder
+  1224→  1224→    const cx = x + TILE_SIZE / 2;
+  1225→  1225→    const cy = y + TILE_SIZE / 2;
+  1226→  1226→
+  1227→  1227→    // Body
+  1228→  1228→    ctx.fillStyle = color;
+  1229→  1229→    ctx.fillRect(cx - 5, cy - 8, 10, 16);
+  1230→  1230→
+  1231→  1231→    // Head
+  1232→  1232→    ctx.fillStyle = color;
+  1233→  1233→    ctx.fillRect(cx - 4, cy - 14, 8, 8);
+  1234→  1234→
+  1235→  1235→    // Eyes
+  1236→  1236→    ctx.fillStyle = '#000000';
+  1237→  1237→    ctx.fillRect(cx - 2, cy - 12, 1, 1);
+  1238→  1238→    ctx.fillRect(cx + 1, cy - 12, 1, 1);
+  1239→  1239→
+  1240→  1240→    // Label
+  1241→  1241→    ctx.fillStyle = '#FFFFFF';
+  1242→  1242→    ctx.font = '4px monospace';
+  1243→  1243→    ctx.textAlign = 'center';
+  1244→  1244→    ctx.fillText(label, cx, y + TILE_SIZE + 4);
+  1245→  1245→  }
+  1246→  1246→
+  1247→  1247→  private _renderOverlay(
+  1248→  1248→    ctx: CanvasRenderingContext2D, camX: number, camY: number,
+  1249→  1249→    startRow: number, endRow: number, endCol: number
+  1250→  1250→  ): void {
+  1251→  1251→    for (let row = startRow; row <= endRow && row < this.mapHeight; row++) {
+  1252→  1252→      if (row < 0) continue;
+  1253→  1253→      for (let col = 0; col <= endCol && col < this.mapWidth; col++) {
+  1254→  1254→        if (col < 0) continue;
+  1255→  1255→
+  1256→  1256→        const overlayType = this.overlayLayer[row]?.[col] || 0;
+  1257→  1257→        if (overlayType === 0) continue;
+  1258→  1258→
+  1259→  1259→        const screenX = col * TILE_SIZE - camX;
+  1260→  1260→        const screenY = row * TILE_SIZE - camY;
+  1261→  1261→
+  1262→  1262→        const tileAsset = assetManager.getTile(overlayType);
+  1263→  1263→        if (tileAsset) {
+  1264→  1264→          ctx.globalAlpha = 0.5;
+  1265→  1265→          ctx.drawImage(tileAsset.canvas, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE, screenX, screenY, TILE_SIZE, TILE_SIZE);
+  1266→  1266→          ctx.globalAlpha = 1.0;
+  1267→  1267→        }
+  1268→  1268→      }
+  1269→  1269→    }
+  1270→  1270→  }
+  1271→  1271→
+  1272→  1272→  // ═══════════════════════════════════════════════════════════════════
+  1273→  1273→  // GAME LOOP
+  1274→  1274→  // ═══════════════════════════════════════════════════════════════════
+  1275→  1275→
+  1276→  1276→  private _gameLoop = (now: number): void => {
+  1277→  1277→    if (!this.running) return;
+  1278→  1278→
+  1279→  1279→    const dt = Math.min(now - this.lastTime, 50); // Cap delta to avoid huge jumps
+  1280→  1280→    this.lastTime = now;
+  1281→  1281→
+  1282→  1282→    // Update systems
+  1283→  1283→    this._updateMovement(now, dt);
+  1284→  1284→    this._updateNPCs(dt);
+  1285→  1285→    this._updateCamera();
+  1286→  1286→    this._updateAmbient();
+  1287→  1287→
+  1288→  1288→    // Render
+  1289→  1289→    this._render();
+  1290→  1290→
+  1291→  1291→    // Schedule next frame
+  1292→  1292→    this.animFrameId = requestAnimationFrame(this._gameLoop);
+  1293→  1293→  };
+  1294→  1294→
+  1295→  1295→  // ═══════════════════════════════════════════════════════════════════
+  1296→  1296→  // UTILITY METHODS
+  1297→  1297→  // ═══════════════════════════════════════════════════════════════════
+  1298→  1298→
+  1299→  1299→  private _toDirection4(dir: string): Direction4 {
+  1300→  1300→    const map8to4: Record<string, Direction4> = {
+  1301→  1301→      'south': 'south', 'south-east': 'south', 'south-west': 'south',
+  1302→  1302→      'north': 'north', 'north-east': 'north', 'north-west': 'north',
+  1303→  1303→      'east': 'east', 'west': 'west',
+  1304→  1304→    };
+  1305→  1305→    return map8to4[dir] || 'south';
+  1306→  1306→  }
+  1307→  1307→
+  1308→  1308→  private _oppositeDirection(dir: Direction4): Direction4 {
+  1309→  1309→    const opposites: Record<Direction4, Direction4> = {
+  1310→  1310→      north: 'south', south: 'north', east: 'west', west: 'east',
+  1311→  1311→    };
+  1312→  1312→    return opposites[dir];
+  1313→  1313→  }
+  1314→  1314→
+  1315→  1315→  private _loadNpcInteractions(): void {
+  1316→  1316→    try {
+  1317→  1317→      const raw = localStorage.getItem('noor-npc-interactions');
+  1318→  1318→      if (raw) {
+  1319→  1319→        this.npcInteractionCounts = JSON.parse(raw);
+  1320→  1320→      }
+  1321→  1321→    } catch {
+  1322→  1322→      this.npcInteractionCounts = {};
+  1323→  1323→    }
+  1324→  1324→  }
+  1325→  1325→
+  1326→  1326→  private _saveNpcInteractions(): void {
+  1327→  1327→    try {
+  1328→  1328→      // Also save in the format expected by gameStore warmth system
+  1329→  1329→      const data: Record<string, { timesTalked: number }> = {};
+  1330→  1330→      for (const [id, count] of Object.entries(this.npcInteractionCounts)) {
+  1331→  1331→        data[id] = { timesTalked: count };
+  1332→  1332→      }
+  1333→  1333→      localStorage.setItem('noor-npc-interactions', JSON.stringify(data));
+  1334→  1334→    } catch {
+  1335→  1335→      // Ignore
+  1336→  1336→    }
+  1337→  1337→  }
+  1338→  1338→
+  1339→  1339→  // ═══════════════════════════════════════════════════════════════════
+  1340→  1340→  // PUBLIC API (used by GameCanvas and external controls)
+  1341→  1341→  // ═══════════════════════════════════════════════════════════════════
+  1342→  1342→
+  1343→  1343→  getPlayerPosition(): { row: number; col: number } {
+  1344→  1344→    return { row: this.player.row, col: this.player.col };
+  1345→  1345→  }
+  1346→  1346→
+  1347→  1347→  getPlayerFacing(): Direction4 {
+  1348→  1348→    return this.player.facing;
+  1349→  1349→  }
+  1350→  1350→
+  1351→  1351→  isDialogueActive(): boolean {
+  1352→  1352→    return this.dialogue.active;
+  1353→  1353→  }
+  1354→  1354→
+  1355→  1355→  getMapDimensions(): { width: number; height: number } {
+  1356→  1356→    return { width: this.mapWidth, height: this.mapHeight };
+  1357→  1357→  }
+  1358→  1358→
+  1359→  1359→  getCollisionMap(): number[][] {
+  1360→  1360→    return this.collisionLayer;
+  1361→  1361→  }
+  1362→  1362→
+  1363→  1363→  getNpcStates(): NPCState[] {
+  1364→  1364→    return this.npcs;
+  1365→  1365→  }
+  1366→  1366→}
+  1367→  1367→
+  1368→  1368→export default GameEngine;
+  1369→  1369→

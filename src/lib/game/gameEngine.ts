@@ -1032,9 +1032,14 @@ class GameEngine {
         const screenY = row * TILE_SIZE - camY;
 
         // Render tile image from assetManager
+        // Tile canvas is pre-rendered at DISPLAY_TILE_SIZE (48×48)
+        // We draw it scaled down to TILE_SIZE (24×24) in internal coords
+        // Use bilinear for clean 2:1 downscale
         const tileAsset = assetManager.getTile(tileType);
         if (tileAsset) {
+          ctx.imageSmoothingEnabled = true;
           ctx.drawImage(tileAsset.canvas, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE, screenX, screenY, TILE_SIZE, TILE_SIZE);
+          ctx.imageSmoothingEnabled = false;
         } else {
           // Fallback: colored rectangle for tiles without images
           ctx.fillStyle = fallbackColors[tileType] || '#FF00FF';
@@ -1053,15 +1058,16 @@ class GameEngine {
       const bx = building.col * TILE_SIZE - camX;
       const by = building.row * TILE_SIZE - camY;
 
-      // Scale building sprite to tile footprint
-      const drawWidth = building.width * TILE_SIZE;
-      const drawHeight = building.height * TILE_SIZE;
-
+      // Use pre-rendered canvas (already at display size)
+      // Scale from display size down to internal size with bilinear for clean result
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(
-        buildingAsset.image,
-        0, 0, buildingAsset.image.width, buildingAsset.image.height,
-        bx, by, drawWidth, drawHeight
+        buildingAsset.canvas,
+        0, 0, buildingAsset.displayWidth, buildingAsset.displayHeight,
+        bx, by, buildingAsset.internalWidth, buildingAsset.internalHeight
       );
+      ctx.imageSmoothingEnabled = false;
     }
   }
 
@@ -1072,14 +1078,17 @@ class GameEngine {
 
       const px = prop.col * TILE_SIZE - camX;
       const py = prop.row * TILE_SIZE - camY;
-      const drawWidth = prop.width * TILE_SIZE;
-      const drawHeight = prop.height * TILE_SIZE;
 
+      // Use pre-rendered canvas (already at display size)
+      // Scale from display size down to internal size with bilinear for clean result
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(
-        propAsset.image,
-        0, 0, propAsset.image.width, propAsset.image.height,
-        px, py, drawWidth, drawHeight
+        propAsset.canvas,
+        0, 0, propAsset.displayWidth, propAsset.displayHeight,
+        px, py, propAsset.internalWidth, propAsset.internalHeight
       );
+      ctx.imageSmoothingEnabled = false;
     }
   }
 
@@ -1139,15 +1148,19 @@ class GameEngine {
 
     if (frame) {
       // Draw the sprite frame scaled to CHAR_RENDER_SIZE
+      // Use bilinear for smooth character downscaling, then nearest-neighbor for display
       const drawSize = CHAR_RENDER_SIZE;
       const offsetX = (TILE_SIZE - drawSize) / 2;
       const offsetY = TILE_SIZE - drawSize; // Character bottom aligns with tile bottom
 
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(
         frame,
         0, 0, frame.width, frame.height,
         screenX + offsetX, screenY + offsetY, drawSize, drawSize
       );
+      ctx.imageSmoothingEnabled = false;
     } else {
       // Fallback: draw a colored character
       this._drawPlaceholderCharacter(ctx, screenX, screenY, '#4A90D9', 'P');
@@ -1176,11 +1189,14 @@ class GameEngine {
           const offsetX = (TILE_SIZE - drawWidth) / 2;
           const offsetY = TILE_SIZE - drawHeight;
 
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(
             frame.canvas,
             0, 0, frame.width, frame.height,
             screenX + offsetX, screenY + offsetY, drawWidth, drawHeight
           );
+          ctx.imageSmoothingEnabled = false;
           return;
         }
       }
@@ -1196,11 +1212,14 @@ class GameEngine {
       const offsetX = (TILE_SIZE - drawSize) / 2;
       const offsetY = TILE_SIZE - drawSize;
 
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(
         frame,
         0, 0, frame.width, frame.height,
         screenX + offsetX, screenY + offsetY, drawSize, drawSize
       );
+      ctx.imageSmoothingEnabled = false;
     } else {
       // Final fallback: colored placeholder
       const npcColors: Record<string, string> = {

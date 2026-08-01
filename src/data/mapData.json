@@ -5083,9 +5083,9 @@
       "key": "mansion",
       "row": 22,
       "col": 30,
-      "width": 5,
+      "width": 4,
       "height": 3,
-      "spriteWidth": 240,
+      "spriteWidth": 192,
       "spriteHeight": 144
     }
   ],
@@ -5094,10 +5094,10 @@
       "key": "market_stalls",
       "row": 17,
       "col": 4,
-      "width": 12,
-      "height": 3,
-      "spriteWidth": 576,
-      "spriteHeight": 192,
+      "width": 6,
+      "height": 2,
+      "spriteWidth": 288,
+      "spriteHeight": 96,
       "solid": false
     },
     {

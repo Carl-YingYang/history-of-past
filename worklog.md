@@ -2062,3 +2062,31 @@ Stage Summary:
 - All existing systems preserved (dialogue, quests, save, HUD, achievements)
 - Zero lint errors
 - Game is playable end-to-end
+---
+Task ID: map-layout-fix
+Agent: main-agent
+Task: Fix map layout - proper Pokemon-town design with connected paths
+
+Work Log:
+- Analyzed current game state with agent-browser: map was "messy and disjointed"
+- Identified problems: paths don't connect, right side empty, spawn has no path to town, too many unwalkable grass tiles
+- Redesigned entire 40×30 map with proper zone layout:
+  - Stone wall border (rows 0, 29, cols 0, 39)
+  - Church & Convent zone (rows 3-7, cols 3-7) with flowerbed border
+  - Cobblestone plaza (rows 10-14, cols 8-31) with fountain at center
+  - Market zone (rows 16-20, cols 3-22) with market_floor tiles
+  - Ibarra Mansion (rows 22-24, cols 30-34) with garden
+  - Rice paddy area (rows 25-28, cols 5-10)
+  - Main N-S path at col 20 connecting all zones
+  - Horizontal connecting paths at rows 9, 15, 25
+- Verified: 994 walkable tiles, 0 empty tiles, all zones reachable from spawn
+- Fixed engine bugs: building types skip ground pass, prop collision for solid props only
+- Verified with agent-browser: "Pokemon GBA-style pixel art RPG, clean and structured, well-defined paths connecting areas"
+- Pushed to GitHub (main + master)
+
+Stage Summary:
+- Map is now a proper Pokemon-style town with connected zones
+- Tile rendering uses actual PNG images
+- Grid movement works correctly
+- All zones reachable from player spawn
+- Zero lint errors
